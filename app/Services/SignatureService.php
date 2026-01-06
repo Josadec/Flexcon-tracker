@@ -137,12 +137,15 @@ class SignatureService
                 
                 // Add signature on last page
                 if ($pageNo === $pageCount) {
-                    // Add signature image (bottom right corner)
-                    $signatureWidth = 40;
-                    $signatureHeight = 20;
-                    $x = $size['width'] - $signatureWidth - 10;
-                    $y = $size['height'] - $signatureHeight - 10;
+                    // Signature dimensions - larger size
+                    $signatureWidth = 80;  // Increased from 40
+                    $signatureHeight = 40; // Increased from 20
                     
+                    // Center horizontally, position in lower third of page
+                    $x = ($size['width'] - $signatureWidth) / 2;
+                    $y = $size['height'] - $signatureHeight - 60; // More space from bottom
+                    
+                    // Add signature image (centered)
                     $pdf->Image($signatureImagePath, $x, $y, $signatureWidth, $signatureHeight, 'PNG');
                     
                     // Add signature info text
