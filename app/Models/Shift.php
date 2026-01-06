@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
+use Carbon\Carbon;
 
 class Shift extends Model
 {
@@ -29,21 +31,53 @@ class Shift extends Model
      * Relationships with other models
      */
 
-    //pending
-    /* public function Employees(): HasMany
+    /**
+     * Get all employees (users with employee role) for this shift
+     */
+    public function employees(): HasMany
     {
-        return $this->hasMany(Employee::class);
-    } */
-
-
-    public function ProuctionSessions(): HasMany
-    {
-        return $this->hasMany(ProductionSession::class);
+        return $this->hasMany(User::class);
     }
+
+
+    // TODO: Uncomment when ProductionSession model is created
+    // public function ProuctionSessions(): HasMany
+    // {
+    //     return $this->hasMany(ProductionSession::class);
+    // }
 
     public function BreakTimes(): HasMany
     {
         return $this->hasMany(BreakTime::class);
+    }
+
+    /**
+     * Get all overtime records for this shift
+     */
+    public function overTimes(): HasMany
+    {
+        return $this->hasMany(OverTime::class);
+    }
+
+    /**
+     * Get overtime records for a specific date
+     */
+    public function overTimesForDate(Carbon $date): Collection
+    {
+        return $this->overTimes()
+                    ->where('date', $date->toDateString())
+                    ->get();
+    }
+
+    /**
+     * Calculate total overtime hours for a date range
+     */
+    public function getTotalOvertimeHours(Carbon $startDate, Carbon $endDate): float
+    {
+        return $this->overTimes()
+                    ->whereBetween('date', [$startDate, $endDate])
+                    ->get()
+                    ->sum('total_hours');
     }
 
     /**
@@ -102,16 +136,18 @@ class Shift extends Model
     // Método unificado para verificar si se puede eliminar
     public function canBeDeleted()
     {
-        return $this->Employees()->count() === 0
-            && $this->ProuctionSessions()->count() === 0
-            && $this->BreakTimes()->count() === 0;
+        return $this->employees()->count() === 0
+            // && $this->ProuctionSessions()->count() === 0  // TODO: Uncomment when ProductionSession model exists
+            && $this->BreakTimes()->count() === 0
+            && $this->overTimes()->count() === 0;
     }
 
     // Métodos individuales (mantener por compatibilidad)
-    public function canBeDeletedProductionSessions()
-    {
-        return $this->ProuctionSessions()->count() == 0;
-    }
+    // TODO: Uncomment when ProductionSession model is created
+    // public function canBeDeletedProductionSessions()
+    // {
+    //     return $this->ProuctionSessions()->count() == 0;
+    // }
 
     public function canBeDeletedBreakTimes()
     {

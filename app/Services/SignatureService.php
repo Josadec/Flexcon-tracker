@@ -22,17 +22,17 @@ class SignatureService
     {
         // Remove data URL prefix if present (e.g., "data:image/png;base64,")
         $base64Data = preg_replace('/^data:image\/\w+;base64,/', '', $base64Data);
-        
+
         // Decode base64 to binary
         $imageData = base64_decode($base64Data);
-        
+
         // Generate unique filename
         $filename = 'signature_' . Str::uuid() . '.png';
         $path = 'signatures/' . $filename;
-        
+
         // Store the file
         Storage::disk('public')->put($path, $imageData);
-        
+
         return $path;
     }
 
@@ -47,14 +47,14 @@ class SignatureService
     {
         // Capture and store the signature
         $signaturePath = $this->captureSignature($base64Data);
-        
+
         // Delete old signature if exists
         $oldSignature = $user->signature;
         if ($oldSignature) {
             Storage::disk('public')->delete($oldSignature->signature_path);
             $oldSignature->delete();
         }
-        
+
         // Create new user signature record
         return UserSignature::create([
             'user_id' => $user->id,
@@ -85,7 +85,7 @@ class SignatureService
     {
         // Generate signed PDF
         $signedPdfPath = $this->generateSignedPdf($purchaseOrder, $signaturePath, $user);
-        
+
         return DocumentSignature::create([
             'purchase_order_id' => $purchaseOrder->id,
             'user_id' => $user->id,
@@ -108,46 +108,54 @@ class SignatureService
     {
         $originalPdfPath = Storage::disk('public')->path($purchaseOrder->pdf_path);
         $signatureImagePath = Storage::disk('public')->path($signaturePath);
-        
+
         // Create signed PDF filename
         $signedFilename = 'signed_' . basename($purchaseOrder->pdf_path);
         $signedPdfPath = 'purchase-orders/signed/' . $signedFilename;
         $signedPdfFullPath = Storage::disk('public')->path($signedPdfPath);
-        
+
         // Ensure directory exists
         $directory = dirname($signedPdfFullPath);
         if (!file_exists($directory)) {
             mkdir($directory, 0755, true);
         }
-        
+
         try {
             // Use FPDI to add signature to existing PDF
             $pdf = new \setasign\Fpdi\Fpdi();
-            
+
             // Get page count
             $pageCount = $pdf->setSourceFile($originalPdfPath);
-            
+
             // Copy all pages
             for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
                 $templateId = $pdf->importPage($pageNo);
                 $size = $pdf->getTemplateSize($templateId);
-                
+
                 $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
                 $pdf->useTemplate($templateId);
-                
+
                 // Add signature on last page
                 if ($pageNo === $pageCount) {
                     // Signature dimensions - larger size
                     $signatureWidth = 80;  // Increased from 40
                     $signatureHeight = 40; // Increased from 20
+<<<<<<< HEAD
                     
                     // Center horizontally, position in lower third of page
                     $x = ($size['width'] - $signatureWidth) / 2;
                     $y = $size['height'] - $signatureHeight - 60; // More space from bottom
                     
+=======
+
+                    // Center horizontally, position in lower third of page
+                    $x = ($size['width'] - $signatureWidth) / 2;
+                    $y = $size['height'] - $signatureHeight - 60; // More space from bottom
+
+>>>>>>> 97c8cd0f2737406e64d0efa8be064a71360e018f
                     // Add signature image (centered)
                     $pdf->Image($signatureImagePath, $x, $y, $signatureWidth, $signatureHeight, 'PNG');
-                    
+
                     // Add signature info text
                     $pdf->SetFont('Arial', '', 8);
                     $pdf->SetXY($x, $y + $signatureHeight + 2);
@@ -156,12 +164,12 @@ class SignatureService
                     $pdf->Cell($signatureWidth, 4, now()->format('d/m/Y H:i'), 0, 0, 'C');
                 }
             }
-            
+
             // Save signed PDF
             $pdf->Output('F', $signedPdfFullPath);
-            
+
             return $signedPdfPath;
-            
+
         } catch (\Exception $e) {
             // If PDF generation fails, just return original path
             \Log::error('Error generating signed PDF: ' . $e->getMessage());

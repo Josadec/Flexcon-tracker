@@ -1,63 +1,9 @@
-<?php
-
-use Livewire\Volt\Component;
-use App\Models\Semi_Automatic;
-use App\Models\Area;
-
-new class extends Component {
-    public $number = '';
-    public $employees = '';
-    public $active = true;
-    public $comments = '';
-    public $area_id = '';
-    public $areas = [];
-
-    public function mount()
-    {
-        $this->areas = Area::orderBy('name')->get();
-    }
-
-    public function rules()
-    {
-        return [
-            'number' => 'required|string|max:255',
-            'employees' => 'nullable|integer|min:1',
-            'active' => 'boolean',
-            'comments' => 'nullable|string',
-            'area_id' => 'required|exists:areas,id',
-        ];
-    }
-
-    public function save()
-    {
-        $this->validate();
-
-        Semi_Automatic::create([
-            'number' => $this->number,
-            'employees' => $this->employees,
-            'active' => $this->active,
-            'comments' => $this->comments,
-            'area_id' => $this->area_id,
-        ]);
-
-        session()->flash('flash.banner', 'Semi-automático creado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
-
-        return redirect()->route('semi-automatics.index');
-    }
-
-    public function render(): mixed
-    {
-        return view('livewire.semi-automatics.semi-automatic-create');
-    }
-}; ?>
-
 <div class="py-12">
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-8">
             <div class="flex items-center space-x-4">
-                <a href="{{ route('semi-automatics.index') }}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                <a href="{{ route('admin.semi-automatics.index') }}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
@@ -169,7 +115,7 @@ new class extends Component {
                 <!-- Actions -->
                 <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
                     <div class="flex items-center justify-end space-x-4">
-                        <a href="{{ route('semi-automatics.index') }}" 
+                        <a href="{{ route('admin.semi-automatics.index') }}" 
                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             Cancelar
                         </a>

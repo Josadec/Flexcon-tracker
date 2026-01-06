@@ -4,9 +4,9 @@
         <div class="mb-8">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Work Orders</h1>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Órdenes de Trabajo</h1>
                     <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        Gestión de Órdenes de Trabajo
+                        Gestión de órdenes de producción
                     </p>
                 </div>
             </div>
@@ -110,10 +110,13 @@
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" wire:click="sortBy('wo_number')">
-                                    # WO
+                                    ID
                                     @if ($sortField === 'wo_number')
                                         <span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
                                     @endif
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    WO
                                 </th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                     PO / Parte
@@ -147,12 +150,19 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900 dark:text-white">
-                                            {{ $wo->purchaseOrder->po_number }}
+                                        <div class="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                                            {{ $wo->purchaseOrder->wo ?? '-' }}
                                         </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900 dark:text-white">
+                                            {{ $wo->purchaseOrder->po_number ?? '-' }}
+                                        </div>
+                                        @if($wo->purchaseOrder && $wo->purchaseOrder->part)
                                         <div class="text-xs text-gray-500 dark:text-gray-400">
                                             {{ $wo->purchaseOrder->part->number }} - {{ Str::limit($wo->purchaseOrder->part->description, 25) }}
                                         </div>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-900 dark:text-white">
@@ -197,8 +207,8 @@
 
                             @if($workOrders->count() === 0)
                                 <tr>
-                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                                        No se encontraron Work Orders.
+                                    <td colspan="7" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                        No se encontraron órdenes de trabajo.
                                     </td>
                                 </tr>
                             @endif
@@ -234,7 +244,7 @@
                                     </h3>
                                     <div class="mt-2">
                                         <p class="text-sm text-gray-500 dark:text-gray-400">
-                                            ¿Está seguro de que desea eliminar esta Work Order? Esta acción no se puede deshacer.
+                                            ¿Está seguro de que desea eliminar esta orden? Esta acción no se puede deshacer.
                                         </p>
                                     </div>
                                 </div>

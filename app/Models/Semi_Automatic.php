@@ -4,10 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Semi_Automatic extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
+
+    /**
+     * Nombre de la tabla en la base de datos
+     */
+    protected $table = 'semi__automatics';
 
     /**
      * Campos que se pueden asignar masivamente
@@ -18,6 +24,7 @@ class Semi_Automatic extends Model
         'active',
         'comments',
         'area_id',
+        'production_status_id',
     ];
 
     /**
@@ -26,6 +33,7 @@ class Semi_Automatic extends Model
     protected $casts = [
         'active' => 'boolean',
         'employees' => 'integer',
+        'production_status_id' => 'integer',
     ];
 
     // ===============================================
@@ -38,6 +46,22 @@ class Semi_Automatic extends Model
     public function area()
     {
         return $this->belongsTo(Area::class);
+    }
+
+    /**
+     * Una mesa semi-automática pertenece a un estado de producción
+     */
+    public function productionStatus()
+    {
+        return $this->belongsTo(ProductionStatus::class);
+    }
+
+    /**
+     * Obtiene los estándares asociados a esta mesa semi-automática
+     */
+    public function standards()
+    {
+        return $this->hasMany(Standard::class, 'semi_auto_work_table_id');
     }
 
     // ===============================================
@@ -86,5 +110,34 @@ class Semi_Automatic extends Model
     public function scopeSearch($query, $search)
     {
         return $query->where('number', 'like', "%{$search}%");
+    }
+
+    // ===============================================
+    // ESTADISTICAS
+    // ===============================================
+
+    /**
+     * Obtener estadisticas de semi-automaticos
+     */
+    public static function getStats(): array
+    {
+        $total = self::count();
+        $active = self::where('active', true)->count();
+        $inactive = self::where('active', false)->count();
+        $avgEmployees = round(self::avg('employees') ?? 0, 2);
+        $byArea = self::select('area_id', \DB::raw('count(*) as total'))
+            ->with('area:id,name')
+            ->groupBy('area_id')
+            ->get()
+            ->pluck('total', 'area.name')
+            ->toArray();
+
+        return [
+            'total' => $total,
+            'active' => $active,
+            'inactive' => $inactive,
+            'avg_employees' => $avgEmployees,
+            'by_area' => $byArea,
+        ];
     }
 }

@@ -13,7 +13,7 @@ use Livewire\Volt\Volt;
 |
 */
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
 
     // Dashboard Admin
     Route::view('/', 'admin.dashboard')->name('dashboard');
@@ -101,5 +101,64 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/standards/create', \App\Livewire\Admin\Standards\StandardCreate::class)->name('standards.create');
     Route::get('/standards/{standard}', \App\Livewire\Admin\Standards\StandardShow::class)->name('standards.show');
     Route::get('/standards/{standard}/edit', \App\Livewire\Admin\Standards\StandardEdit::class)->name('standards.edit');
+
+    // Gestion de Estados de Produccion
+    Route::get('/production-statuses', \App\Livewire\Admin\ProductionStatuses\ProductionStatusList::class)->name('production-statuses.index');
+    Route::get('/production-statuses/create', \App\Livewire\Admin\ProductionStatuses\ProductionStatusCreate::class)->name('production-statuses.create');
+    Route::get('/production-statuses/{productionStatus}', \App\Livewire\Admin\ProductionStatuses\ProductionStatusShow::class)->name('production-statuses.show');
+    Route::get('/production-statuses/{productionStatus}/edit', \App\Livewire\Admin\ProductionStatuses\ProductionStatusEdit::class)->name('production-statuses.edit');
+
+    // Gestion de Mesas (Tables)
+    Route::get('/tables', \App\Livewire\Admin\Tables\TableList::class)->name('tables.index');
+    Route::get('/tables/create', \App\Livewire\Admin\Tables\TableCreate::class)->name('tables.create');
+    Route::get('/tables/{table}', \App\Livewire\Admin\Tables\TableShow::class)->name('tables.show');
+    Route::get('/tables/{table}/edit', \App\Livewire\Admin\Tables\TableEdit::class)->name('tables.edit');
+
+    // Gestion de Semi-Automaticos
+    Route::get('/semi-automatics', \App\Livewire\Admin\SemiAutomatics\SemiAutomaticList::class)->name('semi-automatics.index');
+    Route::get('/semi-automatics/create', \App\Livewire\Admin\SemiAutomatics\SemiAutomaticCreate::class)->name('semi-automatics.create');
+    Route::get('/semi-automatics/{semiAutomatic}', \App\Livewire\Admin\SemiAutomatics\SemiAutomaticShow::class)->name('semi-automatics.show');
+    Route::get('/semi-automatics/{semiAutomatic}/edit', \App\Livewire\Admin\SemiAutomatics\SemiAutomaticEdit::class)->name('semi-automatics.edit');
+
+    // Gestion de Maquinas
+    Route::get('/machines', \App\Livewire\Admin\Machines\MachineList::class)->name('machines.index');
+    Route::get('/machines/create', \App\Livewire\Admin\Machines\MachineCreate::class)->name('machines.create');
+    Route::get('/machines/{machine}', \App\Livewire\Admin\Machines\MachineShow::class)->name('machines.show');
+    Route::get('/machines/{machine}/edit', \App\Livewire\Admin\Machines\MachineEdit::class)->name('machines.edit');
+
+    // Gestion de Over Times (Tiempo Extra)
+    Route::get('/over-times', \App\Livewire\Admin\OverTimes\OverTimeList::class)->name('over-times.index');
+    Route::get('/over-times/create', \App\Livewire\Admin\OverTimes\OverTimeCreate::class)->name('over-times.create');
+    Route::get('/over-times/{overTime}', \App\Livewire\Admin\OverTimes\OverTimeShow::class)->name('over-times.show');
+    Route::get('/over-times/{overTime}/edit', \App\Livewire\Admin\OverTimes\OverTimeEdit::class)->name('over-times.edit');
+
+    // Production Capacity Calculator (Legacy)
+    Route::get('/capacity-calculator', \App\Livewire\CapacityCalculator::class)->name('capacity.calculator');
+    
+    // Capacity Wizard (New 3-step wizard)
+    Route::get('/capacity-wizard', \App\Livewire\Admin\CapacityWizard::class)->name('capacity.wizard');
+
+    // Sent Lists Management
+    Route::get('/sent-lists', [\App\Http\Controllers\SentListController::class, 'index'])->name('sent-lists.index');
+    Route::get('/sent-lists/{sentList}', [\App\Http\Controllers\SentListController::class, 'show'])->name('sent-lists.show');
+    Route::get('/sent-lists/{sentList}/edit', [\App\Http\Controllers\SentListController::class, 'edit'])->name('sent-lists.edit');
+    Route::put('/sent-lists/{sentList}', [\App\Http\Controllers\SentListController::class, 'update'])->name('sent-lists.update');
+    Route::delete('/sent-lists/{sentList}', [\App\Http\Controllers\SentListController::class, 'destroy'])->name('sent-lists.destroy');
+
+    // Gestión de Kits
+    Route::get('/kits', \App\Livewire\Admin\Kits\KitList::class)->name('kits.index');
+    Route::get('/kits/create', \App\Livewire\Admin\Kits\KitCreate::class)->name('kits.create');
+    Route::get('/kits/{kit}', \App\Livewire\Admin\Kits\KitShow::class)->name('kits.show');
+
+    // Gestión de Lotes
+    Route::get('/lots', \App\Livewire\Admin\Lots\LotList::class)->name('lots.index');
+    Route::get('/lots/create', \App\Livewire\Admin\Lots\LotCreate::class)->name('lots.create');
+    Route::get('/lots/{lot}', \App\Livewire\Admin\Lots\LotShow::class)->name('lots.show');
+
+    // Gestión de Empleados
+    Route::get('/employees', \App\Livewire\Admin\Employees\EmployeeList::class)->name('employees.index');
+    Route::get('/employees/create', \App\Livewire\Admin\Employees\EmployeeCreate::class)->name('employees.create');
+    Route::get('/employees/{employee}', \App\Livewire\Admin\Employees\EmployeeShow::class)->name('employees.show');
+    Route::get('/employees/{employee}/edit', \App\Livewire\Admin\Employees\EmployeeEdit::class)->name('employees.edit');
 
 });

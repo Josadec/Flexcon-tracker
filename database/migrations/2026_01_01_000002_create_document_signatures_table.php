@@ -13,13 +13,15 @@ return new class extends Migration
     {
         Schema::create('document_signatures', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('purchase_order_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('purchase_order_id')->constrained('purchase_orders')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('signature_path');
-            $table->timestamp('signed_at');
+            $table->string('signed_pdf_path')->nullable();
+            $table->timestamp('signed_at')->nullable();
             $table->string('ip_address', 45)->nullable();
             $table->timestamps();
 
+            // Indexes
             $table->index('purchase_order_id');
             $table->index('user_id');
             $table->index('signed_at');

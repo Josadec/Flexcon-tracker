@@ -1,81 +1,9 @@
-<?php
-
-use Livewire\Volt\Component;
-use App\Models\Machine;
-use App\Models\Area;
-
-new class extends Component {
-    public $name = '';
-    public $brand = '';
-    public $model = '';
-    public $sn = '';
-    public $asset_number = '';
-    public $employees = '';
-    public $setup_time = '';
-    public $maintenance_time = '';
-    public $active = true;
-    public $comments = '';
-    public $area_id = '';
-    public $areas = [];
-
-    public function mount()
-    {
-        $this->areas = Area::orderBy('name')->get();
-    }
-
-    public function rules()
-    {
-        return [
-            'name' => 'required|string|max:255',
-            'brand' => 'nullable|string|max:255',
-            'model' => 'nullable|string|max:255',
-            'sn' => 'nullable|string|max:255',
-            'asset_number' => 'nullable|string|max:255',
-            'employees' => 'nullable|integer|min:1',
-            'setup_time' => 'nullable|numeric|min:0',
-            'maintenance_time' => 'nullable|numeric|min:0',
-            'active' => 'boolean',
-            'comments' => 'nullable|string',
-            'area_id' => 'required|exists:areas,id',
-        ];
-    }
-
-    public function save()
-    {
-        $this->validate();
-
-        Machine::create([
-            'name' => $this->name,
-            'brand' => $this->brand,
-            'model' => $this->model,
-            'sn' => $this->sn,
-            'asset_number' => $this->asset_number,
-            'employees' => $this->employees,
-            'setup_time' => $this->setup_time,
-            'maintenance_time' => $this->maintenance_time,
-            'active' => $this->active,
-            'comments' => $this->comments,
-            'area_id' => $this->area_id,
-        ]);
-
-        session()->flash('flash.banner', 'Máquina creada correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
-
-        return redirect()->route('machines.index');
-    }
-
-    public function render(): mixed
-    {
-        return view('livewire.machines.machine-create');
-    }
-}; ?>
-
 <div class="py-12">
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-8">
             <div class="flex items-center space-x-4">
-                <a href="{{ route('machines.index') }}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                <a href="{{ route('admin.machines.index') }}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
@@ -295,7 +223,7 @@ new class extends Component {
                 <!-- Actions -->
                 <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
                     <div class="flex items-center justify-end space-x-4">
-                        <a href="{{ route('machines.index') }}" 
+                        <a href="{{ route('admin.machines.index') }}" 
                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             Cancelar
                         </a>

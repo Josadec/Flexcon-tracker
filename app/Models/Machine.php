@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Machine extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * Campos que se pueden asignar masivamente
@@ -24,6 +24,7 @@ class Machine extends Model
         'active',
         'comments',
         'area_id',
+        'production_status_id',
     ];
 
     /**
@@ -34,6 +35,7 @@ class Machine extends Model
         'setup_time' => 'decimal:2',
         'maintenance_time' => 'decimal:2',
         'employees' => 'integer',
+        'production_status_id' => 'integer',
     ];
 
     // ===============================================
@@ -46,6 +48,22 @@ class Machine extends Model
     public function area()
     {
         return $this->belongsTo(Area::class);
+    }
+
+    /**
+     * Una máquina pertenece a un estado de producción
+     */
+    public function productionStatus()
+    {
+        return $this->belongsTo(ProductionStatus::class);
+    }
+
+    /**
+     * Obtiene los estándares asociados a esta máquina
+     */
+    public function standards()
+    {
+        return $this->hasMany(Standard::class, 'machine_id');
     }
 
     // ===============================================
@@ -108,5 +126,36 @@ class Machine extends Model
               ->orWhere('model', 'like', "%{$search}%")
               ->orWhere('asset_number', 'like', "%{$search}%");
         });
+    }
+
+    // ===============================================
+    // ESTADISTICAS
+    // ===============================================
+
+    /**
+     * Obtener estadisticas de maquinas
+     */
+    public static function getStats(): array
+    {
+        $total = self::count();
+        $active = self::where('active', true)->count();
+        $inactive = self::where('active', false)->count();
+        $avgSetupTime = round(self::avg('setup_time') ?? 0, 2);
+        $avgMaintenanceTime = round(self::avg('maintenance_time') ?? 0, 2);
+        $byArea = self::select('area_id', \DB::raw('count(*) as total'))
+            ->with('area:id,name')
+            ->groupBy('area_id')
+            ->get()
+            ->pluck('total', 'area.name')
+            ->toArray();
+
+        return [
+            'total' => $total,
+            'active' => $active,
+            'inactive' => $inactive,
+            'avg_setup_time' => $avgSetupTime,
+            'avg_maintenance_time' => $avgMaintenanceTime,
+            'by_area' => $byArea,
+        ];
     }
 }

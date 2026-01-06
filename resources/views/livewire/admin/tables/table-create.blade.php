@@ -1,63 +1,9 @@
-<?php
-
-use Livewire\Volt\Component;
-use App\Models\Table;
-use App\Models\Area;
-
-new class extends Component {
-    public $number = '';
-    public $employees = '';
-    public $active = true;
-    public $comments = '';
-    public $area_id = '';
-    public $areas = [];
-
-    public function mount()
-    {
-        $this->areas = Area::orderBy('name')->get();
-    }
-
-    public function rules()
-    {
-        return [
-            'number' => 'required|string|max:255',
-            'employees' => 'nullable|integer|min:1',
-            'active' => 'boolean',
-            'comments' => 'nullable|string',
-            'area_id' => 'required|exists:areas,id',
-        ];
-    }
-
-    public function save()
-    {
-        $this->validate();
-
-        Table::create([
-            'number' => $this->number,
-            'employees' => $this->employees,
-            'active' => $this->active,
-            'comments' => $this->comments,
-            'area_id' => $this->area_id,
-        ]);
-
-        session()->flash('flash.banner', 'Mesa creada correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
-
-        return redirect()->route('tables.index');
-    }
-
-    public function render(): mixed
-    {
-        return view('livewire.tables.table-create');
-    }
-}; ?>
-
 <div class="py-12">
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-8">
             <div class="flex items-center space-x-4">
-                <a href="{{ route('tables.index') }}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                <a href="{{ route('admin.tables.index') }}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
@@ -82,12 +28,12 @@ new class extends Component {
                             <label for="number" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Número <span class="text-red-500">*</span>
                             </label>
-                            <input 
-                                wire:model="number" 
-                                type="text" 
-                                id="number" 
+                            <input
+                                wire:model="number"
+                                type="text"
+                                id="number"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                placeholder="Número de la mesa"
+                                placeholder="Ej: MES-001"
                             >
                             @error('number')
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -98,9 +44,9 @@ new class extends Component {
                             <label for="area_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Área <span class="text-red-500">*</span>
                             </label>
-                            <select 
-                                wire:model="area_id" 
-                                id="area_id" 
+                            <select
+                                wire:model="area_id"
+                                id="area_id"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                             >
                                 <option value="">Selecciona un área</option>
@@ -115,26 +61,26 @@ new class extends Component {
 
                         <div>
                             <label for="employees" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Número de Empleados
+                                Número de Empleados <span class="text-red-500">*</span>
                             </label>
-                            <input 
-                                wire:model="employees" 
-                                type="number" 
-                                id="employees" 
+                            <input
+                                wire:model="employees"
+                                type="number"
+                                id="employees"
                                 min="1"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                placeholder="Ej: 2"
+                                placeholder="Ej: 3"
                             >
                             @error('employees')
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        <div class="flex items-center">
+                        <div class="flex items-center pt-6">
                             <label class="flex items-center">
-                                <input 
-                                    wire:model="active" 
-                                    type="checkbox" 
+                                <input
+                                    wire:model="active"
+                                    type="checkbox"
                                     class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600"
                                 >
                                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Mesa activa</span>
@@ -148,15 +94,14 @@ new class extends Component {
 
                 <!-- Comments -->
                 <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Comentarios</h3>
                     <div>
                         <label for="comments" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Comentarios adicionales
+                            Comentarios
                         </label>
-                        <textarea 
-                            wire:model="comments" 
-                            id="comments" 
-                            rows="4"
+                        <textarea
+                            wire:model="comments"
+                            id="comments"
+                            rows="3"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                             placeholder="Comentarios adicionales sobre la mesa..."
                         ></textarea>
@@ -169,7 +114,7 @@ new class extends Component {
                 <!-- Actions -->
                 <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
                     <div class="flex items-center justify-end space-x-4">
-                        <a href="{{ route('tables.index') }}" 
+                        <a href="{{ route('admin.tables.index') }}" 
                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             Cancelar
                         </a>

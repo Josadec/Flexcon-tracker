@@ -6,17 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
-        Schema::table('document_signatures', function (Blueprint $table) {
-            $table->string('signed_pdf_path')->nullable()->after('signature_path');
+        Schema::table('tables', function (Blueprint $table) {
+            $table->softDeletes();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
-        Schema::table('document_signatures', function (Blueprint $table) {
-            $table->dropColumn('signed_pdf_path');
+        Schema::table('tables', function (Blueprint $table) {
+            $table->dropSoftDeletes();
         });
     }
 };
