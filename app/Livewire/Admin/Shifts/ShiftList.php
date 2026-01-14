@@ -66,9 +66,10 @@ class ShiftList extends Component
 
     public function render()
     {
-        $shifts = Shift::search($this->search)
-            ->orderBy($this->sortField, $this->sortDirection)
-            ->paginate($this->perPage);
+        $shifts = Shift::withCount('employees')
+                    ->search($this->search)
+                    ->orderBy($this->sortField, $this->sortDirection)
+                    ->paginate($this->perPage);
 
         return view('livewire.admin.shifts.shift-list', [
             'shifts' => $shifts,
