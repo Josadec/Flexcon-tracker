@@ -1,136 +1,231 @@
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-6 sm:py-8">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
-        <div class="mb-8">
-            <div class="flex items-center gap-4 mb-2">
-                <div class="flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-                    <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+        <div class="mb-6 sm:mb-8">
+            <div class="flex items-center gap-3 sm:gap-4 mb-2">
+                <a href="{{ route('admin.users.index') }}" class="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
-                </div>
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Crear Nuevo Usuario</h1>
-                    <p class="text-gray-600 dark:text-gray-400">Completa la información para crear un nuevo usuario</p>
+                </a>
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <div class="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Crear Nuevo Usuario</h1>
+                        <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400">Completa la información para crear un nuevo usuario</p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Form Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div class="p-8">
-                <form wire:submit="saveUser" class="space-y-8">
-                    <!-- Información Personal -->
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <form wire:submit="saveUser" class="divide-y divide-gray-200 dark:divide-gray-700">
+                <!-- Información Personal -->
+                <div class="p-4 sm:p-6 lg:p-8">
+                    <div class="mb-6">
+                        <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                             <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
                             Información Personal
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nombre *</label>
-                                <input type="text" wire:model="name" placeholder="Ingrese el nombre" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm" required />
-                                @error('name') <span class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Apellido</label>
-                                <input type="text" wire:model="last_name" placeholder="Ingrese el apellido" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm" />
-                                @error('last_name') <span class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</span> @enderror
-                            </div>
+                        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Datos básicos del usuario</p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nombre <span class="text-red-500">*</span></label>
+                            <input 
+                                type="text" 
+                                wire:model="name" 
+                                placeholder="Ingrese el nombre" 
+                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors" 
+                                required 
+                            />
+                            @error('name') 
+                                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Apellido</label>
+                            <input 
+                                type="text" 
+                                wire:model="last_name" 
+                                placeholder="Ingrese el apellido" 
+                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors" 
+                            />
+                            @error('last_name') 
+                                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
+                            @enderror
                         </div>
                     </div>
+                </div>
 
-                    <!-- Información de Cuenta -->
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <!-- Información de Cuenta -->
+                <div class="p-4 sm:p-6 lg:p-8">
+                    <div class="mb-6">
+                        <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                             <div class="w-2 h-2 bg-green-500 rounded-full"></div>
                             Información de Cuenta
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cuenta</label>
-                                <input type="text" wire:model="account" placeholder="Número de cuenta (opcional)" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm" />
-                                @error('account') <span class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email *</label>
-                                <input type="email" wire:model="email" placeholder="usuario@ejemplo.com" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm" required />
-                                @error('email') <span class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</span> @enderror
-                            </div>
+                        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Credenciales de acceso</p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cuenta</label>
+                            <input 
+                                type="text" 
+                                wire:model="account" 
+                                placeholder="Número de cuenta (opcional)" 
+                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors" 
+                            />
+                            @error('account') 
+                                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email <span class="text-red-500">*</span></label>
+                            <input 
+                                type="email" 
+                                wire:model="email" 
+                                placeholder="usuario@ejemplo.com" 
+                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors" 
+                                required 
+                            />
+                            @error('email') 
+                                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
+                            @enderror
                         </div>
                     </div>
+                </div>
 
-                    <!-- Rol y Asignación -->
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <!-- Rol y Asignación -->
+                <div class="p-4 sm:p-6 lg:p-8">
+                    <div class="mb-6">
+                        <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                             <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
                             Rol y Asignación
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rol *</label>
-                                <select wire:model.live="selected_role" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
-                                    <option value="">Seleccionar rol</option>
-                                    @foreach($roles as $role)
-                                        <option value="{{ $role->name }}">{{ $role->name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('selected_role') <span class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Departamento</label>
-                                <select wire:model.live="department_id" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
-                                    <option value="">Seleccionar departamento</option>
-                                    @foreach($departments as $department)
-                                        <option value="{{ $department->id }}">{{ $department->name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('department_id') <span class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Área @if($selected_role === 'Supervisor') * @endif</label>
-                                <select wire:model="area_id" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm disabled:opacity-50" @if(!$department_id) disabled @endif>
-                                    <option value="">Seleccionar área</option>
-                                    @foreach($areas as $area)
-                                        <option value="{{ $area->id }}">{{ $area->name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('area_id') <span class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</span> @enderror
-                            </div>
+                        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Permisos y área de trabajo</p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rol <span class="text-red-500">*</span></label>
+                            <select 
+                                wire:model.live="selected_role" 
+                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+                            >
+                                <option value="">Seleccionar rol</option>
+                                @foreach($roles as $role)
+                                    <option value="{{ $role->name }}">{{ $role->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('selected_role') 
+                                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Departamento</label>
+                            <select 
+                                wire:model.live="department_id" 
+                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+                            >
+                                <option value="">Seleccionar departamento</option>
+                                @foreach($departments as $department)
+                                    <option value="{{ $department->id }}">{{ $department->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('department_id') 
+                                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Área 
+                                @if($selected_role === 'Supervisor') 
+                                    <span class="text-red-500">*</span>
+                                @endif
+                            </label>
+                            <select 
+                                wire:model="area_id" 
+                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                                @if(!$department_id) disabled @endif
+                            >
+                                <option value="">Seleccionar área</option>
+                                @foreach($areas as $area)
+                                    <option value="{{ $area->id }}">{{ $area->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('area_id') 
+                                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
+                            @enderror
                         </div>
                     </div>
+                </div>
 
-                    <!-- Contraseña -->
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <!-- Contraseña -->
+                <div class="p-4 sm:p-6 lg:p-8">
+                    <div class="mb-6">
+                        <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                             <div class="w-2 h-2 bg-red-500 rounded-full"></div>
                             Contraseña
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contraseña *</label>
-                                <input type="password" wire:model="password" placeholder="Mínimo 8 caracteres" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm" required />
-                                @error('password') <span class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirmar Contraseña *</label>
-                                <input type="password" wire:model="password_confirmation" placeholder="Repite la contraseña" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm" required />
-                                @error('password_confirmation') <span class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</span> @enderror
-                            </div>
+                        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Mínimo 8 caracteres</p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contraseña <span class="text-red-500">*</span></label>
+                            <input 
+                                type="password" 
+                                wire:model="password" 
+                                placeholder="Mínimo 8 caracteres" 
+                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors" 
+                                required 
+                            />
+                            @error('password') 
+                                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirmar Contraseña <span class="text-red-500">*</span></label>
+                            <input 
+                                type="password" 
+                                wire:model="password_confirmation" 
+                                placeholder="Repite la contraseña" 
+                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors" 
+                                required 
+                            />
+                            @error('password_confirmation') 
+                                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
+                            @enderror
                         </div>
                     </div>
+                </div>
 
-                    <!-- Actions -->
-                    <div class="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-                        <button type="button" wire:click="cancel" class="px-6 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-300 dark:border-gray-600">Cancelar</button>
-                        <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2">
+                <!-- Actions -->
+                <div class="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900/50">
+                    <div class="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                        <button 
+                            type="button" 
+                            wire:click="cancel" 
+                            class="w-full sm:w-auto px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-300 dark:border-gray-600"
+                        >
+                            Cancelar
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="w-full sm:w-auto px-6 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+                        >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
                             Crear Usuario
                         </button>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>

@@ -15,20 +15,128 @@ class PriceCreate extends Component
     public string $effective_date = '';
     public bool $active = true;
     public string $comments = '';
+    
+    // Validación en tiempo real
+    public string $validation_message = '';
+    public bool $has_conflict = false;
+    public string $info_message = '';
+    public bool $has_existing_prices = false;
+    
+    // Almacenamiento temporal de valores por tipo de estación
+    protected array $savedTierValues = [
+        'table' => [],
+        'machine' => [],
+        'semi_automatic' => [],
+    ];
+    
+    // Guardar el tipo anterior para detectar cambios
+    protected string $previousWorkstationType = 'table';
 
     public function mount(): void
     {
         $this->effective_date = now()->format('Y-m-d');
+        $this->previousWorkstationType = $this->workstation_type;
         $this->initializeTierPrices();
         
         if (request()->has('part_id')) {
             $this->part_id = request('part_id');
+            $this->checkForConflicts();
+        }
+        
+        if (request()->has('workstation_type')) {
+            $this->workstation_type = request('workstation_type');
+            $this->previousWorkstationType = $this->workstation_type;
+            $this->initializeTierPrices();
+            $this->checkForConflicts();
         }
     }
 
-    public function updatedWorkstationType(): void
+    public function updatedPartId(): void
     {
-        $this->initializeTierPrices();
+        $this->checkForConflicts();
+    }
+
+    public function updatedWorkstationType($value): void
+    {
+        // Guardar los valores del tipo anterior
+        if (!empty($this->tier_prices) && $this->previousWorkstationType) {
+            $this->savedTierValues[$this->previousWorkstationType] = $this->tier_prices;
+        }
+        
+        // Actualizar el tipo anterior
+        $this->previousWorkstationType = $value;
+        
+        // Cargar los valores guardados del nuevo tipo, o inicializar vacío
+        if (!empty($this->savedTierValues[$value])) {
+            $this->tier_prices = $this->savedTierValues[$value];
+        } else {
+            $this->initializeTierPrices();
+        }
+        
+        // Verificar conflictos con el nuevo tipo
+        $this->checkForConflicts();
+    }
+    
+    public function updatedActive(): void
+    {
+        $this->checkForConflicts();
+    }
+    
+    protected function checkForConflicts(): void
+    {
+        $this->validation_message = '';
+        $this->has_conflict = false;
+        $this->info_message = '';
+        $this->has_existing_prices = false;
+        
+        if (empty($this->part_id)) {
+            return;
+        }
+        
+        // Verificar si la parte tiene algún precio activo (de cualquier tipo)
+        if ($this->active) {
+            $existingActivePrice = Price::where('part_id', $this->part_id)
+                ->where('active', true)
+                ->first();
+            
+            if ($existingActivePrice) {
+                $this->has_conflict = true;
+                $typeLabel = Price::WORKSTATION_TYPES[$existingActivePrice->workstation_type] ?? $existingActivePrice->workstation_type;
+                $this->validation_message = "Esta parte ya tiene un precio activo (Tipo: {$typeLabel}). Solo puede haber un precio activo por parte. Debes desactivar el precio existente primero o crear este precio como inactivo.";
+                return;
+            }
+        }
+        
+        // Mostrar información de precios existentes (activos o inactivos)
+        $allPrices = Price::where('part_id', $this->part_id)->get();
+        
+        if ($allPrices->isNotEmpty()) {
+            $this->has_existing_prices = true;
+            $activePrices = $allPrices->where('active', true);
+            $inactivePrices = $allPrices->where('active', false);
+            
+            $info = [];
+            if ($activePrices->isNotEmpty()) {
+                $types = $activePrices->pluck('workstation_type')->map(function($type) {
+                    return Price::WORKSTATION_TYPES[$type] ?? $type;
+                })->join(', ');
+                $info[] = "Activos: {$types}";
+            }
+            if ($inactivePrices->isNotEmpty()) {
+                $types = $inactivePrices->pluck('workstation_type')->map(function($type) {
+                    return Price::WORKSTATION_TYPES[$type] ?? $type;
+                })->join(', ');
+                $info[] = "Inactivos: {$types}";
+            }
+            
+            $this->info_message = "Esta parte tiene precios registrados - " . implode(' | ', $info);
+        }
+    }
+    
+    public function updatedTierPrices(): void
+    {
+        // Guardar automáticamente cuando se actualiza un tier
+        $this->savedTierValues[$this->workstation_type] = $this->tier_prices;
     }
 
     protected function initializeTierPrices(): void
@@ -70,24 +178,34 @@ class PriceCreate extends Component
 
     public function savePrice(): void
     {
+        // Validar primero si hay conflictos
+        if ($this->has_conflict && $this->active) {
+            $this->addError('part_id', $this->validation_message);
+            return;
+        }
+        
         $this->validate();
 
-        $price = Price::create([
-            'part_id' => $this->part_id,
-            'sample_price' => $this->sample_price,
-            'workstation_type' => $this->workstation_type,
-            'effective_date' => $this->effective_date,
-            'active' => $this->active,
-            'comments' => $this->comments,
-        ]);
+        try {
+            $price = Price::create([
+                'part_id' => $this->part_id,
+                'sample_price' => $this->sample_price,
+                'workstation_type' => $this->workstation_type,
+                'effective_date' => $this->effective_date,
+                'active' => $this->active,
+                'comments' => $this->comments,
+            ]);
 
-        // Sincronizar los tiers
-        $price->syncTiers($this->tier_prices);
+            // Sincronizar los tiers
+            $price->syncTiers($this->tier_prices);
 
-        session()->flash('flash.banner', 'Precio creado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+            session()->flash('flash.banner', 'Precio creado correctamente.');
+            session()->flash('flash.bannerStyle', 'success');
 
-        $this->redirect(route('admin.prices.index'), navigate: true);
+            $this->redirect(route('admin.prices.index'), navigate: true);
+        } catch (\Exception $e) {
+            $this->addError('general', 'Error al crear el precio: ' . $e->getMessage());
+        }
     }
 
     public function render()

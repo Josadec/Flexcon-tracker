@@ -91,12 +91,14 @@ class Price extends Model
 
     /**
      * Scope a query to get the active price for a specific part.
+     * 
+     * NOTA: La fecha efectiva (effective_date) es solo informativa.
+     * El campo 'active' es el que controla si un precio se detecta o no.
      */
     public function scopeForPart(Builder $query, int $partId): Builder
     {
         return $query->where('part_id', $partId)
             ->where('active', true)
-            ->where('effective_date', '<=', now())
             ->orderBy('effective_date', 'desc');
     }
 
@@ -106,6 +108,19 @@ class Price extends Model
     public function scopeForWorkstationType(Builder $query, string $type): Builder
     {
         return $query->where('workstation_type', $type);
+    }
+
+    /**
+     * Scope a query to get active prices for a specific workstation type.
+     * 
+     * NOTA: La fecha efectiva (effective_date) es solo informativa.
+     * El campo 'active' es el que controla si un precio se detecta o no.
+     */
+    public function scopeActiveForWorkstationType(Builder $query, string $type): Builder
+    {
+        return $query->where('active', true)
+                     ->where('workstation_type', $type)
+                     ->orderBy('effective_date', 'desc');
     }
 
     /**
@@ -155,7 +170,7 @@ class Price extends Model
      */
     public static function getActivePriceForPart(int $partId): ?self
     {
-        return static::forPart($partId)->first();
+        return static::forPart($partId)->with('tiers')->first();
     }
 
     /**
@@ -231,5 +246,56 @@ class Price extends Model
     public function canBeDeleted(): bool
     {
         return true;
+    }
+
+    /**
+     * Valida que no exista otro precio activo del mismo workstation_type
+     * @throws \Illuminate\Validation\ValidationException si existe conflicto
+     */
+    public function validateUniqueness(): void
+    {
+        if (!$this->active) {
+            return; // No validar si el precio no está activo
+        }
+
+        $conflicting = static::where('part_id', $this->part_id)
+            ->where('workstation_type', $this->workstation_type)
+            ->where('active', true)
+            ->where('id', '!=', $this->id ?? 0)
+            ->first();
+
+        if ($conflicting) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'workstation_type' => "Ya existe un precio activo para esta parte con tipo de estación {$this->workstation_type_label}. Por favor, desactive el precio existente primero."
+            ]);
+        }
+    }
+
+    /**
+     * Desactiva otros precios activos del mismo workstation_type
+     * @return int Cantidad de precios desactivados
+     */
+    public function deactivateConflictingPrices(): int
+    {
+        if (!$this->active) {
+            return 0; // No desactivar si este precio no está activo
+        }
+
+        $deactivated = static::where('part_id', $this->part_id)
+            ->where('workstation_type', $this->workstation_type)
+            ->where('active', true)
+            ->where('id', '!=', $this->id ?? 0)
+            ->update(['active' => false]);
+
+        if ($deactivated > 0) {
+            \Log::info('Precios conflictivos desactivados', [
+                'price_id' => $this->id,
+                'part_id' => $this->part_id,
+                'workstation_type' => $this->workstation_type,
+                'deactivated_count' => $deactivated
+            ]);
+        }
+
+        return $deactivated;
     }
 }
