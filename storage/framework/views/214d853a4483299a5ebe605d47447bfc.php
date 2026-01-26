@@ -4,9 +4,9 @@
         <div class="mb-8">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Gestión de Estándares</h1>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Gestion de Estandares</h1>
                     <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        Administra los estándares de producción
+                        Administra los estandares de produccion
                     </p>
                 </div>
                 <div class="mt-4 sm:mt-0">
@@ -16,7 +16,7 @@
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
-                        Nuevo Estándar
+                        Nuevo Estandar
                     </a>
                 </div>
             </div>
@@ -34,7 +34,7 @@
                         </div>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Estándares</p>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Estandares</p>
                         <p class="text-2xl font-semibold text-gray-900 dark:text-white"><?php echo e($stats['total']); ?></p>
                     </div>
                 </div>
@@ -97,7 +97,7 @@
                         <input
                             wire:model.live.debounce.300ms="search"
                             type="text"
-                            placeholder="Buscar estándares..."
+                            placeholder="Buscar estandares..."
                             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                         >
                     </div>
@@ -115,13 +115,25 @@
 
                     <div>
                         <select
+                            wire:model.live="filterWorkstationType"
+                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        >
+                            <option value="all">Todos los tipos</option>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $workstationTypes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $value => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($value); ?>"><?php echo e($label); ?></option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                        </select>
+                    </div>
+
+                    <div>
+                        <select
                             wire:model.live="perPage"
                             class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                         >
-                            <option value="5">5 por página</option>
-                            <option value="10">10 por página</option>
-                            <option value="25">25 por página</option>
-                            <option value="50">50 por página</option>
+                            <option value="5">5 por pagina</option>
+                            <option value="10">10 por pagina</option>
+                            <option value="25">25 por pagina</option>
+                            <option value="50">50 por pagina</option>
                         </select>
                     </div>
                 </div>
@@ -146,24 +158,18 @@
                                 Parte
                             </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                Mesa de Trabajo
+                                Configuraciones
                             </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                Mesa Semi-Auto
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                Máquina
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                Personas
+                                UPH Default
                             </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" wire:click="sortBy('effective_date')">
                                 Fecha Efectiva
                                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($sortField === 'effective_date'): ?>
                                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($sortDirection === 'asc'): ?>
-                                        <span>↑</span>
+                                        <span>&#8593;</span>
                                     <?php else: ?>
-                                        <span>↓</span>
+                                        <span>&#8595;</span>
                                     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </th>
@@ -171,9 +177,9 @@
                                 Estado
                                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($sortField === 'active'): ?>
                                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($sortDirection === 'asc'): ?>
-                                        <span>↑</span>
+                                        <span>&#8593;</span>
                                     <?php else: ?>
-                                        <span>↓</span>
+                                        <span>&#8595;</span>
                                     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </th>
@@ -184,6 +190,9 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $standards; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $standard): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php
+                                $configSummary = $this->getConfigurationSummary($standard);
+                            ?>
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-medium text-gray-900 dark:text-white">
@@ -195,31 +204,51 @@
 
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900 dark:text-white">
-                                        <?php echo e($standard->workTable?->number ?? 'N/A'); ?>
-
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900 dark:text-white">
-                                        <?php echo e($standard->semiAutoWorkTable?->number ?? 'N/A'); ?>
-
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900 dark:text-white">
-                                        <?php echo e($standard->machine?->name ?? 'N/A'); ?>
-
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900 dark:text-white">
+                                <td class="px-6 py-4">
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($configSummary['count'] > 0): ?>
                                         <div class="flex flex-col space-y-1">
-                                            <span class="text-xs">1: <?php echo e($standard->persons_1 ?? 'N/A'); ?></span>
-                                            <span class="text-xs">2: <?php echo e($standard->persons_2 ?? 'N/A'); ?></span>
-                                            <span class="text-xs">3: <?php echo e($standard->persons_3 ?? 'N/A'); ?></span>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                <?php echo e($configSummary['count']); ?> configuracion(es)
+                                            </span>
+                                            <div class="flex flex-wrap gap-1">
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $configSummary['types']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $type => $count): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                    <?php
+                                                        $typeLabel = match($type) {
+                                                            'manual' => 'Manual',
+                                                            'semi_automatic' => 'Semi-Auto',
+                                                            'machine' => 'Maquina',
+                                                            default => $type
+                                                        };
+                                                        $typeColor = match($type) {
+                                                            'manual' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                                            'semi_automatic' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                                                            'machine' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                                                            default => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                                                        };
+                                                    ?>
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs <?php echo e($typeColor); ?>">
+                                                        <?php echo e($typeLabel); ?>: <?php echo e($count); ?>
+
+                                                    </span>
+                                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                            </div>
                                         </div>
+                                    <?php else: ?>
+                                        <div class="flex flex-col space-y-1">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                                Sin configuraciones
+                                            </span>
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$configSummary['is_migrated']): ?>
+                                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                    (Sistema Legacy)
+                                                </span>
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                        </div>
+                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                        <?php echo e($configSummary['default_uph'] ?? 'N/A'); ?> uph
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -229,15 +258,22 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($standard->active): ?>
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                            Activo
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                            Inactivo
-                                        </span>
-                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                    <div class="flex flex-col space-y-1">
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($standard->active): ?>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                Activo
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                                Inactivo
+                                            </span>
+                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($standard->is_migrated): ?>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                Migrado
+                                            </span>
+                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex space-x-3">
@@ -266,11 +302,11 @@
 
                         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($standards->count() === 0): ?>
                             <tr>
-                                <td colspan="8" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                                <td colspan="6" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                                     <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
-                                    <p class="mt-2">No se encontraron estándares.</p>
+                                    <p class="mt-2">No se encontraron estandares.</p>
                                 </td>
                             </tr>
                         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
@@ -284,7 +320,7 @@
             </div>
         </div>
 
-        <!-- Modal de confirmación para eliminar -->
+        <!-- Modal de confirmacion para eliminar -->
         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($confirmingDeletion): ?>
             <div class="fixed z-10 inset-0 overflow-y-auto">
                 <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -302,11 +338,12 @@
                                 </div>
                                 <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                                     <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                                        Confirmar eliminación
+                                        Confirmar eliminacion
                                     </h3>
                                     <div class="mt-2">
                                         <p class="text-sm text-gray-500 dark:text-gray-400">
-                                            ¿Está seguro de que desea eliminar este estándar? Esta acción no se puede deshacer.
+                                            Esta seguro de que desea eliminar este estandar? Esta accion no se puede deshacer.
+                                            Tambien se eliminaran todas las configuraciones asociadas.
                                         </p>
                                     </div>
                                 </div>
