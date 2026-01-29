@@ -319,4 +319,4 @@
     </div>
 </div>
 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-<?php /**PATH D:\xampp\htdocs\Laravel\Flexcon-tracker\resources\views/livewire/admin/capacity-wizard/step2.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\xampp\htdocs\flexcon-tracker\resources\views/livewire/admin/capacity-wizard/step2.blade.php ENDPATH**/ ?>

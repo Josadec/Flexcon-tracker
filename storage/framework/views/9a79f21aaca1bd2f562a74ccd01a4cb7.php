@@ -497,4 +497,4 @@
         </div>
     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 </div>
-<?php /**PATH D:\xampp\htdocs\Laravel\Flexcon-tracker\resources\views/livewire/admin/capacity-wizard/step3.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\xampp\htdocs\flexcon-tracker\resources\views/livewire/admin/capacity-wizard/step3.blade.php ENDPATH**/ ?>
