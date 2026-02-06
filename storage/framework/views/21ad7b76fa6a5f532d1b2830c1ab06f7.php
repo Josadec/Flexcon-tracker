@@ -129,8 +129,4 @@ $classes = Flux::classes()
 
     <?php endif; ?>
 </button>
-<<<<<<<< HEAD:storage/framework/views/21ad7b76fa6a5f532d1b2830c1ab06f7.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/profile.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/profile.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/68863ad22f1a8ebf675c1ec96461ad4e.php

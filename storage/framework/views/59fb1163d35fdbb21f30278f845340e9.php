@@ -75,8 +75,4 @@ $classes = Flux::classes('shrink-0')
         <?php break; ?>
 
 <?php endswitch; ?>
-<<<<<<<< HEAD:storage/framework/views/59fb1163d35fdbb21f30278f845340e9.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/icon/queue-list.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/icon/queue-list.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/5fc0b133710c82aaa3e4c2b26b1523fb.php

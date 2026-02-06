@@ -173,8 +173,4 @@ unset($__defined_vars, $__key, $__value); ?>
     <?php echo e($slot); ?>
 
 <?php endif; ?>
-<<<<<<<< HEAD:storage/framework/views/c67506f719914ebd719afed68f2f7d29.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/with-field.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/with-field.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/ac7f7c1dc173ce7c775cd41b3bfd0603.php

@@ -59,8 +59,4 @@
 <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
 <?php echo app('flux')->fluxAppearance(); ?>
 
-<<<<<<<< HEAD:storage/framework/views/d30342ef163c628c4c7e8fca7f9fd44f.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\resources\views/partials/head.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\resources\views/partials/head.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/6f62bf0fec1b00b30056fd890e7987de.php

@@ -71,8 +71,4 @@ $classes = Flux::classes()
     <?php echo e($slot); ?>
 
 </ui-field>
-<<<<<<<< HEAD:storage/framework/views/de066c1d7e7f19e6ebce64246fd2f24f.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/field.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/field.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/fc4d8e990f24edfd119217f5fbdeb010.php

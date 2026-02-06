@@ -254,8 +254,4 @@
 <?php endif; ?>
     </div>
 </div>
-<<<<<<<< HEAD:storage/framework/views/d2b892276c9d3ceb62327480aa902a09.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\resources\views/livewire/admin/capacity-wizard/step1.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\resources\views/livewire/admin/capacity-wizard/step1.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/f5a622d1a34ca07165e19382a157dd3a.php

@@ -75,8 +75,4 @@ $classes = Flux::classes('shrink-0')
         <?php break; ?>
 
 <?php endswitch; ?>
-<<<<<<<< HEAD:storage/framework/views/fce34f6315fa374daceb51a55d754031.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/icon/clock.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/icon/clock.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/f044a81f66e5c02d2894721cdcca0c26.php

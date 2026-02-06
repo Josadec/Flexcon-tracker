@@ -81,8 +81,4 @@ $classes = Flux::classes('mt-3 text-sm font-medium text-red-500 dark:text-red-40
 
     <?php endif; ?>
 </div>
-<<<<<<<< HEAD:storage/framework/views/2d4e52d4b02032c731fb2b68d4c2df26.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/error.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/error.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/40d45d5cec7e9b4709d6962c866a44f4.php

@@ -129,8 +129,4 @@ $scrollIntoViewJsSnippet = ($scrollTo !== false)
         </nav>
     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 </div>
-<<<<<<<< HEAD:storage/framework/views/8ddc00907a9aa1ea781268d19c67952e.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\livewire\src\Features\SupportPagination/views/tailwind.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\livewire\src\Features\SupportPagination/views/tailwind.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/7302ba098a70e67521cee9b62847c0f7.php

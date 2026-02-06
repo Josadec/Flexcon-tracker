@@ -45,8 +45,4 @@ $classes = Flux::classes()
     <?php echo e($slot); ?>
 
 </nav>
-<<<<<<<< HEAD:storage/framework/views/515d293ebf7064f227f0085bb634535c.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/navlist/index.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/navlist/index.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/89a9b51bb8abbf1ab992cfdce9ec3b53.php

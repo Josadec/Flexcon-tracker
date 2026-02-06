@@ -72,8 +72,4 @@ unset($__defined_vars, $__key, $__value); ?>
     <path d="m7 15 5 5 5-5" />
     <path d="m7 9 5-5 5 5" />
 </svg>
-<<<<<<<< HEAD:storage/framework/views/4cde8b56915065c3396958c431f09c24.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\resources\views/flux/icon/chevrons-up-down.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\resources\views/flux/icon/chevrons-up-down.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/d5ac9d6905f041784b7ff6c774fc9338.php

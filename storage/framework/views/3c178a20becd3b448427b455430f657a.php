@@ -284,8 +284,4 @@ $label = $alt ?? $name;
 <?php $component = $__componentOriginal1bac653003a70249c8d1bced240ca490; ?>
 <?php unset($__componentOriginal1bac653003a70249c8d1bced240ca490); ?>
 <?php endif; ?>
-<<<<<<<< HEAD:storage/framework/views/3c178a20becd3b448427b455430f657a.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/avatar/index.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/avatar/index.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/5cbeecbb209f6eca42d2ba26f769b6da.php

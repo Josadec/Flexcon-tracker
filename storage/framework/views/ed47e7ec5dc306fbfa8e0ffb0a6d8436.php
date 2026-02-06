@@ -23,8 +23,4 @@
 <div class="ms-1 grid flex-1 text-start text-sm">
     <span class="mb-0.5 truncate leading-tight font-semibold">FlexCon Tracker</span>
 </div>
-<<<<<<<< HEAD:storage/framework/views/ed47e7ec5dc306fbfa8e0ffb0a6d8436.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\resources\views/components/app-logo.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\resources\views/components/app-logo.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/b549d541224bed376c3bb3e82f928182.php

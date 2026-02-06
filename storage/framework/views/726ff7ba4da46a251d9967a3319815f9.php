@@ -51,8 +51,4 @@ if (($wireModel = $attributes->wire('model')) && $wireModel->directive && ! $wir
     <?php echo e($slot); ?>
 
 </ui-dropdown>
-<<<<<<<< HEAD:storage/framework/views/726ff7ba4da46a251d9967a3319815f9.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/dropdown.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/dropdown.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/65ad6285bdf54cb327f67a7a3cc792e6.php

@@ -33,3 +33,5 @@ auth.setup.js
 ejemplo.spec.js
 playwright.config.js
 INSTRUCCIONES.md
+storage/framework/vies/*
+storage/framework/views/*

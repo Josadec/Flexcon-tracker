@@ -63,8 +63,4 @@ unset($__defined_vars, $__key, $__value); ?>
 
     </button>
 <?php endif; ?>
-<<<<<<<< HEAD:storage/framework/views/264717e723976c7d38131d3124e99d46.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/button-or-link-pure.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/button-or-link-pure.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/a0ad1f4d57d7ce32e21908e33e547f0c.php

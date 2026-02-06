@@ -65,8 +65,4 @@
 <?php $component = $__componentOriginald275691d15a0a68ca98ac956f9920812; ?>
 <?php unset($__componentOriginald275691d15a0a68ca98ac956f9920812); ?>
 <?php endif; ?>
-<<<<<<<< HEAD:storage/framework/views/0aba52f46a11821f492a95cd23d6fd6d.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\resources\views/components/layouts/app.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\resources\views/components/layouts/app.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/393887b7c56c6061447ace45ef26181f.php

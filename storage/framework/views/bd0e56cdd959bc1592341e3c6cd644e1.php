@@ -342,8 +342,4 @@ $classes = Flux::classes()
 <?php $component = $__componentOriginal1bac653003a70249c8d1bced240ca490; ?>
 <?php unset($__componentOriginal1bac653003a70249c8d1bced240ca490); ?>
 <?php endif; ?>
-<<<<<<<< HEAD:storage/framework/views/bd0e56cdd959bc1592341e3c6cd644e1.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/button/index.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/button/index.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/c21e1d2fb351bb0b8b97ee2636d186c1.php

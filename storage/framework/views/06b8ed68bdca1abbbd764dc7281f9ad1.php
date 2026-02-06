@@ -82,8 +82,4 @@ unset($__defined_vars, $__key, $__value); ?>
         </div>
     <?php endif; ?>
 </ui-label>
-<<<<<<<< HEAD:storage/framework/views/06b8ed68bdca1abbbd764dc7281f9ad1.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/label.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/label.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/14d3c5069b3e1017d48906fdaaea53a9.php

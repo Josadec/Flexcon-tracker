@@ -84,8 +84,4 @@ $current = $current === null ? ($hrefForCurrentDetection
 
     </button>
 <?php endif; ?>
-<<<<<<<< HEAD:storage/framework/views/10765ae3045a68fb1b4a004851472003.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/button-or-link.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/button-or-link.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/d09a06b6df3ee577e71e64f4cff92599.php

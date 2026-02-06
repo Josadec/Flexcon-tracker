@@ -204,8 +204,4 @@ $classes = Flux::classes()
 <?php $component = $__componentOriginal41290c80ee95fab383f81660ba8bf860; ?>
 <?php unset($__componentOriginal41290c80ee95fab383f81660ba8bf860); ?>
 <?php endif; ?>
-<<<<<<<< HEAD:storage/framework/views/effcca5bb247bb128f23225094c433a5.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/navlist/item.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/navlist/item.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/c0ac2adb69bcfa22a248d0387360bcf5.php

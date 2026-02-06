@@ -68,8 +68,4 @@ $classes = Flux::classes('border-0 [print-color-adjust:exact]')
 <?php else: ?>
     <div data-orientation="<?php echo e($orientation); ?>" role="none" <?php echo e($attributes->class($classes, 'shrink-0')); ?> data-flux-separator></div>
 <?php endif; ?>
-<<<<<<<< HEAD:storage/framework/views/7210a1760e9ee9d6ad48b8ba35be9d47.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/separator.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/separator.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/5ad36b14e204d9a6efeffa0fba86b890.php

@@ -1234,8 +1234,4 @@
 </body>
 
 </html>
-<<<<<<<< HEAD:storage/framework/views/8d352636069244efd3e3771a07636c47.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\resources\views/components/layouts/app/sidebar.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\resources\views/components/layouts/app/sidebar.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/d58c34df00fa0dd86f53f036eba19126.php

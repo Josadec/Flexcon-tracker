@@ -177,8 +177,4 @@ $suffixClasses = Flux::classes()
 <?php $component = $__componentOriginal44af18836315d1ca840cbdae84566f63; ?>
 <?php unset($__componentOriginal44af18836315d1ca840cbdae84566f63); ?>
 <?php endif; ?>
-<<<<<<<< HEAD:storage/framework/views/0441412eb2ec6f75e40cc1f37e7b94cb.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/menu/item.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/menu/item.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/27b197a92cc3f99b34ebc5aa47a11800.php

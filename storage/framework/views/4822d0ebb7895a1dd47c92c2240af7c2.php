@@ -61,8 +61,4 @@ $icon = $name ?? $icon;
 <?php $component = $__componentOriginal99f5bdde02e072cb5fe2c95dd124b389; ?>
 <?php unset($__componentOriginal99f5bdde02e072cb5fe2c95dd124b389); ?>
 <?php endif; ?>
-<<<<<<<< HEAD:storage/framework/views/4822d0ebb7895a1dd47c92c2240af7c2.php
 <?php /**PATH C:\xampp\htdocs\Flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/icon/index.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\xampp\htdocs\flexcon-tracker\vendor\livewire\flux\src/../stubs/resources/views/flux/icon/index.blade.php ENDPATH**/ ?>
->>>>>>>> d03ef7f7e809088ac98092fed940e42e2cd21541:storage/framework/views/d9610a5dd2d43cc1b9e79542bb891ffd.php
