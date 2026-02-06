@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
+use App\Models\Kit;
 
 class Lot extends Model
 {
@@ -20,10 +21,23 @@ class Lot extends Model
         'quantity',
         'status',
         'comments',
+        'raw_material_batch_numbers',
+        'supplier_id',
+        'supplier_name',
+        'receipt_date',
+        'expiration_date',
+        'quality_status',
+        'quality_comments',
+        'quality_inspected_at',
+        'quality_inspected_by',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
+        'raw_material_batch_numbers' => 'array',
+        'receipt_date' => 'date',
+        'expiration_date' => 'date',
+        'quality_inspected_at' => 'datetime',
     ];
 
     /**
@@ -33,6 +47,13 @@ class Lot extends Model
     public const STATUS_IN_PROGRESS = 'in_progress';
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_CANCELLED = 'cancelled';
+
+    /**
+     * Quality Status constants
+     */
+    public const QUALITY_PENDING = 'pending';
+    public const QUALITY_APPROVED = 'approved';
+    public const QUALITY_REJECTED = 'rejected';
 
     /**
      * Boot the model.
@@ -83,6 +104,22 @@ class Lot extends Model
     public function workOrder(): BelongsTo
     {
         return $this->belongsTo(WorkOrder::class);
+    }
+
+    /**
+     * Get the kits that were created from this lot.
+     */
+    public function kits(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Kit::class, 'kit_lot')->withPivot('created_at');
+    }
+
+    /**
+     * Get the audit trail for this lot.
+     */
+    public function auditTrail(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(AuditTrail::class, 'auditable');
     }
 
     /**
@@ -220,7 +257,188 @@ class Lot extends Model
      */
     public function canBeDeleted(): bool
     {
-        // NOTE: Inspection model not implemented yet
+        // Cannot delete if lot has associated kits
+        if ($this->kits()->exists()) {
+            return false;
+        }
+        
         return $this->status === self::STATUS_PENDING;
+    }
+
+    /**
+     * Get complete traceability data for this lot.
+     */
+    public function getTraceabilityData(): array
+    {
+        return [
+            'lot_number' => $this->lot_number,
+            'work_order' => $this->workOrder->wo_number ?? null,
+            'raw_material_batch_numbers' => $this->raw_material_batch_numbers ?? [],
+            'supplier_id' => $this->supplier_id,
+            'supplier_name' => $this->supplier_name,
+            'receipt_date' => $this->receipt_date?->format('Y-m-d'),
+            'expiration_date' => $this->expiration_date?->format('Y-m-d'),
+            'quantity' => $this->quantity,
+            'status' => $this->status,
+            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'kits' => $this->kits->map(fn($kit) => [
+                'kit_number' => $kit->kit_number,
+                'status' => $kit->status,
+            ])->toArray(),
+        ];
+    }
+
+    /**
+     * Check if the lot has expired.
+     */
+    public function isExpired(): bool
+    {
+        if (!$this->expiration_date) {
+            return false;
+        }
+
+        return $this->expiration_date->isPast();
+    }
+
+    /**
+     * Get all available quality statuses.
+     */
+    public static function getQualityStatuses(): array
+    {
+        return [
+            self::QUALITY_PENDING => 'Pendiente',
+            self::QUALITY_APPROVED => 'Aprobado',
+            self::QUALITY_REJECTED => 'No Aprobado',
+        ];
+    }
+
+    /**
+     * Get the quality status label.
+     */
+    public function getQualityStatusLabelAttribute(): string
+    {
+        return self::getQualityStatuses()[$this->quality_status] ?? $this->quality_status;
+    }
+
+    /**
+     * Get the quality status color for UI display.
+     */
+    public function getQualityStatusColorAttribute(): string
+    {
+        return match ($this->quality_status) {
+            self::QUALITY_PENDING => 'yellow',
+            self::QUALITY_APPROVED => 'green',
+            self::QUALITY_REJECTED => 'red',
+            default => 'gray',
+        };
+    }
+
+    /**
+     * Check if the lot can be inspected by Quality.
+     * Quality can only inspect lots that have an associated Kit with status "released".
+     */
+    public function canBeInspectedByQuality(): bool
+    {
+        return $this->kits()
+            ->where('status', Kit::STATUS_RELEASED)
+            ->exists();
+    }
+
+    /**
+     * Get the released kit associated with this lot (if any).
+     */
+    public function getReleasedKit(): ?Kit
+    {
+        return $this->kits()
+            ->where('status', Kit::STATUS_RELEASED)
+            ->first();
+    }
+
+    /**
+     * Get the reason why quality inspection is blocked.
+     */
+    public function getQualityBlockedReason(): ?string
+    {
+        if ($this->canBeInspectedByQuality()) {
+            return null;
+        }
+
+        $kit = $this->kits()->first();
+
+        if (!$kit) {
+            return 'Este lote no tiene un kit asociado. Materiales debe crear un kit primero.';
+        }
+
+        return match ($kit->status) {
+            Kit::STATUS_PREPARING => 'El kit esta en preparacion. Materiales debe completar y liberar el kit primero.',
+            Kit::STATUS_READY => 'El kit esta listo pero aun no ha sido liberado por Materiales.',
+            Kit::STATUS_REJECTED => 'El kit fue rechazado. Materiales debe corregir y re-liberar el kit.',
+            Kit::STATUS_IN_ASSEMBLY => 'El kit ya esta en ensamble.',
+            default => 'El kit no tiene un status valido para inspeccion.',
+        };
+    }
+
+    /**
+     * Scope a query to only include lots with pending quality.
+     */
+    public function scopeQualityPending($query)
+    {
+        return $query->where('quality_status', self::QUALITY_PENDING);
+    }
+
+    /**
+     * Scope a query to only include lots with approved quality.
+     */
+    public function scopeQualityApproved($query)
+    {
+        return $query->where('quality_status', self::QUALITY_APPROVED);
+    }
+
+    /**
+     * Scope a query to only include lots with rejected quality.
+     */
+    public function scopeQualityRejected($query)
+    {
+        return $query->where('quality_status', self::QUALITY_REJECTED);
+    }
+
+    /**
+     * Relationship with the user who inspected quality.
+     */
+    public function qualityInspector(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'quality_inspected_by');
+    }
+
+    /**
+     * Check if quality inspection is pending.
+     */
+    public function isQualityPending(): bool
+    {
+        return $this->quality_status === self::QUALITY_PENDING;
+    }
+
+    /**
+     * Check if quality is approved.
+     */
+    public function isQualityApproved(): bool
+    {
+        return $this->quality_status === self::QUALITY_APPROVED;
+    }
+
+    /**
+     * Check if quality is rejected.
+     */
+    public function isQualityRejected(): bool
+    {
+        return $this->quality_status === self::QUALITY_REJECTED;
+    }
+
+    /**
+     * Check if lot can proceed to packing/shipping (must be quality approved).
+     */
+    public function canProceedToShipping(): bool
+    {
+        return $this->isQualityApproved() && $this->status === self::STATUS_COMPLETED;
     }
 }
