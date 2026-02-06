@@ -39,6 +39,35 @@ class ShippingListDisplay extends Component
     public $qualityStatus = 'pending';
     public $qualityComments = '';
 
+    // Modal de Kit por lote
+    public $showKitModal = false;
+    public $selectedLotForKit = null;
+    public $selectedKit = null;
+    public $kitStatus = 'preparing';
+
+    // Modal de Empaque por lote
+    public $showPackagingModal = false;
+    public $selectedLotForPackaging = null;
+    public $packagingStatus = 'pending';
+    public $packagingComments = '';
+
+    // Modal de Calidad Final por lote
+    public $showFinalQualityModal = false;
+    public $selectedLotForFinalQuality = null;
+    public $finalQualityStatus = 'pending';
+    public $finalQualityComments = '';
+
+    // Modal de Pesada (Producción) por lote
+    public $showProductionModal = false;
+    public $selectedLotForProduction = null;
+    public $prodGoodPieces = 0;
+    public $prodBadPieces = 0;
+    public $prodWeighedAt = '';
+    public $prodComments = '';
+    public $prodQuantity = 0;
+    public $prodKitId = null;
+    public $prodKits = [];
+
     public function mount()
     {
         // Inicializar filtros
@@ -148,6 +177,14 @@ class ShippingListDisplay extends Component
             return;
         }
 
+        // Validar que la suma de lotes no sobrepase la Cant. WO
+        $totalNewQuantity = collect($this->lots)->sum('quantity');
+        $cantWO = $this->selectedWorkOrder->original_quantity;
+        if ($totalNewQuantity > $cantWO) {
+            session()->flash('error', 'ALERTA: La suma de lotes (' . number_format($totalNewQuantity) . ') sobrepasa la Cant. WO (' . number_format($cantWO) . ') por ' . number_format($totalNewQuantity - $cantWO) . ' piezas.');
+            return;
+        }
+
         $po = $this->selectedWorkOrder->purchaseOrder;
         $part = $po->part;
 
@@ -204,6 +241,124 @@ class ShippingListDisplay extends Component
     }
 
     /**
+     * Open kit status modal for a specific lot.
+     */
+    public function openKitModal($lotId)
+    {
+        $this->selectedLotForKit = Lot::with(['workOrder.purchaseOrder.part', 'kits'])->find($lotId);
+
+        if (!$this->selectedLotForKit) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        // Obtener el kit asociado al lote (el más reciente)
+        $this->selectedKit = $this->selectedLotForKit->kits->sortByDesc('created_at')->first();
+        
+        if ($this->selectedKit) {
+            $this->kitStatus = $this->selectedKit->status ?? 'preparing';
+        } else {
+            $this->kitStatus = 'preparing';
+        }
+
+        $this->showKitModal = true;
+    }
+
+    /**
+     * Close kit status modal.
+     */
+    public function closeKitModal()
+    {
+        $this->showKitModal = false;
+        $this->selectedLotForKit = null;
+        $this->selectedKit = null;
+        $this->kitStatus = 'preparing';
+        $this->resetErrorBag();
+    }
+
+    /**
+     * Set kit status (for visual update).
+     */
+    public function setKitStatus($status)
+    {
+        $this->kitStatus = $status;
+    }
+
+    /**
+     * Save kit status.
+     */
+    public function saveKitStatus()
+    {
+        $this->validate([
+            'kitStatus' => 'required|in:released,rejected',
+        ], [
+            'kitStatus.required' => 'Debe seleccionar Aprobado o Rechazado.',
+        ]);
+
+        if (!$this->selectedKit) {
+            session()->flash('error', 'No hay kit asociado a este lote.');
+            $this->closeKitModal();
+            return;
+        }
+
+        // Actualizar kit
+        $this->selectedKit->update([
+            'status' => $this->kitStatus,
+        ]);
+
+        $statusLabels = [
+            'released' => 'Aprobado',
+            'rejected' => 'Rechazado',
+        ];
+        
+        $statusLabel = $statusLabels[$this->kitStatus] ?? $this->kitStatus;
+        session()->flash('message', "Status de kit actualizado a: {$statusLabel}");
+
+        $this->closeKitModal();
+        $this->dispatch('refresh-display');
+    }
+
+    /**
+     * Approve a lot (set status to completed).
+     */
+    public function approveLot($lotId)
+    {
+        $lot = Lot::find($lotId);
+        
+        if (!$lot) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        $lot->update([
+            'status' => Lot::STATUS_COMPLETED,
+        ]);
+
+        session()->flash('message', "Lote {$lot->lot_number} aprobado correctamente.");
+        $this->dispatch('refresh-display');
+    }
+
+    /**
+     * Reject a lot (set status to cancelled).
+     */
+    public function rejectLot($lotId)
+    {
+        $lot = Lot::find($lotId);
+        
+        if (!$lot) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        $lot->update([
+            'status' => Lot::STATUS_CANCELLED,
+        ]);
+
+        session()->flash('message', "Lote {$lot->lot_number} rechazado.");
+        $this->dispatch('refresh-display');
+    }
+
+    /**
      * Open quality status modal for a specific lot.
      */
     public function openQualityModal($lotId)
@@ -241,6 +396,14 @@ class ShippingListDisplay extends Component
         $this->qualityStatus = 'pending';
         $this->qualityComments = '';
         $this->resetErrorBag();
+    }
+
+    /**
+     * Set quality status (for visual update).
+     */
+    public function setQualityStatus($status)
+    {
+        $this->qualityStatus = $status;
     }
 
     /**
@@ -293,6 +456,222 @@ class ShippingListDisplay extends Component
         $this->dispatch('refresh-display');
     }
 
+    // ===============================================
+    // PACKAGING (EMPAQUE) MODAL
+    // ===============================================
+
+    public function openPackagingModal($lotId)
+    {
+        $lot = Lot::with(['workOrder.purchaseOrder.part'])->find($lotId);
+
+        if (!$lot) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        $this->selectedLotForPackaging = $lot;
+        $this->packagingStatus = $lot->packaging_status ?? 'pending';
+        $this->packagingComments = $lot->packaging_comments ?? '';
+        $this->showPackagingModal = true;
+    }
+
+    public function closePackagingModal()
+    {
+        $this->showPackagingModal = false;
+        $this->selectedLotForPackaging = null;
+        $this->packagingStatus = 'pending';
+        $this->packagingComments = '';
+        $this->resetErrorBag();
+    }
+
+    public function setPackagingStatus($status)
+    {
+        $this->packagingStatus = $status;
+    }
+
+    public function savePackagingStatus()
+    {
+        $rules = [
+            'packagingStatus' => 'required|in:pending,approved,rejected',
+        ];
+
+        if ($this->packagingStatus === 'rejected') {
+            $rules['packagingComments'] = 'required|string|min:5|max:1000';
+        } else {
+            $rules['packagingComments'] = 'nullable|string|max:1000';
+        }
+
+        $this->validate($rules, [
+            'packagingStatus.required' => 'Debe seleccionar un status de empaque.',
+            'packagingComments.required' => 'Debe indicar el motivo del rechazo.',
+            'packagingComments.min' => 'El comentario debe tener al menos 5 caracteres.',
+        ]);
+
+        if (!$this->selectedLotForPackaging) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        $this->selectedLotForPackaging->update([
+            'packaging_status' => $this->packagingStatus,
+            'packaging_comments' => $this->packagingComments,
+            'packaging_inspected_at' => now(),
+            'packaging_inspected_by' => auth()->id(),
+        ]);
+
+        $statusLabels = ['pending' => 'Pendiente', 'approved' => 'Aprobado', 'rejected' => 'Rechazado'];
+        $statusLabel = $statusLabels[$this->packagingStatus] ?? $this->packagingStatus;
+        session()->flash('message', "Status de empaque actualizado a: {$statusLabel}");
+
+        $this->closePackagingModal();
+        $this->dispatch('refresh-display');
+    }
+
+    // ===============================================
+    // FINAL QUALITY (CALIDAD) MODAL
+    // ===============================================
+
+    public function openFinalQualityModal($lotId)
+    {
+        $lot = Lot::with(['workOrder.purchaseOrder.part'])->find($lotId);
+
+        if (!$lot) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        $this->selectedLotForFinalQuality = $lot;
+        $this->finalQualityStatus = $lot->final_quality_status ?? 'pending';
+        $this->finalQualityComments = $lot->final_quality_comments ?? '';
+        $this->showFinalQualityModal = true;
+    }
+
+    public function closeFinalQualityModal()
+    {
+        $this->showFinalQualityModal = false;
+        $this->selectedLotForFinalQuality = null;
+        $this->finalQualityStatus = 'pending';
+        $this->finalQualityComments = '';
+        $this->resetErrorBag();
+    }
+
+    public function setFinalQualityStatus($status)
+    {
+        $this->finalQualityStatus = $status;
+    }
+
+    public function saveFinalQualityStatus()
+    {
+        $rules = [
+            'finalQualityStatus' => 'required|in:pending,approved,rejected',
+        ];
+
+        if ($this->finalQualityStatus === 'rejected') {
+            $rules['finalQualityComments'] = 'required|string|min:5|max:1000';
+        } else {
+            $rules['finalQualityComments'] = 'nullable|string|max:1000';
+        }
+
+        $this->validate($rules, [
+            'finalQualityStatus.required' => 'Debe seleccionar un status de calidad.',
+            'finalQualityComments.required' => 'Debe indicar el motivo del rechazo.',
+            'finalQualityComments.min' => 'El comentario debe tener al menos 5 caracteres.',
+        ]);
+
+        if (!$this->selectedLotForFinalQuality) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        $this->selectedLotForFinalQuality->update([
+            'final_quality_status' => $this->finalQualityStatus,
+            'final_quality_comments' => $this->finalQualityComments,
+            'final_quality_inspected_at' => now(),
+            'final_quality_inspected_by' => auth()->id(),
+        ]);
+
+        $statusLabels = ['pending' => 'Pendiente', 'approved' => 'Aprobado', 'rejected' => 'Rechazado'];
+        $statusLabel = $statusLabels[$this->finalQualityStatus] ?? $this->finalQualityStatus;
+        session()->flash('message', "Status de calidad final actualizado a: {$statusLabel}");
+
+        $this->closeFinalQualityModal();
+        $this->dispatch('refresh-display');
+    }
+
+    // ===============================================
+    // PRODUCTION (PESADA) MODAL
+    // ===============================================
+
+    public function openProductionModal($lotId)
+    {
+        $lot = Lot::with(['workOrder.purchaseOrder.part', 'kits'])->find($lotId);
+
+        if (!$lot) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        $this->selectedLotForProduction = $lot;
+        $this->prodQuantity = $lot->quantity;
+        $this->prodGoodPieces = 0;
+        $this->prodBadPieces = 0;
+        $this->prodWeighedAt = now()->format('Y-m-d\TH:i');
+        $this->prodComments = '';
+        $this->prodKitId = null;
+        $this->prodKits = $lot->kits;
+        $this->showProductionModal = true;
+    }
+
+    public function closeProductionModal()
+    {
+        $this->showProductionModal = false;
+        $this->selectedLotForProduction = null;
+        $this->prodQuantity = 0;
+        $this->prodGoodPieces = 0;
+        $this->prodBadPieces = 0;
+        $this->prodWeighedAt = '';
+        $this->prodComments = '';
+        $this->prodKitId = null;
+        $this->prodKits = [];
+        $this->resetErrorBag();
+    }
+
+    public function saveProduction()
+    {
+        $this->validate([
+            'prodGoodPieces' => 'required|integer|min:0',
+            'prodBadPieces' => 'required|integer|min:0',
+            'prodWeighedAt' => 'required|date',
+            'prodComments' => 'nullable|string|max:1000',
+        ], [
+            'prodGoodPieces.required' => 'Las piezas buenas son requeridas.',
+            'prodGoodPieces.min' => 'Las piezas buenas no pueden ser negativas.',
+            'prodBadPieces.required' => 'Las piezas malas son requeridas.',
+            'prodBadPieces.min' => 'Las piezas malas no pueden ser negativas.',
+            'prodWeighedAt.required' => 'La fecha y hora son requeridas.',
+        ]);
+
+        if (!$this->selectedLotForProduction) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        \App\Models\Weighing::create([
+            'lot_id' => $this->selectedLotForProduction->id,
+            'kit_id' => $this->prodKitId ?: null,
+            'quantity' => $this->selectedLotForProduction->quantity,
+            'good_pieces' => $this->prodGoodPieces,
+            'bad_pieces' => $this->prodBadPieces,
+            'weighed_at' => $this->prodWeighedAt,
+            'weighed_by' => auth()->id(),
+            'comments' => $this->prodComments ?: null,
+        ]);
+
+        session()->flash('message', 'Pesada registrada correctamente.');
+        $this->closeProductionModal();
+        $this->dispatch('refresh-display');
+    }
+
     public function render()
     {
         // Obtener Work Orders con lots (todos los estados)
@@ -300,7 +679,7 @@ class ShippingListDisplay extends Component
             'purchaseOrder.part.standards' => function ($query) {
                 $query->active();
             },
-            'lots', // Cargar todos los lotes sin filtrar por estado
+            'lots.weighings', // Cargar todos los lotes con sus pesadas
             'sentList'
         ])
         ->whereHas('lots'); // Solo WOs que tengan al menos un lote
