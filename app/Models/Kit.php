@@ -265,7 +265,7 @@ class Kit extends Model
      */
     public function canBeDeleted(): bool
     {
-        return $this->status === self::STATUS_PREPARING && !$this->submitted_to_inspection_at;
+        return $this->status === self::STATUS_PREPARING && !$this->submitted_to_quality_at;
     }
 
     /**
