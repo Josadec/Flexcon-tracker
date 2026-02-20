@@ -52,10 +52,17 @@ class DynamicSentListView extends Component
     public string $kitStatus = 'preparing';
     public array $selectedLots = [];
     public string $kitValidationNotes = '';
+    public $kitQuantity = '';
 
     // Form data for kit editing
     public string $editKitStatus = '';
     public string $editKitValidationNotes = '';
+    public $editKitQuantity = '';
+
+    // Modal de Material (no-crimp: lote = kit)
+    public bool $showMaterialModal = false;
+    public $selectedLotForMaterial = null;
+    public string $materialStatus = 'pending';
 
     // ===============================================
     // COMPUTED PROPERTIES
@@ -329,6 +336,12 @@ class DynamicSentListView extends Component
      */
     public function openCreateKitModal(int $workOrderId): void
     {
+        $wo = \App\Models\WorkOrder::with('purchaseOrder.part')->find($workOrderId);
+        if ($wo && !($wo->purchaseOrder->part->is_crimp ?? true)) {
+            session()->flash('error', 'Esta parte no es CRIMP — el lote funciona como kit.');
+            return;
+        }
+
         $this->selectedWorkOrderId = $workOrderId;
         $this->showCreateKitModal = true;
     }
@@ -349,13 +362,29 @@ class DynamicSentListView extends Component
     {
         $this->validate([
             'kitStatus' => 'required|in:preparing,ready',
+            'kitQuantity' => 'required|integer|min:1',
             'selectedLots' => 'required|array|min:1',
             'selectedLots.*' => 'exists:lots,id',
             'kitValidationNotes' => 'nullable|string|max:500',
         ], [
+            'kitQuantity.required' => 'La cantidad es requerida.',
+            'kitQuantity.integer' => 'La cantidad debe ser un número entero.',
+            'kitQuantity.min' => 'La cantidad debe ser mayor a 0.',
             'selectedLots.required' => 'Debe seleccionar al menos un lote para crear el kit.',
             'selectedLots.min' => 'Debe seleccionar al menos un lote para crear el kit.',
         ]);
+
+        // Validate quantity doesn't exceed lot totals
+        $lotsTotalQty = Lot::whereIn('id', $this->selectedLots)->sum('quantity');
+        $existingKitsQty = Kit::whereHas('lots', function ($q) {
+            $q->whereIn('lots.id', $this->selectedLots);
+        })->sum('quantity');
+        $newTotal = $existingKitsQty + (int) $this->kitQuantity;
+        if ($newTotal > $lotsTotalQty) {
+            $remaining = max(0, $lotsTotalQty - $existingKitsQty);
+            $this->addError('kitQuantity', 'La suma de kits (' . number_format($newTotal) . ') sobrepasa la cantidad de lotes (' . number_format($lotsTotalQty) . '). Disponible: ' . number_format($remaining) . ' pz.');
+            return;
+        }
 
         $workOrder = WorkOrder::findOrFail($this->selectedWorkOrderId);
 
@@ -363,6 +392,7 @@ class DynamicSentListView extends Component
         $kit = Kit::create([
             'work_order_id' => $workOrder->id,
             'kit_number' => Kit::generateKitNumber($workOrder->id),
+            'quantity' => (int) $this->kitQuantity,
             'status' => $this->kitStatus,
             'validation_notes' => $this->kitValidationNotes,
             'prepared_by' => auth()->id(),
@@ -397,6 +427,7 @@ class DynamicSentListView extends Component
         if ($kit) {
             $this->editKitStatus = $kit->status;
             $this->editKitValidationNotes = $kit->validation_notes ?? '';
+            $this->editKitQuantity = $kit->quantity ?? '';
             $this->showEditKitModal = true;
         }
     }
@@ -410,6 +441,7 @@ class DynamicSentListView extends Component
         $this->selectedKitId = null;
         $this->editKitStatus = '';
         $this->editKitValidationNotes = '';
+        $this->editKitQuantity = '';
     }
 
     /**
@@ -419,10 +451,30 @@ class DynamicSentListView extends Component
     {
         $this->validate([
             'editKitStatus' => 'required|in:preparing,ready,released,in_assembly,rejected',
+            'editKitQuantity' => 'required|integer|min:1',
             'editKitValidationNotes' => 'nullable|string|max:500',
+        ], [
+            'editKitQuantity.required' => 'La cantidad es requerida.',
+            'editKitQuantity.integer' => 'La cantidad debe ser un número entero.',
+            'editKitQuantity.min' => 'La cantidad debe ser mayor a 0.',
         ]);
 
         $kit = Kit::findOrFail($this->selectedKitId);
+
+        // Validate quantity doesn't exceed lot totals
+        $lotIds = $kit->lots->pluck('id')->toArray();
+        if (!empty($lotIds)) {
+            $lotsTotalQty = Lot::whereIn('id', $lotIds)->sum('quantity');
+            $existingKitsQty = Kit::whereHas('lots', function ($q) use ($lotIds) {
+                $q->whereIn('lots.id', $lotIds);
+            })->where('id', '!=', $kit->id)->sum('quantity');
+            $newTotal = $existingKitsQty + (int) $this->editKitQuantity;
+            if ($newTotal > $lotsTotalQty) {
+                $remaining = max(0, $lotsTotalQty - $existingKitsQty);
+                $this->addError('editKitQuantity', 'La suma de kits (' . number_format($newTotal) . ') sobrepasa la cantidad de lotes (' . number_format($lotsTotalQty) . '). Disponible: ' . number_format($remaining) . ' pz.');
+                return;
+            }
+        }
 
         // Check if status change is allowed
         if ($kit->status === 'released' && $this->editKitStatus !== 'released' && $this->editKitStatus !== 'in_assembly') {
@@ -435,6 +487,7 @@ class DynamicSentListView extends Component
 
         $updateData = [
             'status' => $this->editKitStatus,
+            'quantity' => (int) $this->editKitQuantity,
             'validation_notes' => $this->editKitValidationNotes,
         ];
 
@@ -657,6 +710,7 @@ class DynamicSentListView extends Component
     {
         $this->selectedWorkOrderId = null;
         $this->kitStatus = 'preparing';
+        $this->kitQuantity = '';
         $this->selectedLots = [];
         $this->kitValidationNotes = '';
     }
@@ -700,8 +754,7 @@ class DynamicSentListView extends Component
             'kits.preparedBy',
             'kits.releasedBy',
             'kits.lots'
-        ])->whereHas('lots') // Solo WOs que tengan lotes
-          ->whereNotIn('status_id', $closedStatusIds); // Excluir cerrados/cancelados
+        ])->whereNotIn('status_id', $closedStatusIds); // Excluir cerrados/cancelados
 
         // Apply search
         if (!empty($this->searchTerm)) {
@@ -730,5 +783,59 @@ class DynamicSentListView extends Component
         return view('livewire.admin.materials.dynamic-sent-list-view', [
             'workOrders' => $workOrders,
         ]);
+    }
+
+    // ===============================================
+    // MATERIAL MODAL (NO-CRIMP: LOTE = KIT)
+    // ===============================================
+
+    public function openMaterialModal(int $lotId): void
+    {
+        $this->selectedLotForMaterial = Lot::with(['workOrder.purchaseOrder.part'])->find($lotId);
+
+        if (!$this->selectedLotForMaterial) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        $this->materialStatus = $this->selectedLotForMaterial->material_status ?? 'pending';
+        $this->showMaterialModal = true;
+    }
+
+    public function closeMaterialModal(): void
+    {
+        $this->showMaterialModal = false;
+        $this->selectedLotForMaterial = null;
+        $this->materialStatus = 'pending';
+        $this->resetErrorBag();
+    }
+
+    public function saveMaterialStatus(): void
+    {
+        if (!$this->selectedLotForMaterial) {
+            session()->flash('error', 'Lote no encontrado.');
+            $this->closeMaterialModal();
+            return;
+        }
+
+        $this->validate([
+            'materialStatus' => 'required|in:released,rejected',
+        ], [
+            'materialStatus.required' => 'Debe seleccionar Aprobado o Rechazado.',
+        ]);
+
+        $this->selectedLotForMaterial->update([
+            'material_status' => $this->materialStatus,
+        ]);
+
+        $statusLabels = [
+            'released' => 'Aprobado',
+            'rejected' => 'Rechazado',
+        ];
+
+        $statusLabel = $statusLabels[$this->materialStatus] ?? $this->materialStatus;
+        session()->flash('message', "Material del lote actualizado a: {$statusLabel}");
+
+        $this->closeMaterialModal();
     }
 }
