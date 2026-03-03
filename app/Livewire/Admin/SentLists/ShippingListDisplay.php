@@ -83,11 +83,26 @@ class ShippingListDisplay extends Component
     public $pkgAdjustedSurplus = null;
     public $pkgAdjustmentReason = '';
 
-    // Fase 3 & 4: Viajero + Closure
+    // Fase 3: Viajero
     public $pkgViajeroReceived = false;
-    public $pkgClosureDecision = null;
-    public $pkgSurplusReceived = false;
     public $pkgTotalSurplus = 0;
+
+    // Modal Decisión Control de Materiales (separate modal)
+    public $showDecisionModal = false;
+    public $selectedLotForDecision = null;
+    public $decWoTotal = 0;
+    public $decPacked = 0;
+    public $decSurplus = 0;
+    public $decMissing = 0;
+    public $decIsCrimp = false;
+    public $decClosureDecision = null;
+    public $decSurplusReceived = false;
+
+    // Modal Crear Lote (from Decision modal)
+    public $showCreateLotFormModal = false;
+    public $createLotName = '';
+    public $createLotQuantity = 0;
+    public $createLotType = ''; // 'complete' or 'new_lot'
 
     // Modal de Pesada (Producción) por lote
     public $showProductionModal = false;
@@ -864,10 +879,8 @@ class ShippingListDisplay extends Component
         $this->pkgAdjustedSurplus = null;
         $this->pkgAdjustmentReason = '';
 
-        // Fase 3 & 4 data
+        // Fase 3 data
         $this->pkgViajeroReceived = (bool) $lot->viajero_received;
-        $this->pkgClosureDecision = $lot->closure_decision;
-        $this->pkgSurplusReceived = (bool) $lot->surplus_received;
         $this->pkgTotalSurplus = $lot->getPackagingTotalSurplus();
 
         $this->showPackagingModal = true;
@@ -890,8 +903,6 @@ class ShippingListDisplay extends Component
         $this->pkgAdjustedSurplus = null;
         $this->pkgAdjustmentReason = '';
         $this->pkgViajeroReceived = false;
-        $this->pkgClosureDecision = null;
-        $this->pkgSurplusReceived = false;
         $this->pkgTotalSurplus = 0;
         $this->resetErrorBag();
     }
@@ -1101,100 +1112,102 @@ class ShippingListDisplay extends Component
         $this->dispatch('refresh-display');
     }
 
-    /**
-     * Complete the lot by creating a complementary kit (Fase 4 — Opción 1).
-     */
-    public function completeLot()
-    {
-        if (!$this->selectedLotForPackaging) {
-            session()->flash('error', 'Lote no encontrado.');
-            return;
-        }
-
-        $lot = $this->selectedLotForPackaging;
-        $surplus = $lot->getPackagingTotalSurplus();
-
-        if ($surplus <= 0) {
-            session()->flash('error', 'No hay sobrantes para completar.');
-            return;
-        }
-
-        // Create a kit with the surplus quantity
-        $kit = Kit::create([
-            'work_order_id' => $lot->work_order_id,
-            'kit_number' => Kit::generateKitNumber($lot->work_order_id),
-            'quantity' => $surplus,
-            'status' => Kit::STATUS_PREPARING,
-            'current_approval_cycle' => 1,
-        ]);
-
-        // Associate kit with lot
-        $lot->kits()->attach($kit->id);
-
-        $lot->update([
-            'closure_decision' => Lot::CLOSURE_COMPLETE_LOT,
-            'closure_decided_by' => auth()->id(),
-            'closure_decided_at' => now(),
-        ]);
-
-        session()->flash('message', "Kit {$kit->kit_number} creado con {$surplus} piezas. El lote pasará por el flujo completo nuevamente.");
-        $this->openPackagingModal($lot->id);
-        $this->dispatch('refresh-display');
-    }
+    // ===============================================
+    // DECISION MODAL — Control de Materiales
+    // ===============================================
 
     /**
-     * Create a new lot for the surplus pieces (Fase 4 — Opción 2).
+     * Transition from packaging modal to decision modal.
      */
-    public function createNewLot()
+    public function openDecisionFromPackaging()
     {
-        if (!$this->selectedLotForPackaging) {
-            session()->flash('error', 'Lote no encontrado.');
-            return;
-        }
-
-        $lot = $this->selectedLotForPackaging;
-        $surplus = $lot->getPackagingTotalSurplus();
-
-        if ($surplus <= 0) {
-            session()->flash('error', 'No hay sobrantes para crear nuevo lote.');
-            return;
-        }
-
-        $part = $lot->workOrder->purchaseOrder->part;
-
-        // Create new lot
-        $newLot = Lot::create([
-            'work_order_id' => $lot->work_order_id,
-            'quantity' => $surplus,
-            'description' => $part->description,
-            'status' => Lot::STATUS_PENDING,
-        ]);
-
-        // Close current lot
-        $lot->update([
-            'closure_decision' => Lot::CLOSURE_NEW_LOT,
-            'closure_decided_by' => auth()->id(),
-            'closure_decided_at' => now(),
-            'status' => Lot::STATUS_COMPLETED,
-            'packaging_status' => 'approved',
-        ]);
-
-        session()->flash('message', "Lote actual cerrado. Nuevo lote {$newLot->lot_number} creado con {$surplus} piezas.");
+        if (!$this->selectedLotForPackaging) return;
+        $lotId = $this->selectedLotForPackaging->id;
         $this->closePackagingModal();
-        $this->dispatch('refresh-display');
+        $this->openDecisionModal($lotId);
     }
 
     /**
-     * Close lot as-is with surplus (Fase 4 — Opción 3).
+     * Open the Decision modal for a lot (after viajero received).
      */
-    public function closeAsIs()
+    public function openDecisionModal($lotId)
     {
-        if (!$this->selectedLotForPackaging) {
+        $lot = Lot::with(['workOrder.purchaseOrder.part', 'packagingRecords'])->find($lotId);
+
+        if (!$lot) {
             session()->flash('error', 'Lote no encontrado.');
             return;
         }
 
-        $lot = $this->selectedLotForPackaging;
+        $this->selectedLotForDecision = $lot;
+        $this->decWoTotal = $lot->quantity;
+        $this->decPacked = $lot->getPackagingPackedPieces();
+        $this->decSurplus = $lot->getPackagingTotalSurplus();
+        $this->decMissing = max(0, $this->decWoTotal - $this->decPacked - $this->decSurplus);
+        $this->decIsCrimp = (bool) ($lot->workOrder->purchaseOrder->part->is_crimp ?? false);
+        $this->decClosureDecision = $lot->closure_decision;
+        $this->decSurplusReceived = (bool) $lot->surplus_received;
+
+        $this->showDecisionModal = true;
+    }
+
+    /**
+     * Close the Decision modal.
+     */
+    public function closeDecisionModal()
+    {
+        $this->showDecisionModal = false;
+        $this->selectedLotForDecision = null;
+        $this->decWoTotal = 0;
+        $this->decPacked = 0;
+        $this->decSurplus = 0;
+        $this->decMissing = 0;
+        $this->decIsCrimp = false;
+        $this->decClosureDecision = null;
+        $this->decSurplusReceived = false;
+        $this->resetErrorBag();
+    }
+
+    /**
+     * Decision: Completar Lote — open Create Lot modal with MISSING pieces.
+     * faltantes = lote qty - empacadas - sobrantes
+     */
+    public function decisionCompleteLot()
+    {
+        if (!$this->selectedLotForDecision) return;
+
+        $this->createLotType = 'complete';
+        $this->createLotQuantity = $this->decMissing;
+        $this->createLotName = Lot::generateNextLotNumber($this->selectedLotForDecision->work_order_id);
+        $this->showCreateLotFormModal = true;
+    }
+
+    /**
+     * Decision: Nuevo Lote — open Create Lot modal with REMAINING pieces.
+     * remaining = lote qty - empacadas
+     */
+    public function decisionNewLot()
+    {
+        if (!$this->selectedLotForDecision) return;
+
+        $remaining = max(0, $this->decWoTotal - $this->decPacked);
+        $this->createLotType = 'new_lot';
+        $this->createLotQuantity = $remaining;
+        $this->createLotName = Lot::generateNextLotNumber($this->selectedLotForDecision->work_order_id);
+        $this->showCreateLotFormModal = true;
+    }
+
+    /**
+     * Decision: Cerrar Lote tal cual con sobrantes.
+     */
+    public function decisionCloseAsIs()
+    {
+        if (!$this->selectedLotForDecision) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        $lot = $this->selectedLotForDecision;
         $surplus = $lot->getPackagingTotalSurplus();
 
         $lot->update([
@@ -1206,7 +1219,6 @@ class ShippingListDisplay extends Component
         if ($surplus > 0) {
             session()->flash('message', "Lote cerrado con {$surplus} piezas sobrantes. Pendiente confirmación de recepción de materiales.");
         } else {
-            // No surplus — mark as fully completed
             $lot->update([
                 'status' => Lot::STATUS_COMPLETED,
                 'packaging_status' => 'approved',
@@ -1217,21 +1229,21 @@ class ShippingListDisplay extends Component
             session()->flash('message', 'Lote cerrado y completado.');
         }
 
-        $this->openPackagingModal($lot->id);
+        $this->openDecisionModal($lot->id);
         $this->dispatch('refresh-display');
     }
 
     /**
-     * Confirm surplus material received by Control de Materiales (Fase 4b).
+     * Confirm surplus material received by Control de Materiales.
      */
     public function confirmSurplusReceived()
     {
-        if (!$this->selectedLotForPackaging) {
+        if (!$this->selectedLotForDecision) {
             session()->flash('error', 'Lote no encontrado.');
             return;
         }
 
-        $lot = $this->selectedLotForPackaging;
+        $lot = $this->selectedLotForDecision;
 
         $lot->update([
             'surplus_received' => true,
@@ -1241,8 +1253,103 @@ class ShippingListDisplay extends Component
             'packaging_status' => 'approved',
         ]);
 
-        session()->flash('message', 'Material sobrante recibido. Lote completado y sobrantes eliminados de la lista de envío.');
-        $this->openPackagingModal($lot->id);
+        session()->flash('message', 'Material sobrante recibido. Lote completado.');
+        $this->openDecisionModal($lot->id);
+        $this->dispatch('refresh-display');
+    }
+
+    // ===============================================
+    // CREATE LOT MODAL (from Decision)
+    // ===============================================
+
+    /**
+     * Close the Create Lot form modal.
+     */
+    public function closeCreateLotFormModal()
+    {
+        $this->showCreateLotFormModal = false;
+        $this->createLotName = '';
+        $this->createLotQuantity = 0;
+        $this->createLotType = '';
+        $this->resetErrorBag();
+    }
+
+    /**
+     * Confirm creation of the new lot (and kit if crimp).
+     */
+    public function confirmCreateLot()
+    {
+        $this->validate([
+            'createLotName' => 'required|string|max:255',
+            'createLotQuantity' => 'required|integer|min:1',
+        ], [
+            'createLotName.required' => 'El nombre del lote es requerido.',
+            'createLotQuantity.required' => 'La cantidad es requerida.',
+            'createLotQuantity.min' => 'La cantidad debe ser mayor a 0.',
+        ]);
+
+        if (!$this->selectedLotForDecision) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        $lot = $this->selectedLotForDecision;
+        $part = $lot->workOrder->purchaseOrder->part;
+        $isCrimp = (bool) ($part->is_crimp ?? false);
+
+        // Create new lot
+        $newLot = Lot::create([
+            'work_order_id' => $lot->work_order_id,
+            'lot_number' => $this->createLotName,
+            'quantity' => $this->createLotQuantity,
+            'description' => $part->description,
+            'status' => Lot::STATUS_PENDING,
+        ]);
+
+        $message = "Lote #{$this->createLotName} creado con " . number_format($this->createLotQuantity) . " piezas.";
+
+        // If crimp, also create a kit associated with the new lot
+        if ($isCrimp) {
+            $kit = Kit::create([
+                'work_order_id' => $lot->work_order_id,
+                'kit_number' => Kit::generateKitNumber($lot->work_order_id),
+                'quantity' => $this->createLotQuantity,
+                'status' => Kit::STATUS_PREPARING,
+                'current_approval_cycle' => 1,
+            ]);
+            $newLot->kits()->attach($kit->id);
+            $message .= " Kit {$kit->kit_number} creado automáticamente (parte con crimp).";
+        }
+
+        // Apply closure logic based on type
+        if ($this->createLotType === 'complete') {
+            // Completar Lote: reset viajero so the flow can continue on the original lot
+            $lot->update([
+                'viajero_received' => false,
+                'viajero_received_at' => null,
+                'viajero_received_by' => null,
+                'closure_decision' => null,
+                'closure_decided_by' => null,
+                'closure_decided_at' => null,
+            ]);
+        } elseif ($this->createLotType === 'new_lot') {
+            // Nuevo Lote: close current lot
+            $lot->update([
+                'closure_decision' => Lot::CLOSURE_NEW_LOT,
+                'closure_decided_by' => auth()->id(),
+                'closure_decided_at' => now(),
+                'status' => Lot::STATUS_COMPLETED,
+                'packaging_status' => 'approved',
+            ]);
+            $surplus = $lot->getPackagingTotalSurplus();
+            if ($surplus > 0) {
+                $message .= " Sobrantes ({$surplus} pz) pendientes de devolución.";
+            }
+        }
+
+        session()->flash('message', $message);
+        $this->closeCreateLotFormModal();
+        $this->openDecisionModal($lot->id);
         $this->dispatch('refresh-display');
     }
 
@@ -1768,6 +1875,7 @@ class ShippingListDisplay extends Component
             'lots.weighings', // Cargar todos los lotes con sus pesadas
             'lots.qualityWeighings', // Cargar pesadas de calidad
             'lots.packagingRecords', // Cargar registros de empaque
+            'lots.kits', // Cargar kits para semáforo
             'sentList'
         ])
         ->whereHas('lots'); // Solo WOs que tengan al menos un lote

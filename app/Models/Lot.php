@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Builder;
 use App\Models\Kit;
 use App\Models\QualityWeighing;
 use App\Models\PackagingRecord;
-use Illuminate\Support\Facades\DB;
 
 class Lot extends Model
 {
@@ -297,6 +296,39 @@ class Lot extends Model
     public function canBeDeleted(): bool
     {
         return in_array($this->status, [self::STATUS_PENDING, self::STATUS_IN_PROGRESS, self::STATUS_COMPLETED, self::STATUS_CANCELLED]);
+    }
+
+    /**
+     * Generate the next lot number for a given work order.
+     * Handles zero-padded string format (e.g., '001', '002') and includes
+     * soft-deleted records to avoid unique constraint violations.
+     */
+    public static function generateNextLotNumber(int $workOrderId): string
+    {
+        // Include soft-deleted lots to avoid unique constraint collisions
+        $allLotNumbers = static::withTrashed()
+            ->where('work_order_id', $workOrderId)
+            ->pluck('lot_number')
+            ->toArray();
+
+        if (empty($allLotNumbers)) {
+            return '001';
+        }
+
+        // Detect padding length from existing lot numbers
+        $maxPadding = max(array_map('strlen', $allLotNumbers));
+        $padLength = max($maxPadding, 3); // at least 3 digits
+
+        // Find highest numeric value among all lot numbers
+        $maxNumeric = 0;
+        foreach ($allLotNumbers as $ln) {
+            $num = (int) $ln;
+            if ($num > $maxNumeric) {
+                $maxNumeric = $num;
+            }
+        }
+
+        return str_pad((string) ($maxNumeric + 1), $padLength, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -662,13 +694,18 @@ class Lot extends Model
     }
 
     /**
-     * Get total effective surplus (adjusted if exists, otherwise original).
+     * Get total effective surplus: available − packed, minus any manual adjustment deltas.
      */
     public function getPackagingTotalSurplus(): int
     {
-        return (int) $this->packagingRecords()
-            ->selectRaw('COALESCE(SUM(COALESCE(adjusted_surplus, surplus_pieces)), 0) as total')
-            ->value('total');
+        $surplus = $this->getPackagingPendingPieces(); // available − packed
+
+        // Apply manual adjustment deltas (original − adjusted) from recounts
+        $adjustmentDelta = $this->packagingRecords
+            ->filter(fn ($r) => $r->adjusted_surplus !== null)
+            ->sum(fn ($r) => $r->surplus_pieces - $r->adjusted_surplus);
+
+        return max(0, $surplus - $adjustmentDelta);
     }
 
     /**
@@ -722,7 +759,7 @@ class Lot extends Model
             return 'green';
         }
 
-        if ($this->closure_decision === 'close_as_is') {
+        if (in_array($this->closure_decision, ['close_as_is', 'new_lot']) && !$this->isSurplusReceived()) {
             return 'orange';
         }
 
