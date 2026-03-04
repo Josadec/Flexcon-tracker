@@ -216,6 +216,10 @@
                                 </tr>
 
                                 {{-- Filas de Lotes --}}
+                                @php
+                                    $lastViajeroLot = $allLots->where('viajero_received', true)->sortByDesc('lot_number')->first();
+                                    $lastViajeroLotId = $lastViajeroLot?->id;
+                                @endphp
                                 @foreach ($allLots as $lot)
                                     @php
                                         $lotStatusInfo = match ($lot->status) {
@@ -451,7 +455,7 @@
                                                 <button wire:click="openPackagingModal({{ $lot->id }})"
                                                     class="w-5 h-5 rounded {{ $pkgSemColor }} hover:opacity-80 cursor-pointer transition-opacity"
                                                     title="{{ $pkgSemTitle }}"></button>
-                                                @if ($lot->viajero_received && !$lot->closure_decision)
+                                                @if ($lot->id === $lastViajeroLotId && !$lot->closure_decision)
                                                     <button wire:click="openDecisionModal({{ $lot->id }})"
                                                         class="w-5 h-5 rounded bg-purple-500 hover:bg-purple-600 cursor-pointer transition-colors flex items-center justify-center"
                                                         title="Decisión Control de Materiales">
@@ -1978,6 +1982,10 @@
                                 </div>
                             </div>
                         @elseif ($pkgViajeroReceived)
+                            @php
+                                $isLastLotOfWo = $selectedLotForPackaging->id === \App\Models\Lot::where('work_order_id', $selectedLotForPackaging->work_order_id)
+                                    ->orderByDesc('lot_number')->value('id');
+                            @endphp
                             <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2">
@@ -1986,10 +1994,12 @@
                                         </svg>
                                         <span class="text-sm font-medium text-blue-800 dark:text-blue-200">Viajero recibido</span>
                                     </div>
-                                    <button wire:click="openDecisionFromPackaging"
-                                        class="px-3 py-1.5 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors cursor-pointer">
-                                        Ir a Decisión
-                                    </button>
+                                    @if ($isLastLotOfWo)
+                                        <button wire:click="openDecisionFromPackaging"
+                                            class="px-3 py-1.5 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors cursor-pointer">
+                                            Ir a Decisión
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
                         @endif
@@ -2043,7 +2053,7 @@
                         {{-- Resumen --}}
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
-                                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Lote</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total WO</div>
                                 <div class="text-lg font-bold text-gray-900 dark:text-white">{{ number_format($decWoTotal) }}</div>
                             </div>
                             <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-center">
@@ -2061,7 +2071,7 @@
                         </div>
 
                         <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
-                            Faltantes = Total Lote - Empacadas - Sobrantes
+                            Faltantes = Total WO - Empacadas - Sobrantes
                         </p>
 
                         {{-- Decision options (only if no closure decision yet) --}}
@@ -2091,7 +2101,7 @@
                                             </svg>
                                         </div>
                                         <div class="text-sm font-semibold text-green-700 dark:text-green-300">Nuevo Lote</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format(max(0, $decWoTotal - $decPacked)) }} pz en {{ $decIsCrimp ? 'lote + kit' : 'lote' }} nuevo</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format($decMissing) }} pz en {{ $decIsCrimp ? 'lote + kit' : 'lote' }} nuevo</div>
                                     </button>
 
                                     {{-- Opción 3: Cerrar Lote --}}
@@ -2243,11 +2253,7 @@
                                 <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span>
                             @enderror
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                @if ($createLotType === 'complete')
-                                    Piezas faltantes calculadas: {{ number_format($decMissing) }}
-                                @else
-                                    Piezas restantes calculadas: {{ number_format(max(0, $decWoTotal - $decPacked)) }}
-                                @endif
+                                Piezas faltantes del WO: {{ number_format($decMissing) }}
                             </p>
                         </div>
 
