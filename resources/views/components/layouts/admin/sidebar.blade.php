@@ -31,7 +31,8 @@
             @if ($authUser->hasRole('admin'))
                 <flux:navlist.group :heading="__('Órdenes')" class="grid">
                     <flux:navlist.item icon="document-text" :href="route('admin.purchase-orders.index')"
-                        :current="request()->routeIs('admin.purchase-orders.*')" wire:navigate>{{ __('Purchase Orders') }}
+                        :current="request()->routeIs('admin.purchase-orders.*')" wire:navigate>
+                        {{ __('Purchase Orders') }}
                     </flux:navlist.item>
                     <flux:navlist.item icon="clipboard-document-check" :href="route('admin.work-orders.index')"
                         :current="request()->routeIs('admin.work-orders.*')" wire:navigate>{{ __('Manage PO') }}
@@ -77,7 +78,8 @@
                         :current="request()->routeIs('admin.lots.*')" wire:navigate>{{ __('Lotes') }}
                     </flux:navlist.item>
                     <flux:navlist.item icon="truck" :href="route('admin.sent-lists.display')"
-                        :current="request()->routeIs('admin.sent-lists.display')" wire:navigate>{{ __('Lista de Envío') }}
+                        :current="request()->routeIs('admin.sent-lists.display')" wire:navigate>
+                        {{ __('Lista de Envío') }}
                     </flux:navlist.item>
                     <flux:navlist.item icon="list-bullet" :href="route('admin.sent-lists.index')"
                         :current="request()->routeIs('admin.sent-lists.index') || request()->routeIs('admin.sent-lists.show')"
@@ -114,7 +116,8 @@
                         :current="request()->routeIs('admin.materials.manage')" wire:navigate>{{ __('Gestión') }}
                     </flux:navlist.item>
                     <flux:navlist.item icon="truck" :href="route('admin.sent-lists.display')"
-                        :current="request()->routeIs('admin.sent-lists.display')" wire:navigate>{{ __('Lista de Envío') }}
+                        :current="request()->routeIs('admin.sent-lists.display')" wire:navigate>
+                        {{ __('Lista de Envío') }}
                     </flux:navlist.item>
                     <flux:navlist.item icon="list-bullet" :href="route('admin.sent-lists.index')"
                         :current="request()->routeIs('admin.sent-lists.index') || request()->routeIs('admin.sent-lists.show')"
@@ -142,10 +145,12 @@
                         :current="request()->routeIs('admin.quality.inspection')" wire:navigate>{{ __('Inspección') }}
                     </flux:navlist.item>
                     <flux:navlist.item icon="scale" :href="route('admin.quality.weighings')"
-                        :current="request()->routeIs('admin.quality.weighings')" wire:navigate>{{ __('Pesadas Calidad') }}
+                        :current="request()->routeIs('admin.quality.weighings')" wire:navigate>
+                        {{ __('Pesadas Calidad') }}
                     </flux:navlist.item>
                     <flux:navlist.item icon="truck" :href="route('admin.sent-lists.display')"
-                        :current="request()->routeIs('admin.sent-lists.display')" wire:navigate>{{ __('Lista de Envío') }}
+                        :current="request()->routeIs('admin.sent-lists.display')" wire:navigate>
+                        {{ __('Lista de Envío') }}
                     </flux:navlist.item>
                 </flux:navlist.group>
             @endif
