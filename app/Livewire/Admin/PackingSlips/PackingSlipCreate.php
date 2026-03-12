@@ -54,7 +54,11 @@ class PackingSlipCreate extends Component
         } else {
             $this->selectedLotIds[] = $lotId;
             $this->labelSpecs[$lotId] = '';
-            $this->dateSpecs[$lotId] = '';
+            // Pre-llenar Date con lot_number como valor provisional (D-06-01)
+            if (!array_key_exists($lotId, $this->dateSpecs) || $this->dateSpecs[$lotId] === '') {
+                $lot = Lot::find($lotId);
+                $this->dateSpecs[$lotId] = $lot?->lot_number ?? '';
+            }
         }
     }
 
@@ -110,9 +114,10 @@ class PackingSlipCreate extends Component
             ->get();
 
         // Inicializar arrays para todos los lotes visibles
+        // dateSpecs se pre-llena con lot_number como valor provisional (D-06-01)
         foreach ($availableLots as $lot) {
             if (!array_key_exists($lot->id, $this->dateSpecs)) {
-                $this->dateSpecs[$lot->id] = '';
+                $this->dateSpecs[$lot->id] = $lot->lot_number ?? '';
             }
             if (!array_key_exists($lot->id, $this->labelSpecs)) {
                 $this->labelSpecs[$lot->id] = '';

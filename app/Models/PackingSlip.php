@@ -43,6 +43,36 @@ class PackingSlip extends Model
     ];
 
     // =========================================================
+    // Route Model Binding — usa ps_number en la URL
+    // =========================================================
+
+    /**
+     * Indica a Laravel qué columna usar para el Route Model Binding.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'ps_number';
+    }
+
+    /**
+     * Retorna el valor que se incrusta en la URL (lowercase para URLs limpias).
+     * Ejemplo: PS-2026-0002 → ps-2026-0002
+     */
+    public function getRouteKey(): string
+    {
+        return strtolower($this->ps_number);
+    }
+
+    /**
+     * Resuelve el binding de forma case-insensitive para que la URL
+     * ps-2026-0002 encuentre el registro PS-2026-0002 en la BD.
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        return $this->where('ps_number', strtoupper($value))->firstOrFail();
+    }
+
+    // =========================================================
     // Boot: auto-generacion de ps_number
     // =========================================================
 

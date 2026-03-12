@@ -294,8 +294,6 @@
 
     {{ $slot }}
 
-    {{-- @livewire('admin.components.toast-notification') --}}
-
     @fluxScripts
 </body>
 
