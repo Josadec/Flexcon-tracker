@@ -264,22 +264,9 @@
                                                     class="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm w-36 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                                                 >
                                             </td>
-                                            {{-- Label Spec --}}
-                                            <td class="px-4 py-3">
-                                                @if ($isSelected)
-                                                    <input
-                                                        type="text"
-                                                        wire:model="labelSpecs.{{ $lot->id }}"
-                                                        maxlength="50"
-                                                        placeholder="Label spec..."
-                                                        class="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm w-full max-w-xs focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                                                    >
-                                                    @error("labelSpecs.{$lot->id}")
-                                                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                                    @enderror
-                                                @else
-                                                    <span class="text-gray-400 text-sm">—</span>
-                                                @endif
+                                            {{-- Label Spec (desde Part, solo lectura) --}}
+                                            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
+                                                {{ $lot->workOrder?->purchaseOrder?->part?->label_spec ?? '—' }}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -370,19 +357,9 @@
                                                        @keydown.escape="editing = false"
                                                        x-effect="if (editing) $el.focus()">
                                             </td>
-                                            {{-- Celda editable: Label Spec (editable en todos los estados) --}}
-                                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400"
-                                                x-data="{ editing: false, value: '{{ $item->label_spec ?? '' }}' }">
-                                                <span x-show="!editing" @click="editing = true"
-                                                      class="cursor-pointer hover:text-blue-600 hover:underline min-w-[80px] inline-block"
-                                                      x-text="value || '-'"></span>
-                                                <input x-show="editing" x-model="value" type="text"
-                                                       class="border border-blue-400 rounded px-2 py-0.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                       @blur="editing = false; $wire.updateItemLabelSpec({{ $item->id }}, value)"
-                                                       @keydown.enter="editing = false; $wire.updateItemLabelSpec({{ $item->id }}, value)"
-                                                       @keydown.escape="editing = false"
-                                                       x-effect="if (editing) $el.focus()"
-                                                       placeholder="Label spec...">
+                                            {{-- Label Spec: muestra snapshot si existe, si no jala del Part --}}
+                                            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
+                                                {{ $item->label_spec ?: ($item->lot?->workOrder?->purchaseOrder?->part?->label_spec ?: '—') }}
                                             </td>
                                         </tr>
                                     @endforeach
