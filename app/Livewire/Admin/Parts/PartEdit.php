@@ -13,6 +13,7 @@ class PartEdit extends Component
     public string $unit_of_measure = '';
     public string $description = '';
     public string $notes = '';
+    public string $label_spec = '';
     public bool $active = true;
     public bool $is_crimp = true;
 
@@ -24,6 +25,7 @@ class PartEdit extends Component
         $this->unit_of_measure = $part->unit_of_measure ?? '';
         $this->description = $part->description ?? '';
         $this->notes = $part->notes ?? '';
+        $this->label_spec = $part->label_spec ?? '';
         $this->active = (bool) $part->active;
         $this->is_crimp = (bool) $part->is_crimp;
     }
@@ -36,6 +38,7 @@ class PartEdit extends Component
             'unit_of_measure' => 'nullable|string|max:50',
             'description' => 'nullable|string',
             'notes' => 'nullable|string|max:255',
+            'label_spec' => 'nullable|string|max:150',
             'active' => 'boolean',
             'is_crimp' => 'boolean',
         ];
@@ -61,6 +64,7 @@ class PartEdit extends Component
             'unit_of_measure' => $this->unit_of_measure ?: null,
             'description' => $this->description ?: null,
             'notes' => $this->notes ?: null,
+            'label_spec' => $this->label_spec ?: null,
             'active' => $this->active,
             'is_crimp' => $this->is_crimp,
         ]);

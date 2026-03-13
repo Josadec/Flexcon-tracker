@@ -16,7 +16,7 @@ class PackingSlipShow extends Component
     // Panel de edicion de lotes (fusionado desde PackingSlipEdit)
     public bool $editingLots = false;
     public array $selectedLotIds = [];
-    public array $labelSpecs    = [];
+    public array $dateSpecs     = [];
 
     public function mount(PackingSlip $packingSlip): void
     {
@@ -32,11 +32,11 @@ class PackingSlipShow extends Component
     protected function initLotSelection(): void
     {
         $this->selectedLotIds = [];
-        $this->labelSpecs     = [];
+        $this->dateSpecs      = [];
 
         foreach ($this->packingSlip->items as $item) {
-            $this->selectedLotIds[]             = $item->lot_id;
-            $this->labelSpecs[$item->lot_id]    = $item->label_spec ?? '';
+            $this->selectedLotIds[]         = $item->lot_id;
+            $this->dateSpecs[$item->lot_id] = $item->lot_date_code ?? $item->lot?->lot_number ?? '';
         }
     }
 
@@ -72,8 +72,10 @@ class PackingSlipShow extends Component
             $this->editingLots = false;
         }
 
-        session()->flash('flash.banner', 'Estado actualizado a: ' . PackingSlip::STATUSES[$this->selectedStatus]);
-        session()->flash('flash.bannerStyle', 'success');
+        $this->dispatch('notify', [
+            'type'    => 'success',
+            'message' => 'Estado actualizado a: ' . PackingSlip::STATUSES[$this->selectedStatus],
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -84,13 +86,11 @@ class PackingSlipShow extends Component
         $item = $this->packingSlip->items()->findOrFail($itemId);
         $item->update(['lot_date_code' => trim($value) ?: null]);
         $this->packingSlip->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part']);
-    }
 
-    public function updateItemLabelSpec(int $itemId, string $value): void
-    {
-        $item = $this->packingSlip->items()->findOrFail($itemId);
-        $item->update(['label_spec' => trim($value) ?: null]);
-        $this->packingSlip->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part']);
+        $this->dispatch('notify', [
+            'type'    => 'success',
+            'message' => 'Date actualizado correctamente.',
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -118,11 +118,13 @@ class PackingSlipShow extends Component
             $this->selectedLotIds = array_values(
                 array_filter($this->selectedLotIds, fn ($id) => $id !== $lotId)
             );
-            unset($this->labelSpecs[$lotId]);
+            unset($this->dateSpecs[$lotId]);
         } else {
             $this->selectedLotIds[] = $lotId;
-            if (!isset($this->labelSpecs[$lotId])) {
-                $this->labelSpecs[$lotId] = '';
+            if (!isset($this->dateSpecs[$lotId]) || $this->dateSpecs[$lotId] === '') {
+                $lot = Lot::with('workOrder.purchaseOrder.part')->find($lotId);
+                // Pre-llenar Date con lot_number como valor provisional (D-06-01)
+                $this->dateSpecs[$lotId] = $lot?->lot_number ?? '';
             }
         }
     }
@@ -132,16 +134,18 @@ class PackingSlipShow extends Component
         return [
             'selectedLotIds'   => 'required|array|min:1',
             'selectedLotIds.*' => 'integer|exists:lots,id',
-            'labelSpecs'       => 'array',
-            'labelSpecs.*'     => 'nullable|string|max:50',
+            'dateSpecs'        => 'array',
+            'dateSpecs.*'      => 'nullable|string|max:20',
         ];
     }
 
     public function updateLots(): void
     {
         if ($this->packingSlip->isShipped()) {
-            session()->flash('flash.banner', 'Este Packing Slip no se puede editar porque ya fue despachado.');
-            session()->flash('flash.bannerStyle', 'danger');
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => 'Este Packing Slip no se puede editar porque ya fue despachado.',
+            ]);
             $this->editingLots = false;
             return;
         }
@@ -152,7 +156,7 @@ class PackingSlipShow extends Component
         ]);
 
         // Verificar que todos los lotes tengan WO con external_wo_number
-        $lots = Lot::with('workOrder')->whereIn('id', $this->selectedLotIds)->get();
+        $lots = Lot::with('workOrder.purchaseOrder.part')->whereIn('id', $this->selectedLotIds)->get();
 
         foreach ($lots as $lot) {
             if (empty($lot->workOrder->external_wo_number ?? null)) {
@@ -174,22 +178,24 @@ class PackingSlipShow extends Component
             $this->packingSlip->items()->whereIn('lot_id', $toRemove)->delete();
         }
 
-        // Agregar nuevos items y actualizar label_spec de existentes
+        // Agregar nuevos items y actualizar label_spec/lot_date_code de existentes
         foreach ($lots as $lot) {
             $existing = $this->packingSlip->items()->where('lot_id', $lot->id)->first();
 
             if ($existing) {
                 $existing->update([
-                    'label_spec' => $this->labelSpecs[$lot->id] ?? null,
+                    'label_spec'    => $lot->workOrder?->purchaseOrder?->part?->label_spec ?? null,
+                    'lot_date_code' => $this->dateSpecs[$lot->id] ?: null,
                 ]);
             } else {
+                // Pre-llenar lot_date_code con lot_number como valor provisional (D-06-01)
                 PackingSlipItem::create([
                     'packing_slip_id' => $this->packingSlip->id,
                     'lot_id'          => $lot->id,
-                    'quantity_packed'  => $lot->quantity_packed_final ?? $lot->quantity ?? 0,
-                    'wo_number_ps'    => $lot->workOrder->external_wo_number ?? $lot->workOrder->wo_number,
-                    'lot_date_code'   => null,
-                    'label_spec'      => $this->labelSpecs[$lot->id] ?? null,
+                    'quantity_packed' => $lot->quantity_packed_final ?? $lot->quantity ?? 0,
+                    'wo_number_ps'    => $lot->workOrder->buildWoCode((int) $lot->lot_number),
+                    'lot_date_code'   => $this->dateSpecs[$lot->id] ?: ($lot->lot_number ?? null),
+                    'label_spec'      => $lot->workOrder?->purchaseOrder?->part?->label_spec ?? null,
                 ]);
             }
         }
@@ -201,8 +207,10 @@ class PackingSlipShow extends Component
         $this->editingLots = false;
         $this->initLotSelection();
 
-        session()->flash('flash.banner', "Lotes del Packing Slip {$this->packingSlip->ps_number} actualizados correctamente.");
-        session()->flash('flash.bannerStyle', 'success');
+        $this->dispatch('notify', [
+            'type'    => 'success',
+            'message' => "Lotes del Packing Slip {$this->packingSlip->ps_number} actualizados correctamente.",
+        ]);
     }
 
     // -----------------------------------------------------------------------

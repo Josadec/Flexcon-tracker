@@ -19,6 +19,17 @@ class PartFactory extends Factory
      */
     public function definition(): array
     {
+        $labelSpecs = [
+            'M83519/2-8',
+            'M83519/2-12',
+            'SAE AS81824/1-2',
+            'SAE AS81824/2-4',
+            'NAS1745-15',
+            'NAS1745-20',
+            'MS27488-20',
+            'MS27488-16',
+        ];
+
         return [
             'number' => 'PART-' . $this->faker->unique()->numerify('######'),
             'item_number' => 'ITEM-' . $this->faker->unique()->numerify('######'),
@@ -26,6 +37,7 @@ class PartFactory extends Factory
             'active' => $this->faker->boolean(80),
             'description' => $this->faker->sentence(),
             'notes' => $this->faker->optional()->sentence(),
+            'label_spec' => $this->faker->optional(0.6)->randomElement($labelSpecs),
         ];
     }
 

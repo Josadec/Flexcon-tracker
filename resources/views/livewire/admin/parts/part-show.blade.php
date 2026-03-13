@@ -47,6 +47,10 @@
                     <p class="text-gray-900 dark:text-white">{{ $part->description ?? '—' }}</p>
                 </div>
                 <div class="md:col-span-2">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Label Spec</p>
+                    <p class="text-gray-900 dark:text-white">{{ $part->label_spec ?? '—' }}</p>
+                </div>
+                <div class="md:col-span-2">
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Notas</p>
                     <p class="text-gray-900 dark:text-white">{{ $part->notes ?? '—' }}</p>
                 </div>

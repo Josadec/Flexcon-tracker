@@ -148,17 +148,8 @@
                                                 >
                                             </td>
                                             {{-- Label Spec --}}
-                                            <td class="px-4 py-3">
-                                                <input
-                                                    type="text"
-                                                    wire:model="labelSpecs.{{ $lot->id }}"
-                                                    maxlength="50"
-                                                    placeholder="Label spec..."
-                                                    class="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm w-full max-w-xs focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                                                >
-                                                @error("labelSpecs.{$lot->id}")
-                                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                                @enderror
+                                            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
+                                                {{ $lot->workOrder?->purchaseOrder?->part?->label_spec ?? '—' }}
                                             </td>
                                         </tr>
                                     @endforeach

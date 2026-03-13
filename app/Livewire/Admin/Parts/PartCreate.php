@@ -12,6 +12,7 @@ class PartCreate extends Component
     public string $unit_of_measure = '';
     public string $description = '';
     public string $notes = '';
+    public string $label_spec = '';
     public bool $active = true;
     public bool $is_crimp = true;
 
@@ -23,6 +24,7 @@ class PartCreate extends Component
             'unit_of_measure' => 'nullable|string|max:50',
             'description' => 'nullable|string',
             'notes' => 'nullable|string|max:255',
+            'label_spec' => 'nullable|string|max:150',
             'active' => 'boolean',
             'is_crimp' => 'boolean',
         ];
@@ -48,6 +50,7 @@ class PartCreate extends Component
             'unit_of_measure' => $this->unit_of_measure ?: null,
             'description' => $this->description ?: null,
             'notes' => $this->notes ?: null,
+            'label_spec' => $this->label_spec ?: null,
             'active' => $this->active,
             'is_crimp' => $this->is_crimp,
         ]);
