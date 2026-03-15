@@ -240,8 +240,10 @@
         <div
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             x-data
-            x-init="document.body.style.overflow = 'hidden'"
-            x-destroy="document.body.style.overflow = ''"
+            x-init="
+                document.body.style.overflow = 'hidden';
+                $cleanup(() => { document.body.style.overflow = ''; });
+            "
         >
             {{-- Overlay --}}
             <div
@@ -368,8 +370,10 @@
         <div
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             x-data
-            x-init="document.body.style.overflow = 'hidden'"
-            x-destroy="document.body.style.overflow = ''"
+            x-init="
+                document.body.style.overflow = 'hidden';
+                $cleanup(() => { document.body.style.overflow = ''; });
+            "
         >
             {{-- Overlay --}}
             <div
