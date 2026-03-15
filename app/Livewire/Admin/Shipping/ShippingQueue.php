@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Shipping;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
+use App\Models\AuditTrail;
 use App\Models\Lot;
 use App\Models\PackingSlip;
 use App\Models\PackingSlipItem;
@@ -46,6 +47,11 @@ class ShippingQueue extends Component
 
     // Estado de los label_specs por lote seleccionado (ingreso manual, decision D-06-02)
     public array $labelSpecs = [];
+
+    // Estado del modal de retorno a Empaque
+    public bool $showReturnModal = false;
+    public ?int $returningLotId = null;
+    public string $returnReason = '';
 
     // Estado de la operacion
     public ?string $successMessage = null;
@@ -254,6 +260,182 @@ class ShippingQueue extends Component
     }
 
     // =========================================================
+    // Retorno de lote a Empaque
+    // =========================================================
+
+    /**
+     * Abre el modal de confirmacion para devolver un lote a Empaque.
+     *
+     * Condiciones requeridas:
+     * - El lote existe y tiene ready_for_shipping = true.
+     * - El lote no esta asignado a ningun Packing Slip.
+     * - El WO del lote NO tiene external_wo_number (lotes bloqueados en la cola).
+     *
+     * Solo Admin y Shipping pueden ejecutar esta accion (decision P-10-01).
+     */
+    public function openReturnModal(int $lotId): void
+    {
+        $lot = Lot::with('workOrder')->find($lotId);
+
+        if (!$lot) {
+            $this->errorMessage = 'Lote no encontrado.';
+            return;
+        }
+
+        if (!$lot->ready_for_shipping) {
+            $this->errorMessage = "El lote #{$lot->lot_number} no esta en la cola de despacho.";
+            return;
+        }
+
+        if ($lot->isInPackingSlip()) {
+            $this->errorMessage = "El lote #{$lot->lot_number} ya fue asignado a un Packing Slip y no puede devolverse.";
+            return;
+        }
+
+        if ($lot->workOrder?->hasExternalWoNumber()) {
+            $this->errorMessage = "El lote #{$lot->lot_number} tiene WO externo configurado. Para devolverlo, primero elimina el numero externo de la WO o usa el flujo de cancelacion.";
+            return;
+        }
+
+        $this->errorMessage = null;
+        $this->returningLotId = $lotId;
+        $this->returnReason = '';
+        $this->showReturnModal = true;
+    }
+
+    /**
+     * Cancela el modal de retorno y limpia el estado.
+     */
+    public function cancelReturnLot(): void
+    {
+        $this->showReturnModal = false;
+        $this->returningLotId = null;
+        $this->returnReason = '';
+    }
+
+    /**
+     * Ejecuta el retorno del lote a Empaque.
+     *
+     * Dentro de una transaccion con lockForUpdate() re-valida las condiciones,
+     * limpia los campos de shipping/closure para que LotPackagingObserver pueda
+     * funcionar en el segundo ciclo, y registra la accion en el AuditTrail.
+     */
+    public function confirmReturnLot(): void
+    {
+        // Validacion del motivo
+        $trimmedReason = trim($this->returnReason);
+
+        if (empty($trimmedReason)) {
+            $this->errorMessage = 'Debes ingresar un motivo para devolver el lote a Empaque.';
+            return;
+        }
+
+        if (strlen($trimmedReason) > 255) {
+            $this->errorMessage = 'El motivo no puede exceder 255 caracteres.';
+            return;
+        }
+
+        if (!$this->returningLotId) {
+            $this->errorMessage = 'No hay un lote seleccionado para devolver.';
+            return;
+        }
+
+        DB::beginTransaction();
+        try {
+            $lot = Lot::with('workOrder')
+                ->lockForUpdate()
+                ->find($this->returningLotId);
+
+            if (!$lot) {
+                DB::rollBack();
+                $this->errorMessage = 'Lote no encontrado. Recarga la pagina.';
+                return;
+            }
+
+            // Re-validar condiciones dentro de la transaccion
+            if (!$lot->ready_for_shipping) {
+                DB::rollBack();
+                $this->errorMessage = "El lote #{$lot->lot_number} ya no esta en la cola de despacho.";
+                return;
+            }
+
+            if ($lot->isInPackingSlip()) {
+                DB::rollBack();
+                $this->errorMessage = "El lote #{$lot->lot_number} fue asignado a un Packing Slip y no puede devolverse.";
+                return;
+            }
+
+            // Capturar valores anteriores para el AuditTrail
+            $oldValues = [
+                'ready_for_shipping'    => $lot->ready_for_shipping,
+                'ready_for_shipping_at' => $lot->ready_for_shipping_at?->toISOString(),
+                'closed_by_type'        => $lot->closed_by_type,
+                'closure_decision'      => $lot->closure_decision,
+                'closure_decided_by'    => $lot->closure_decided_by,
+                'closure_decided_at'    => $lot->closure_decided_at?->toISOString(),
+            ];
+
+            // Ejecutar el retorno: limpiar campos de shipping/closure y registrar el retorno
+            $lot->update([
+                'ready_for_shipping'           => false,
+                'ready_for_shipping_at'        => null,
+                'closed_by_type'               => null,
+                'closure_decision'             => null,
+                'closure_decided_by'           => null,
+                'closure_decided_at'           => null,
+                'quantity_packed_final'        => null,
+                'returned_to_packaging_at'     => now(),
+                'returned_to_packaging_by'     => Auth::id(),
+                'returned_to_packaging_reason' => $trimmedReason,
+            ]);
+
+            // Registrar en el AuditTrail
+            AuditTrail::create([
+                'user_id'        => Auth::id(),
+                'auditable_type' => Lot::class,
+                'auditable_id'   => $lot->id,
+                'action'         => 'returned_to_packaging',
+                'old_values'     => $oldValues,
+                'new_values'     => [
+                    'ready_for_shipping'           => false,
+                    'returned_to_packaging_at'     => now()->toISOString(),
+                    'returned_to_packaging_by'     => Auth::id(),
+                    'returned_to_packaging_reason' => $trimmedReason,
+                ],
+                'ip_address'  => request()->ip(),
+                'user_agent'  => request()->userAgent(),
+                'created_at'  => now(),
+            ]);
+
+            DB::commit();
+
+            Log::info('ShippingQueue: Lote devuelto a Empaque.', [
+                'lot_id'     => $lot->id,
+                'lot_number' => $lot->lot_number,
+                'reason'     => $trimmedReason,
+                'user_id'    => Auth::id(),
+            ]);
+
+            $this->successMessage = "Lote #{$lot->lot_number} devuelto a Empaque correctamente. Motivo: {$trimmedReason}";
+            $this->showReturnModal = false;
+            $this->returningLotId = null;
+            $this->returnReason = '';
+            $this->errorMessage = null;
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('ShippingQueue: Error al devolver lote a Empaque.', [
+                'error'   => $e->getMessage(),
+                'lot_id'  => $this->returningLotId,
+                'user_id' => Auth::id(),
+            ]);
+
+            $this->errorMessage = 'Error al devolver el lote: ' . $e->getMessage();
+        }
+    }
+
+    // =========================================================
     // Render
     // =========================================================
 
@@ -298,10 +480,17 @@ class ShippingQueue extends Component
         // TODO(D-06-04): Refinar con Spatie Permissions cuando esten definidos los permisos del PS
         $canCreatePs = Auth::check(); // Placeholder: cualquier autenticado puede crear
 
+        // Lote actualmente en proceso de retorno (para el modal)
+        $returningLot = null;
+        if ($this->returningLotId) {
+            $returningLot = Lot::with(['workOrder.purchaseOrder.part'])->find($this->returningLotId);
+        }
+
         return view('livewire.admin.shipping.shipping-queue', [
             'lotsInQueue'  => $lotsInQueue,
             'selectedLots' => $selectedLots,
             'canCreatePs'  => $canCreatePs,
+            'returningLot' => $returningLot,
             'closureTypes' => [
                 ''               => 'Todos los tipos',
                 'complete_lot'   => 'Lote completo',

@@ -53,6 +53,9 @@ class Lot extends Model
         'surplus_delivered',
         'surplus_delivered_at',
         'surplus_delivered_by',
+        'returned_to_packaging_at',
+        'returned_to_packaging_by',
+        'returned_to_packaging_reason',
     ];
 
     protected $casts = [
@@ -72,6 +75,7 @@ class Lot extends Model
         'surplus_received_at' => 'datetime',
         'surplus_delivered' => 'boolean',
         'surplus_delivered_at' => 'datetime',
+        'returned_to_packaging_at' => 'datetime',
     ];
 
     /**
@@ -858,4 +862,24 @@ class Lot extends Model
     public const CLOSURE_COMPLETE_LOT = 'complete_lot';
     public const CLOSURE_NEW_LOT = 'new_lot';
     public const CLOSURE_CLOSE_AS_IS = 'close_as_is';
+
+    // =====================================================
+    // RETURN TO PACKAGING HELPERS
+    // =====================================================
+
+    /**
+     * Relationship: usuario que devolvio el lote a Empaque.
+     */
+    public function returnedToPackagingByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'returned_to_packaging_by');
+    }
+
+    /**
+     * Verifica si el lote fue devuelto a Empaque en algun momento.
+     */
+    public function wasReturnedToPackaging(): bool
+    {
+        return !is_null($this->returned_to_packaging_at);
+    }
 }
