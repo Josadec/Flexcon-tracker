@@ -268,6 +268,9 @@
                                                 class="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
                                                 {{ $lot->lot_number }}
                                             </button>
+                                            @if ($lot->completion_count > 0)
+                                                <span class="ml-1 px-1 py-0.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded font-semibold" title="Ciclo de completado {{ $lot->completion_count }}">C{{ $lot->completion_count }}</span>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">
                                             {{ $part->item_number }}</td>
@@ -759,6 +762,9 @@
                                         <span
                                             class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Lote</span>
                                         <span>{{ $lot->lot_number }}</span>
+                                        @if ($lot->completion_count > 0)
+                                            <span class="px-1.5 py-0.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded font-semibold">C{{ $lot->completion_count }}</span>
+                                        @endif
                                     </button>
                                     <span
                                         class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded {{ $statusInfo['bg'] }} {{ $statusInfo['text'] }}">
@@ -1813,9 +1819,13 @@
                     <div class="px-6 py-4 max-h-[75vh] overflow-y-auto space-y-6">
 
                         {{-- Resumen de piezas --}}
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                            <div class="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg text-center">
+                                <div class="text-xs text-indigo-600 dark:text-indigo-400 mb-1">Producción</div>
+                                <div class="text-lg font-bold text-indigo-700 dark:text-indigo-300">{{ number_format($pkgProductionPieces) }}</div>
+                            </div>
                             <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
-                                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Disponibles (Calidad)</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Calidad</div>
                                 <div class="text-lg font-bold text-gray-900 dark:text-white">{{ number_format($pkgAvailablePieces) }}</div>
                             </div>
                             <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-center">
@@ -2098,6 +2108,9 @@
                                     WO: {{ $selectedLotForDecision->workOrder->purchaseOrder->wo ?? 'N/A' }} |
                                     Parte: {{ $selectedLotForDecision->workOrder->purchaseOrder->part->number ?? 'N/A' }}
                                     @if ($decIsCrimp) <span class="ml-1 px-1.5 py-0.5 text-xs bg-purple-800 text-purple-100 rounded">CRIMP</span> @endif
+                                    @if ($selectedLotForDecision->completion_count > 0)
+                                        <span class="ml-1 px-1.5 py-0.5 text-xs bg-amber-500 text-white rounded font-semibold">Ciclo {{ $selectedLotForDecision->completion_count + 1 }}</span>
+                                    @endif
                                 </p>
                             </div>
                             <button wire:click="closeDecisionModal" class="text-white hover:text-purple-200 cursor-pointer">
@@ -2139,9 +2152,10 @@
                         @if (!$decClosureDecision)
                             @if ($decSurplus > 0 || $decMissing > 0)
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    {{-- Opción 1: Completar Lote --}}
+                                    {{-- Opción 1: Completar Lote (reinicia el mismo lote) --}}
                                     @if ($decMissing > 0)
                                         <button wire:click="decisionCompleteLot"
+                                            wire:confirm="¿Completar lote con {{ number_format($decMissing) }} piezas faltantes? El lote se reiniciará para reprocesar esas piezas (kit, inspección, producción, calidad, empaque)."
                                             class="p-4 border-2 border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors cursor-pointer text-center">
                                             <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center">
                                                 <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2149,7 +2163,7 @@
                                                 </svg>
                                             </div>
                                             <div class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">Completar Lote</div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Nuevo {{ $decIsCrimp ? 'lote + kit' : 'lote' }} de {{ number_format($decMissing) }} pz</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Reiniciar con {{ number_format($decMissing) }} pz faltantes</div>
                                         </button>
                                     @endif
 
@@ -2255,15 +2269,21 @@
                                 @endif
                             @endif
 
-                            {{-- Reabrir Lote --}}
-                            <button wire:click="reopenLot"
-                                wire:confirm="¿Desea reabrir este lote y anular la decisión tomada?"
-                                class="w-full px-4 py-3 border-2 border-yellow-400 dark:border-yellow-600 text-yellow-700 dark:text-yellow-300 font-semibold rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center justify-center gap-2 cursor-pointer">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                                Reabrir Lote
-                            </button>
+                            {{-- Reabrir Lote (not available for completed lots since the cycle is irreversible) --}}
+                            @if ($decClosureDecision !== 'complete_lot')
+                                <button wire:click="reopenLot"
+                                    wire:confirm="¿Desea reabrir este lote y anular la decisión tomada?"
+                                    class="w-full px-4 py-3 border-2 border-yellow-400 dark:border-yellow-600 text-yellow-700 dark:text-yellow-300 font-semibold rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    Reabrir Lote
+                                </button>
+                            @else
+                                <div class="bg-gray-100 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3 text-center">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">Este lote fue completado y reiniciado. No se puede reabrir la decisión anterior.</span>
+                                </div>
+                            @endif
 
                         @endif
                     </div>
@@ -2758,12 +2778,24 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pendiente de Pesar</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ $prodRemainingPieces < 0 ? 'Sobrante de Producción' : 'Pendiente de Pesar' }}
+                            </label>
                             <div class="w-full px-3 py-2 border rounded-lg font-bold text-lg text-center
-                                {{ $prodRemainingPieces > 0 ? 'border-indigo-300 dark:border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300' }}">
-                                {{ number_format($prodRemainingPieces) }} piezas
-                                @if ($prodRemainingPieces <= 0)
+                                @if ($prodRemainingPieces > 0)
+                                    border-indigo-300 dark:border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300
+                                @elseif ($prodRemainingPieces < 0)
+                                    border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300
+                                @else
+                                    border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300
+                                @endif">
+                                @if ($prodRemainingPieces < 0)
+                                    +{{ number_format(abs($prodRemainingPieces)) }} piezas sobrantes
+                                @elseif ($prodRemainingPieces == 0)
+                                    {{ number_format($prodRemainingPieces) }} piezas
                                     <span class="text-xs font-normal ml-2">(Lote completamente pesado)</span>
+                                @else
+                                    {{ number_format($prodRemainingPieces) }} piezas
                                 @endif
                             </div>
                         </div>

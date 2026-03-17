@@ -29,6 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified', 'role:admin|Materiales|Produccion|Calidad|Empaques'])->group(function () {
     Route::get('/sent-lists', [\App\Http\Controllers\SentListController::class, 'index'])->name('sent-lists.index');
     Route::get('/sent-lists/display', \App\Livewire\Admin\SentLists\ShippingListDisplay::class)->name('sent-lists.display');
+    Route::get('/sent-lists/tv', \App\Livewire\Admin\SentLists\TvDisplay::class)->name('sent-lists.tv');
     Route::get('/sent-lists/{sentList}', [\App\Http\Controllers\SentListController::class, 'show'])->name('sent-lists.show');
     Route::get('/sent-lists/{sentList}/edit', [\App\Http\Controllers\SentListController::class, 'edit'])->name('sent-lists.edit');
     Route::put('/sent-lists/{sentList}', [\App\Http\Controllers\SentListController::class, 'update'])->name('sent-lists.update');

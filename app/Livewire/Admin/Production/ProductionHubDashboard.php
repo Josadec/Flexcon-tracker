@@ -10,10 +10,12 @@ use App\Models\Lot;
 use App\Models\Kit;
 use App\Models\SentList;
 use Illuminate\Support\Facades\DB;
+use App\Traits\ComputesAreaStats;
 
 #[Layout('components.layouts.app')]
 class ProductionHubDashboard extends Component
 {
+    use ComputesAreaStats;
     public function render()
     {
         // ── Weighing metrics ──
@@ -63,6 +65,7 @@ class ProductionHubDashboard extends Component
             ->get();
 
         return view('livewire.admin.production.production-hub-dashboard', [
+            'areaStats' => $this->computeAreaStats(),
             'pendingSentLists'   => $pendingSentLists,
             'totalWeighings' => $totalWeighings,
             'totalPiecesWeighed' => $totalPiecesWeighed,

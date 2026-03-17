@@ -7,6 +7,9 @@
         </div>
     </div>
 
+    <!-- Area Progress Donuts -->
+    @include('partials.area-progress-donuts', ['areaStats' => $areaStats])
+
     <!-- Work Orders Overview -->
     <section>
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
