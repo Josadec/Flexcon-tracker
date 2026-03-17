@@ -143,7 +143,27 @@
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             @foreach ($lotsInProgress as $lot)
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                    <td class="px-6 py-4 font-medium text-indigo-600 dark:text-indigo-400">{{ $lot->lot_number }}</td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-medium text-indigo-600 dark:text-indigo-400">{{ $lot->lot_number }}</div>
+                                        @if($lot->returned_to_packaging_at)
+                                            <div class="mt-1">
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700">
+                                                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                                    </svg>
+                                                    Retornado desde Shipping
+                                                </span>
+                                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                    {{ $lot->returned_to_packaging_at->format('d/m/Y H:i') }}
+                                                </p>
+                                                @if($lot->returned_to_packaging_reason)
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 italic">
+                                                        "{{ $lot->returned_to_packaging_reason }}"
+                                                    </p>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 text-gray-700 dark:text-gray-300">{{ $lot->workOrder->purchaseOrder->wo ?? 'N/A' }}</td>
                                     <td class="px-6 py-4 text-gray-700 dark:text-gray-300">{{ $lot->workOrder->purchaseOrder->part->number ?? 'N/A' }}</td>
                                     <td class="px-6 py-4 text-right text-gray-900 dark:text-white font-medium">{{ number_format($lot->quantity) }}</td>

@@ -28,11 +28,20 @@
                 </div>
             </div>
 
-            <div>
-                <label for="unit_of_measure" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Unidad de medida</label>
-                <input wire:model="unit_of_measure" id="unit_of_measure" type="text" placeholder="Ej: PZA, KG, M"
-                    class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                @error('unit_of_measure')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="unit_of_measure" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Unidad de medida</label>
+                    <input wire:model="unit_of_measure" id="unit_of_measure" type="text" placeholder="Ej: PZA, KG, M"
+                        class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    @error('unit_of_measure')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="label_spec" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Label Spec</label>
+                    <input wire:model="label_spec" id="label_spec" type="text" placeholder="Ej: M83519/2-8, SAE AS81824/1-2"
+                        class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Especificacion de etiqueta militar/aeronautica. Maximo 150 caracteres.</p>
+                    @error('label_spec')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                </div>
             </div>
 
             <div>
@@ -44,8 +53,8 @@
 
             <div>
                 <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notas</label>
-                <input wire:model="notes" id="notes" type="text" placeholder="Notas adicionales..."
-                    class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                <textarea wire:model="notes" id="notes" rows="2" placeholder="Notas adicionales..."
+                    class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"></textarea>
                 @error('notes')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
             </div>
 

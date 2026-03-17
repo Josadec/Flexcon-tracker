@@ -43,11 +43,6 @@ class PackingSlipList extends Component
     {
         $packingSlip = PackingSlip::findOrFail($id);
 
-        if (!$packingSlip->isPending()) {
-            session()->flash('error', 'Solo se pueden eliminar Packing Slips en estado Pendiente.');
-            return;
-        }
-
         $this->deleteId = $id;
         $this->confirmingDeletion = true;
     }
@@ -55,12 +50,6 @@ class PackingSlipList extends Component
     public function delete(): void
     {
         $packingSlip = PackingSlip::findOrFail($this->deleteId);
-
-        if (!$packingSlip->isPending()) {
-            session()->flash('error', 'Solo se pueden eliminar Packing Slips en estado Pendiente.');
-            $this->confirmingDeletion = false;
-            return;
-        }
 
         // Eliminar explicitamente los items antes del soft-delete del PS.
         // Esto libera los lotes (packing_slip_items.lot_id UNIQUE) para que

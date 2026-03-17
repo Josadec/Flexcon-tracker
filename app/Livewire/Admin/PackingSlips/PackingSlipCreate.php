@@ -13,7 +13,6 @@ class PackingSlipCreate extends Component
     public string $notes = '';
     public string $document_date = '';
     public array $selectedLotIds = [];
-    public array $labelSpecs = [];
     public array $dateSpecs = [];
 
     public function mount(): void
@@ -28,8 +27,6 @@ class PackingSlipCreate extends Component
             'document_date'    => 'required|date',
             'selectedLotIds'   => 'required|array|min:1',
             'selectedLotIds.*' => 'integer|exists:lots,id',
-            'labelSpecs'       => 'array',
-            'labelSpecs.*'     => 'nullable|string|max:50',
             'dateSpecs'        => 'array',
             'dateSpecs.*'      => 'nullable|string|max:20',
         ];
@@ -49,12 +46,14 @@ class PackingSlipCreate extends Component
             $this->selectedLotIds = array_values(
                 array_filter($this->selectedLotIds, fn($id) => $id !== $lotId)
             );
-            unset($this->labelSpecs[$lotId]);
             unset($this->dateSpecs[$lotId]);
         } else {
             $this->selectedLotIds[] = $lotId;
-            $this->labelSpecs[$lotId] = '';
-            $this->dateSpecs[$lotId] = '';
+            $lot = Lot::with('workOrder.purchaseOrder.part')->find($lotId);
+            // Pre-llenar Date con lot_number como valor provisional (D-06-01)
+            if (!array_key_exists($lotId, $this->dateSpecs) || $this->dateSpecs[$lotId] === '') {
+                $this->dateSpecs[$lotId] = $lot?->lot_number ?? '';
+            }
         }
     }
 
@@ -63,7 +62,7 @@ class PackingSlipCreate extends Component
         $this->validate();
 
         // Verificar que todos los lotes seleccionados tengan WO con external_wo_number
-        $lots = Lot::with('workOrder')->whereIn('id', $this->selectedLotIds)->get();
+        $lots = Lot::with('workOrder.purchaseOrder.part')->whereIn('id', $this->selectedLotIds)->get();
 
         foreach ($lots as $lot) {
             if (empty($lot->workOrder->external_wo_number ?? null)) {
@@ -92,7 +91,7 @@ class PackingSlipCreate extends Component
                 'quantity_packed' => $lot->quantity_packed_final ?? $lot->quantity ?? 0,
                 'wo_number_ps'    => $woCode,
                 'lot_date_code'   => $this->dateSpecs[$lot->id] ?? null,
-                'label_spec'      => $this->labelSpecs[$lot->id] ?? null,
+                'label_spec'      => $lot->workOrder?->purchaseOrder?->part?->label_spec ?? null,
             ]);
         }
 
@@ -110,12 +109,10 @@ class PackingSlipCreate extends Component
             ->get();
 
         // Inicializar arrays para todos los lotes visibles
+        // dateSpecs se pre-llena con lot_number como valor provisional (D-06-01)
         foreach ($availableLots as $lot) {
             if (!array_key_exists($lot->id, $this->dateSpecs)) {
-                $this->dateSpecs[$lot->id] = '';
-            }
-            if (!array_key_exists($lot->id, $this->labelSpecs)) {
-                $this->labelSpecs[$lot->id] = '';
+                $this->dateSpecs[$lot->id] = $lot->lot_number ?? '';
             }
         }
 

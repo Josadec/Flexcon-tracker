@@ -21,6 +21,7 @@ class Part extends Model
         'is_crimp',
         'description',
         'notes',
+        'label_spec',
     ];
 
     protected $casts = [

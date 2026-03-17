@@ -1,4 +1,65 @@
 <div class="py-12">
+
+    {{-- Toast de notificaciones (fixed, no afecta el layout) --}}
+    <div
+        x-data="{
+            toasts: [],
+            add(type, message) {
+                const id = Date.now();
+                this.toasts.push({ id, type, message });
+                setTimeout(() => this.remove(id), 7000);
+            },
+            remove(id) {
+                this.toasts = this.toasts.filter(t => t.id !== id);
+            }
+        }"
+        x-on:notify.window="add($event.detail[0]?.type ?? $event.detail?.type ?? 'success', $event.detail[0]?.message ?? $event.detail?.message ?? '')"
+        class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"
+        aria-live="polite"
+    >
+        <template x-for="toast in toasts" :key="toast.id">
+            <div
+                x-show="true"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 -translate-y-2"
+                x-transition:enter-end="opacity-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0"
+                x-transition:leave-end="opacity-0 -translate-y-2"
+                :class="{
+                    'bg-green-600 text-white': toast.type === 'success',
+                    'bg-red-600 text-white':   toast.type === 'error' || toast.type === 'danger',
+                    'bg-amber-500 text-white': toast.type === 'warning',
+                    'bg-blue-600 text-white':  toast.type === 'info',
+                    'bg-gray-800 text-white':  !['success','error','danger','warning','info'].includes(toast.type),
+                }"
+                class="pointer-events-auto flex items-center gap-3 min-w-[260px] max-w-sm px-4 py-3 rounded-lg shadow-lg text-sm font-medium"
+            >
+                <template x-if="toast.type === 'success'">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </template>
+                <template x-if="toast.type === 'error' || toast.type === 'danger'">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </template>
+                <template x-if="toast.type === 'warning'">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+                    </svg>
+                </template>
+                <span x-text="toast.message" class="flex-1"></span>
+                <button @click="remove(toast.id)" class="shrink-0 opacity-70 hover:opacity-100 transition-opacity">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </template>
+    </div>
+
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
         <!-- Header -->
@@ -36,7 +97,7 @@
                             @endforeach
                         </select>
                         <button wire:click="updateStatus"
-                                class="inline-flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+                                class="inline-flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors cursor-pointer">
                             Guardar estado
                         </button>
                     </div>
@@ -142,13 +203,13 @@
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-50 dark:bg-gray-800">
                                     <tr>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-10">
-                                            Sel.
-                                        </th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">N° Lote</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Part Number</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">WO</th>
-                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Qty Packed</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-10">Sel.</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Work Order</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">PO</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Item No</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Description</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Quantity</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Label Spec</th>
                                     </tr>
                                 </thead>
@@ -164,13 +225,8 @@
                                                     class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                                 >
                                             </td>
-                                            <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                                                {{ $lot->lot_number }}
-                                            </td>
-                                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                                {{ $lot->workOrder?->purchaseOrder?->part?->number ?? '-' }}
-                                            </td>
-                                            <td class="px-4 py-3 text-sm font-mono text-gray-500 dark:text-gray-400">
+                                            {{-- Work Order --}}
+                                            <td class="px-4 py-3 text-sm font-mono text-gray-900 dark:text-white">
                                                 @php
                                                     $woPreview = $lot->workOrder?->external_wo_number
                                                         ? 'W0' . $lot->workOrder->external_wo_number . str_pad($lot->lot_number, 3, '0', STR_PAD_LEFT)
@@ -182,24 +238,35 @@
                                                     <span class="text-orange-500 text-xs font-sans">Sin WO externo</span>
                                                 @endif
                                             </td>
+                                            {{-- PO --}}
+                                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                                {{ $lot->workOrder?->purchaseOrder?->po_number ?? '-' }}
+                                            </td>
+                                            {{-- Item No --}}
+                                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                                {{ $lot->workOrder?->purchaseOrder?->part?->item_number ?? '-' }}
+                                            </td>
+                                            {{-- Description --}}
+                                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                                                {{ $lot->workOrder?->purchaseOrder?->part?->number ?? '-' }}
+                                            </td>
+                                            {{-- Quantity --}}
                                             <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">
                                                 {{ number_format($lot->quantity_packed_final ?? $lot->quantity ?? 0) }}
                                             </td>
+                                            {{-- Date --}}
                                             <td class="px-4 py-3">
-                                                @if ($isSelected)
-                                                    <input
-                                                        type="text"
-                                                        wire:model="labelSpecs.{{ $lot->id }}"
-                                                        maxlength="50"
-                                                        placeholder="Spec de etiqueta..."
-                                                        class="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm w-full max-w-xs focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                                                    >
-                                                    @error("labelSpecs.{$lot->id}")
-                                                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                                    @enderror
-                                                @else
-                                                    <span class="text-gray-400 text-sm">—</span>
-                                                @endif
+                                                <input
+                                                    type="text"
+                                                    wire:model="dateSpecs.{{ $lot->id }}"
+                                                    maxlength="20"
+                                                    placeholder="ej: 20250512A22"
+                                                    class="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm w-36 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                                                >
+                                            </td>
+                                            {{-- Label Spec (desde Part, solo lectura) --}}
+                                            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
+                                                {{ $lot->workOrder?->purchaseOrder?->part?->label_spec ?? '—' }}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -290,19 +357,9 @@
                                                        @keydown.escape="editing = false"
                                                        x-effect="if (editing) $el.focus()">
                                             </td>
-                                            {{-- Celda editable: Label Spec (editable en todos los estados) --}}
-                                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400"
-                                                x-data="{ editing: false, value: '{{ $item->label_spec ?? '' }}' }">
-                                                <span x-show="!editing" @click="editing = true"
-                                                      class="cursor-pointer hover:text-blue-600 hover:underline min-w-[80px] inline-block"
-                                                      x-text="value || '-'"></span>
-                                                <input x-show="editing" x-model="value" type="text"
-                                                       class="border border-blue-400 rounded px-2 py-0.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                       @blur="editing = false; $wire.updateItemLabelSpec({{ $item->id }}, value)"
-                                                       @keydown.enter="editing = false; $wire.updateItemLabelSpec({{ $item->id }}, value)"
-                                                       @keydown.escape="editing = false"
-                                                       x-effect="if (editing) $el.focus()"
-                                                       placeholder="Label spec...">
+                                            {{-- Label Spec: muestra snapshot si existe, si no jala del Part --}}
+                                            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
+                                                {{ $item->label_spec ?: ($item->lot?->workOrder?->purchaseOrder?->part?->label_spec ?: '—') }}
                                             </td>
                                         </tr>
                                     @endforeach
