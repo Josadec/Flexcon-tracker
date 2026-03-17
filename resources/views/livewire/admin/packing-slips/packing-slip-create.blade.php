@@ -147,9 +147,9 @@
                                                     class="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm w-36 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                                                 >
                                             </td>
-                                            {{-- Label Spec --}}
+                                            {{-- Label Spec. Muestra "-" si el Part no tiene label_spec asignado. --}}
                                             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
-                                                {{ $lot->workOrder?->purchaseOrder?->part?->label_spec ?? '—' }}
+                                                {{ $lot->workOrder?->purchaseOrder?->part?->label_spec ?: '-' }}
                                             </td>
                                         </tr>
                                     @endforeach

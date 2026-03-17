@@ -151,7 +151,7 @@
                                     <td class="px-4 py-3">
                                         @php
                                             $woCode = $hasExternalWo
-                                                ? 'W0' . $lot->workOrder->external_wo_number . str_pad((string) $lot->lot_number, 3, '0', STR_PAD_LEFT)
+                                                ? 'W0' . $lot->workOrder->getEffectiveWoNumber() . str_pad((string) $lot->lot_number, 3, '0', STR_PAD_LEFT)
                                                 : null;
                                         @endphp
                                         @if($woCode)
