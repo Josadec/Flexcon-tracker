@@ -7,6 +7,9 @@
         </div>
     </div>
 
+    <!-- Area Progress Donuts -->
+    @include('partials.area-progress-donuts', ['areaStats' => $areaStats])
+
     <!-- Pending Sent Lists -->
     @include('livewire.admin.sent-lists.partials.pending-lists-panel', [
         'pendingSentLists' => $pendingSentLists,
