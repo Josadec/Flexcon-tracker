@@ -160,11 +160,11 @@
                                     $cantAEnviar = $cantWO - $pzEnviadas; // Cant. a Enviar = Cant. WO - Pz Enviadas
                                     $toSend = $cantAEnviar;
 
-                                    // Piezas sobrantes: si hay registros de empaque usa surplus de empaque, sino pendientes de calidad
+                                    // Piezas sobrantes: solo surplus real de empaque (rechazadas de calidad = descarte, no sobrantes)
                                     $woSobrantes = $allLots->sum(function ($l) {
                                         if ($l->isSurplusReceived()) return 0;
                                         if ($l->hasPackagingRecords()) return $l->getPackagingTotalSurplus();
-                                        return $l->getQualityPendingPieces();
+                                        return 0;
                                     });
 
                                     // Obtener estados de departamentos (simulado por ahora)
@@ -488,6 +488,22 @@
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                                         </svg>
                                                     </span>
+                                                @elseif ($lot->viajero_received && $lot->getPackagingTotalSurplus() <= 0 && $lot->surplus_received)
+                                                    {{-- Sin sobrantes + material recibido confirmado --}}
+                                                    <span class="w-5 h-5 rounded bg-green-600 flex items-center justify-center"
+                                                        title="Material recibido — lote completado">
+                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                        </svg>
+                                                    </span>
+                                                @elseif ($lot->viajero_received && $lot->getPackagingTotalSurplus() <= 0 && !$lot->surplus_received)
+                                                    {{-- Sin sobrantes, pendiente confirmación de recepción --}}
+                                                    <span class="w-5 h-5 rounded bg-amber-500 flex items-center justify-center"
+                                                        title="Pendiente: confirmar recepción de material">
+                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"/>
+                                                        </svg>
+                                                    </span>
                                                 @endif
                                             </div>
                                         </td>
@@ -500,7 +516,7 @@
                                             {{ number_format($lot->quantity) }}
                                         </td>
                                         @php
-                                            $lotSobrantes = $lot->isSurplusReceived() ? 0 : ($lot->hasPackagingRecords() ? $lot->getPackagingTotalSurplus() : $lot->getQualityPendingPieces());
+                                            $lotSobrantes = $lot->isSurplusReceived() ? 0 : ($lot->hasPackagingRecords() ? $lot->getPackagingTotalSurplus() : 0);
                                         @endphp
                                         <td class="px-4 py-2 text-right text-xs font-medium {{ $lotSobrantes > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500' }}">
                                             {{ number_format($lotSobrantes) }}
@@ -1953,7 +1969,7 @@
                                     @endif
 
                                     {{-- Formulario de nuevo empaque --}}
-                                    @if ($pkgPendingPieces > 0 && !$pkgViajeroReceived)
+                                    @if (($pkgPendingPieces > 0 || $pkgEditingId) && !$pkgViajeroReceived)
                                         <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
                                             <h5 class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
                                                 {{ $pkgEditingId ? 'Editar Registro' : 'Nuevo Registro de Empaque' }}
@@ -2145,7 +2161,7 @@
                         </div>
 
                         <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
-                            Faltantes = Total Lote - Empacadas - Sobrantes
+                            Faltantes = Total Lote - Empacadas - Sobrantes - Descartadas (calidad)
                         </p>
 
                         {{-- Decision options (only if no closure decision yet) --}}
@@ -2228,7 +2244,7 @@
                                 </div>
                             </div>
 
-                            {{-- Estado de entrega de sobrantes --}}
+                            {{-- Estado de recepción de material --}}
                             @if ($decSurplus > 0)
                                 @if (!$decSurplusDelivered)
                                     {{-- Paso 1: Empaque aún no ha entregado el sobrante --}}
@@ -2264,6 +2280,33 @@
                                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                             </svg>
                                             <span class="text-sm font-medium text-green-800 dark:text-green-200">Material sobrante recibido. Lote completado.</span>
+                                        </div>
+                                    </div>
+                                @endif
+                            @else
+                                {{-- Sin sobrantes: confirmar recepción de material --}}
+                                @if (!$decSurplusReceived)
+                                    <div class="border border-red-200 dark:border-red-700 rounded-lg p-4">
+                                        <h5 class="text-sm font-semibold text-red-800 dark:text-red-200 mb-3">Pendiente: Confirmación de Recepción</h5>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                            Todas las piezas fueron empacadas. Sin sobrantes. Confirmar recepción de material.
+                                        </p>
+                                        <button wire:click="confirmSurplusReceived"
+                                            wire:confirm="¿Confirma la recepción de material del lote?"
+                                            class="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                                            </svg>
+                                            Material Recibido
+                                        </button>
+                                    </div>
+                                @else
+                                    <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3">
+                                        <div class="flex items-center gap-2">
+                                            <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <span class="text-sm font-medium text-green-800 dark:text-green-200">Material recibido. Lote completado.</span>
                                         </div>
                                     </div>
                                 @endif

@@ -891,7 +891,11 @@ class ShippingListDisplay extends Component
 
         // Fase 3 data
         $this->pkgViajeroReceived = (bool) $lot->viajero_received;
-        $this->pkgTotalSurplus = $lot->getPackagingTotalSurplus();
+        // Calculate surplus from records (sum of surplus_pieces minus adjustments)
+        $recordsSurplus = $lot->packagingRecords->sum(function ($r) {
+            return $r->adjusted_surplus !== null ? $r->adjusted_surplus : $r->surplus_pieces;
+        });
+        $this->pkgTotalSurplus = max(0, $recordsSurplus);
 
         $this->showPackagingModal = true;
     }
@@ -1001,6 +1005,9 @@ class ShippingListDisplay extends Component
         $this->pkgPackedAt = $record->packed_at->format('Y-m-d\TH:i');
         $this->pkgComments = $record->comments ?? '';
         $this->pkgSurplusPieces = $record->surplus_pieces;
+
+        // Add back this record's packed pieces to pending so the form allows editing
+        $this->pkgPendingPieces = $this->pkgPendingPieces + $record->packed_pieces + $record->surplus_pieces;
     }
 
     /**
@@ -1013,6 +1020,12 @@ class ShippingListDisplay extends Component
         $this->pkgPackedAt = now()->format('Y-m-d\TH:i');
         $this->pkgComments = '';
         $this->pkgSurplusPieces = 0;
+
+        // Restore original pending pieces from the lot
+        if ($this->selectedLotForPackaging) {
+            $this->pkgPendingPieces = $this->selectedLotForPackaging->fresh()->getPackagingPendingPieces();
+        }
+
         $this->resetErrorBag();
     }
 
@@ -1165,11 +1178,12 @@ class ShippingListDisplay extends Component
 
         $this->selectedLotForDecision = $lot;
 
-        // LOT-level calculations
+        // LOT-level calculations (quality rejected = discard, not faltantes)
         $this->decLotTotal = $lot->quantity;
         $this->decPacked = $lot->getPackagingPackedPieces();
         $this->decSurplus = $lot->getPackagingTotalSurplus();
-        $this->decMissing = max(0, $this->decLotTotal - $this->decPacked - $this->decSurplus);
+        $qualityDiscarded = $lot->getQualityBadPieces();
+        $this->decMissing = max(0, $this->decLotTotal - $this->decPacked - $this->decSurplus - $qualityDiscarded);
         $this->decIsCrimp = (bool) ($lot->workOrder->purchaseOrder->part->is_crimp ?? false);
         $this->decClosureDecision = $lot->closure_decision;
         $this->decSurplusDelivered = (bool) $lot->surplus_delivered;
@@ -1302,14 +1316,12 @@ class ShippingListDisplay extends Component
             'closure_decision' => Lot::CLOSURE_CLOSE_AS_IS,
             'closure_decided_by' => auth()->id(),
             'closure_decided_at' => now(),
-            'status' => Lot::STATUS_COMPLETED,
-            'packaging_status' => 'approved',
         ]);
 
         if ($missing > 0) {
-            session()->flash('message', "Lote cerrado aceptando " . number_format($missing) . " piezas faltantes.");
+            session()->flash('message', "Lote cerrado aceptando " . number_format($missing) . " piezas faltantes. Pendiente: recepción de material.");
         } else {
-            session()->flash('message', 'Lote cerrado sin faltantes.');
+            session()->flash('message', 'Lote cerrado. Pendiente: confirmación de recepción de material.');
         }
 
         $this->openDecisionModal($lot->id);
