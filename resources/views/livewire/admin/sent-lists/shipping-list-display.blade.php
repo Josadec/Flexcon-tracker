@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900" wire:poll.30s>
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900" wire:poll.30s="refreshDisplay">
     {{-- Mensajes Flash --}}
     @if (session()->has('message'))
         <div
