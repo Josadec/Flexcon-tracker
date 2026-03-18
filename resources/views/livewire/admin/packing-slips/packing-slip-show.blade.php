@@ -113,6 +113,25 @@
                         </button>
                     @endif
 
+                    {{-- Ver PDF en nueva pestana --}}
+                    <a href="{{ route('admin.packing-slips.pdf', $packingSlip) }}"
+                       target="_blank"
+                       class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                        Ver PDF
+                    </a>
+
+                    {{-- Descargar PDF --}}
+                    <a href="{{ route('admin.packing-slips.pdf.download', $packingSlip) }}"
+                       class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Descargar PDF
+                    </a>
+
                     <a href="{{ route('admin.packing-slips.index') }}" wire:navigate
                        class="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -264,9 +283,9 @@
                                                     class="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm w-36 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                                                 >
                                             </td>
-                                            {{-- Label Spec (desde Part, solo lectura) --}}
+                                            {{-- Label Spec (desde Part, solo lectura). Muestra "-" si no hay valor. --}}
                                             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
-                                                {{ $lot->workOrder?->purchaseOrder?->part?->label_spec ?? '—' }}
+                                                {{ $lot->workOrder?->purchaseOrder?->part?->label_spec ?: '-' }}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -357,25 +376,24 @@
                                                        @keydown.escape="editing = false"
                                                        x-effect="if (editing) $el.focus()">
                                             </td>
-                                            {{-- Label Spec: muestra snapshot si existe, si no jala del Part --}}
+                                            {{-- Label Spec: muestra snapshot si existe, si no jala del Part.
+                                                 Si ninguno tiene valor, se muestra "-" segun requerimiento del cliente. --}}
                                             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
-                                                {{ $item->label_spec ?: ($item->lot?->workOrder?->purchaseOrder?->part?->label_spec ?: '—') }}
+                                                {{ $item->label_spec ?: ($item->lot?->workOrder?->purchaseOrder?->part?->label_spec ?: '-') }}
                                             </td>
                                         </tr>
                                     @endforeach
-                                    {{-- Fila de subtotal por PO: solo si el grupo tiene mas de 1 item --}}
-                                    @if ($poItems->count() > 1)
-                                        <tr class="bg-blue-50 dark:bg-blue-900/20 border-t-2 border-blue-200 dark:border-blue-700">
-                                            <td colspan="3" class="px-4 py-2"></td>
-                                            <td class="px-4 py-2 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider text-right">
-                                                Total PO {{ $poNumber }}:
-                                            </td>
-                                            <td class="px-4 py-2 text-sm font-bold text-right text-blue-700 dark:text-blue-300">
-                                                {{ number_format($poItems->sum('quantity_packed')) }}
-                                            </td>
-                                            <td colspan="2"></td>
-                                        </tr>
-                                    @endif
+                                    {{-- Fila de subtotal por PO: siempre visible para reflejar el formato FPL-10 --}}
+                                    <tr class="bg-blue-50 dark:bg-blue-900/20 border-t-2 border-blue-200 dark:border-blue-700">
+                                        <td colspan="3" class="px-4 py-2"></td>
+                                        <td class="px-4 py-2 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider text-right">
+                                            Total PO {{ $poNumber }}:
+                                        </td>
+                                        <td class="px-4 py-2 text-sm font-bold text-right text-blue-700 dark:text-blue-300">
+                                            {{ number_format($poItems->sum('quantity_packed')) }}
+                                        </td>
+                                        <td colspan="2"></td>
+                                    </tr>
                                 @endforeach
                             </tbody>
                             <tfoot class="bg-gray-50 dark:bg-gray-800">

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PackingSlipPdfController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -216,6 +217,10 @@ Route::middleware(['auth', 'verified', 'role:admin|Empaques'])->group(function (
     Route::get('/packing-slips', \App\Livewire\Admin\PackingSlips\PackingSlipList::class)->name('packing-slips.index');
     Route::get('/packing-slips/create', \App\Livewire\Admin\PackingSlips\PackingSlipCreate::class)->name('packing-slips.create');
     Route::get('/packing-slips/{packingSlip}', \App\Livewire\Admin\PackingSlips\PackingSlipShow::class)->name('packing-slips.show');
+
+    // PDF del Packing Slip (FPL-10)
+    Route::get('/packing-slips/{packingSlip}/pdf', [PackingSlipPdfController::class, 'show'])->name('packing-slips.pdf');
+    Route::get('/packing-slips/{packingSlip}/pdf/download', [PackingSlipPdfController::class, 'download'])->name('packing-slips.pdf.download');
 
     // Cola de despacho (Shipping Queue)
     Route::get('/shipping-queue', \App\Livewire\Admin\Shipping\ShippingQueue::class)->name('shipping.queue');

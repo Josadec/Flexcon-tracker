@@ -33,7 +33,8 @@
       "mcp__playwright__browser_evaluate",
       "Bash(cd C:/xampp/htdocs/flexcon-tracker && \"C:/xampp/mysql/bin/mysql.exe\" -u root flexcon_tracker -e \"SELECT id, lot_number, ready_for_shipping, closed_at FROM lots;\")",
       "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root flexcon_db -e \"SELECT id, lot_number, ready_for_shipping, closed_at FROM lots;\")",
-      "mcp__playwright__browser_select_option"
+      "mcp__playwright__browser_select_option",
+      "Bash(composer show:*)"
     ],
     "deny": [],
     "ask": []

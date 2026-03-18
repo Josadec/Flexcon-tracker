@@ -220,8 +220,11 @@ class PackingSlipShow extends Component
     {
         // Agrupar items por PO para mostrar subtotales por grupo en la vista,
         // replicando la estructura del Excel FPL-10 (columna C agrupada con subtotal).
+        // Dentro de cada grupo PO, los items se ordenan de mayor a menor cantidad
+        // segun el requerimiento del cliente (formato FPL-10).
         $itemsGroupedByPo = $this->packingSlip->items
-            ->groupBy(fn ($item) => $item->lot?->workOrder?->purchaseOrder?->po_number ?? 'Sin PO');
+            ->groupBy(fn ($item) => $item->lot?->workOrder?->purchaseOrder?->po_number ?? 'Sin PO')
+            ->map(fn ($poItems) => $poItems->sortByDesc('quantity_packed')->values());
 
         // Lotes disponibles para el panel de edicion:
         // Los que están readyForShipping + los que ya están en este PS (para mantenerlos visibles)
