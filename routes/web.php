@@ -11,6 +11,9 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Ruta pública para el monitor TV de listas de envío (sin autenticación)
+Route::get('/tv', \App\Livewire\Public\TvMonitor::class)->name('tv.display');
+
 Route::get('/dashboard', function () {
     $user = auth()->user();
 
