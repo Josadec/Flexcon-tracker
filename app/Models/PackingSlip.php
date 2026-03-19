@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -34,12 +35,14 @@ class PackingSlip extends Model
         'document_date',
         'shipped_at',
         'shipped_by',
+        'invoice_id',  // FK al Invoice generado para este PS (Decision D-12-04).
         'notes',
     ];
 
     protected $casts = [
         'document_date' => 'date',
         'shipped_at'    => 'datetime',
+        'invoice_id'    => 'integer',
     ];
 
     // =========================================================
@@ -134,6 +137,17 @@ class PackingSlip extends Model
         return $this->hasMany(PackingSlipItem::class);
     }
 
+    /**
+     * Invoice generado para este Packing Slip.
+     * Decision D-12-03: relacion 1:1 — un PS genera exactamente un Invoice de tipo product.
+     * Decision D-12-04: la relacion hasOne se define aqui para convenencia de navegacion
+     * bidireccional ($ps->invoice), complementada por el campo invoice_id en packing_slips.
+     */
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class);
+    }
+
     // =========================================================
     // Scopes
     // =========================================================
@@ -165,6 +179,16 @@ class PackingSlip extends Model
     // =========================================================
     // Helpers de estado
     // =========================================================
+
+    /**
+     * Indica si este Packing Slip ya tiene un Invoice asociado.
+     * Decision D-12-04: usa el campo invoice_id para la verificacion sin consulta adicional.
+     * El campo invoice_id se llena en InvoiceFromPackingSlipService al crear el Invoice.
+     */
+    public function hasInvoice(): bool
+    {
+        return $this->invoice_id !== null;
+    }
 
     public function isPending(): bool
     {

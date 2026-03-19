@@ -5,8 +5,10 @@ namespace App\Livewire\Admin\PackingSlips;
 use App\Models\Lot;
 use App\Models\PackingSlip;
 use App\Models\PackingSlipItem;
+use App\Services\InvoiceFromPackingSlipService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
+use RuntimeException;
 
 class PackingSlipShow extends Component
 {
@@ -18,9 +20,12 @@ class PackingSlipShow extends Component
     public array $selectedLotIds = [];
     public array $dateSpecs     = [];
 
+    // Invoice FPL-12
+    public bool $showCreateInvoiceConfirm = false;
+
     public function mount(PackingSlip $packingSlip): void
     {
-        $this->packingSlip   = $packingSlip->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part']);
+        $this->packingSlip   = $packingSlip->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
         $this->selectedStatus = $this->packingSlip->status;
 
         $this->initLotSelection();
@@ -65,7 +70,7 @@ class PackingSlipShow extends Component
         }
 
         $this->packingSlip->update($data);
-        $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part']);
+        $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
 
         // Si ahora está shipped, cerrar el panel de lotes si estuviera abierto
         if ($this->packingSlip->isShipped()) {
@@ -201,7 +206,7 @@ class PackingSlipShow extends Component
         }
 
         // Recargar el PS con todas las relaciones
-        $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part']);
+        $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
 
         // Cerrar el panel y sincronizar la seleccion
         $this->editingLots = false;
@@ -211,6 +216,45 @@ class PackingSlipShow extends Component
             'type'    => 'success',
             'message' => "Lotes del Packing Slip {$this->packingSlip->ps_number} actualizados correctamente.",
         ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Invoice FPL-12
+    // -----------------------------------------------------------------------
+
+    public function confirmCreateInvoice(): void
+    {
+        $this->showCreateInvoiceConfirm = true;
+    }
+
+    public function cancelCreateInvoice(): void
+    {
+        $this->showCreateInvoiceConfirm = false;
+    }
+
+    /**
+     * Genera un Invoice FPL-12 desde este Packing Slip.
+     * Delega toda la logica al servicio InvoiceFromPackingSlipService.
+     * Redirige al detalle del Invoice creado en caso de exito.
+     */
+    public function createInvoice(InvoiceFromPackingSlipService $service): mixed
+    {
+        $this->showCreateInvoiceConfirm = false;
+
+        try {
+            $invoice = $service->createFromPackingSlip($this->packingSlip);
+
+            return redirect()
+                ->route('admin.invoices.show', $invoice->invoice_number)
+                ->with('success', "Invoice #{$invoice->invoice_number} creado correctamente desde el Packing Slip {$this->packingSlip->ps_number}.");
+
+        } catch (RuntimeException $e) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     // -----------------------------------------------------------------------
