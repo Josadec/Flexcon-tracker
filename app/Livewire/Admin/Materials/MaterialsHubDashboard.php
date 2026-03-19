@@ -8,10 +8,12 @@ use App\Models\WorkOrder;
 use App\Models\Lot;
 use App\Models\Kit;
 use App\Models\SentList;
+use App\Traits\ComputesAreaStats;
 
 #[Layout('components.layouts.app')]
 class MaterialsHubDashboard extends Component
 {
+    use ComputesAreaStats;
     public function render()
     {
         // ── Work Order metrics ──
@@ -45,6 +47,7 @@ class MaterialsHubDashboard extends Component
             ->get();
 
         return view('livewire.admin.materials.materials-hub-dashboard', [
+            'areaStats' => $this->computeAreaStats(),
             'totalWOs' => $totalWOs,
             'activeWOs' => $activeWOs,
             'closedWOs' => $closedWOs,

@@ -8,6 +8,8 @@ use App\Models\Lot;
 use App\Models\Kit;
 use App\Models\QualityWeighing;
 use App\Models\PackagingRecord;
+use App\Models\LotCompletionLog;
+use App\Models\Weighing;
 use Livewire\Component;
 use Livewire\Attributes\On;
 
@@ -68,6 +70,7 @@ class ShippingListDisplay extends Component
     public $selectedLotForPackaging = null;
 
     // Fase 1: Registro de empaque
+    public $pkgProductionPieces = 0;
     public $pkgAvailablePieces = 0;
     public $pkgAlreadyPacked = 0;
     public $pkgPendingPieces = 0;
@@ -857,6 +860,7 @@ class ShippingListDisplay extends Component
         $this->selectedLotForPackaging = $lot;
 
         // Fase 1 data
+        $this->pkgProductionPieces = $lot->getProductionGoodPieces();
         $this->pkgAvailablePieces = $lot->getPackagingAvailablePieces();
         $this->pkgAlreadyPacked = $lot->getPackagingPackedPieces();
         $this->pkgPendingPieces = $lot->getPackagingPendingPieces();
@@ -887,7 +891,11 @@ class ShippingListDisplay extends Component
 
         // Fase 3 data
         $this->pkgViajeroReceived = (bool) $lot->viajero_received;
-        $this->pkgTotalSurplus = $lot->getPackagingTotalSurplus();
+        // Calculate surplus from records (sum of surplus_pieces minus adjustments)
+        $recordsSurplus = $lot->packagingRecords->sum(function ($r) {
+            return $r->adjusted_surplus !== null ? $r->adjusted_surplus : $r->surplus_pieces;
+        });
+        $this->pkgTotalSurplus = max(0, $recordsSurplus);
 
         $this->showPackagingModal = true;
     }
@@ -896,6 +904,7 @@ class ShippingListDisplay extends Component
     {
         $this->showPackagingModal = false;
         $this->selectedLotForPackaging = null;
+        $this->pkgProductionPieces = 0;
         $this->pkgAvailablePieces = 0;
         $this->pkgAlreadyPacked = 0;
         $this->pkgPendingPieces = 0;
@@ -939,11 +948,6 @@ class ShippingListDisplay extends Component
 
         if (!$this->selectedLotForPackaging) {
             session()->flash('error', 'Lote no encontrado.');
-            return;
-        }
-
-        if ($this->pkgPackedPieces > $this->pkgPendingPieces && !$this->pkgEditingId) {
-            $this->addError('pkgPackedPieces', 'Las piezas empacadas (' . number_format($this->pkgPackedPieces) . ') sobrepasan las pendientes (' . number_format($this->pkgPendingPieces) . ').');
             return;
         }
 
@@ -1001,6 +1005,9 @@ class ShippingListDisplay extends Component
         $this->pkgPackedAt = $record->packed_at->format('Y-m-d\TH:i');
         $this->pkgComments = $record->comments ?? '';
         $this->pkgSurplusPieces = $record->surplus_pieces;
+
+        // Add back this record's packed pieces to pending so the form allows editing
+        $this->pkgPendingPieces = $this->pkgPendingPieces + $record->packed_pieces + $record->surplus_pieces;
     }
 
     /**
@@ -1013,6 +1020,12 @@ class ShippingListDisplay extends Component
         $this->pkgPackedAt = now()->format('Y-m-d\TH:i');
         $this->pkgComments = '';
         $this->pkgSurplusPieces = 0;
+
+        // Restore original pending pieces from the lot
+        if ($this->selectedLotForPackaging) {
+            $this->pkgPendingPieces = $this->selectedLotForPackaging->fresh()->getPackagingPendingPieces();
+        }
+
         $this->resetErrorBag();
     }
 
@@ -1165,11 +1178,12 @@ class ShippingListDisplay extends Component
 
         $this->selectedLotForDecision = $lot;
 
-        // LOT-level calculations
+        // LOT-level calculations (quality rejected = discard, not faltantes)
         $this->decLotTotal = $lot->quantity;
         $this->decPacked = $lot->getPackagingPackedPieces();
         $this->decSurplus = $lot->getPackagingTotalSurplus();
-        $this->decMissing = max(0, $this->decLotTotal - $this->decPacked - $this->decSurplus);
+        $qualityDiscarded = $lot->getQualityBadPieces();
+        $this->decMissing = max(0, $this->decLotTotal - $this->decPacked - $this->decSurplus - $qualityDiscarded);
         $this->decIsCrimp = (bool) ($lot->workOrder->purchaseOrder->part->is_crimp ?? false);
         $this->decClosureDecision = $lot->closure_decision;
         $this->decSurplusDelivered = (bool) $lot->surplus_delivered;
@@ -1196,17 +1210,79 @@ class ShippingListDisplay extends Component
     }
 
     /**
-     * Decision: Completar Lote — open Create Lot modal with MISSING pieces.
-     * faltantes = lote qty - empacadas - sobrantes
+     * Decision: Completar Lote — reset the SAME lot with missing pieces.
+     * Saves a completion log, soft-deletes old records, resets pipeline.
      */
     public function decisionCompleteLot()
     {
         if (!$this->selectedLotForDecision) return;
 
-        $this->createLotType = 'complete';
-        $this->createLotQuantity = $this->decMissing;
-        $this->createLotName = Lot::generateNextLotNumber($this->selectedLotForDecision->work_order_id);
-        $this->showCreateLotFormModal = true;
+        $lot = $this->selectedLotForDecision;
+        $missing = $this->decMissing;
+
+        if ($missing <= 0) {
+            session()->flash('error', 'No hay piezas faltantes para completar.');
+            return;
+        }
+
+        $newCycle = ($lot->completion_count ?? 0) + 1;
+
+        // 1. Save completion log
+        LotCompletionLog::create([
+            'lot_id' => $lot->id,
+            'cycle_number' => $newCycle,
+            'original_quantity' => $lot->quantity,
+            'packed_pieces' => $this->decPacked,
+            'surplus_pieces' => $this->decSurplus,
+            'missing_pieces' => $missing,
+            'production_good_pieces' => $lot->getProductionGoodPieces(),
+            'quality_good_pieces' => $lot->getQualityGoodPieces(),
+            'completed_by' => auth()->id(),
+            'completed_at' => now(),
+        ]);
+
+        // 2. Soft-delete old records so the lot starts a fresh cycle
+        Weighing::where('lot_id', $lot->id)->delete();
+        QualityWeighing::where('lot_id', $lot->id)->delete();
+        PackagingRecord::where('lot_id', $lot->id)->delete();
+
+        // 3. Reset lot with missing quantity and fresh statuses
+        $lot->update([
+            'quantity' => $missing,
+            'completion_count' => $newCycle,
+            'closure_decision' => null,
+            'closure_decided_by' => null,
+            'closure_decided_at' => null,
+            'status' => Lot::STATUS_IN_PROGRESS,
+            'material_status' => 'pending',
+            'inspection_status' => Lot::INSPECTION_PENDING,
+            'inspection_comments' => null,
+            'inspection_completed_at' => null,
+            'inspection_completed_by' => null,
+            'packaging_status' => 'pending',
+            'packaging_comments' => null,
+            'packaging_inspected_by' => null,
+            'packaging_inspected_at' => null,
+            'viajero_received' => false,
+            'viajero_received_at' => null,
+            'viajero_received_by' => null,
+            'surplus_received' => false,
+            'surplus_received_at' => null,
+            'surplus_received_by' => null,
+            'surplus_delivered' => false,
+            'surplus_delivered_at' => null,
+            'surplus_delivered_by' => null,
+        ]);
+
+        // 4. If crimp part, reset kit statuses
+        $isCrimp = (bool) ($lot->workOrder->purchaseOrder->part->is_crimp ?? false);
+        if ($isCrimp) {
+            $lot->kits()->update(['status' => Kit::STATUS_PREPARING]);
+        }
+
+        session()->flash('message', 'Lote completado (ciclo ' . $newCycle . '). Se reinició con ' . number_format($missing) . ' piezas faltantes para reprocesar.');
+        $this->closeDecisionModal();
+        $this->dispatch('refresh-display');
     }
 
     /**
@@ -1240,14 +1316,12 @@ class ShippingListDisplay extends Component
             'closure_decision' => Lot::CLOSURE_CLOSE_AS_IS,
             'closure_decided_by' => auth()->id(),
             'closure_decided_at' => now(),
-            'status' => Lot::STATUS_COMPLETED,
-            'packaging_status' => 'approved',
         ]);
 
         if ($missing > 0) {
-            session()->flash('message', "Lote cerrado aceptando " . number_format($missing) . " piezas faltantes.");
+            session()->flash('message', "Lote cerrado aceptando " . number_format($missing) . " piezas faltantes. Pendiente: recepción de material.");
         } else {
-            session()->flash('message', 'Lote cerrado sin faltantes.');
+            session()->flash('message', 'Lote cerrado. Pendiente: confirmación de recepción de material.');
         }
 
         $this->openDecisionModal($lot->id);
@@ -1481,7 +1555,7 @@ class ShippingListDisplay extends Component
             ->selectRaw('COALESCE(SUM(good_pieces), 0) as total')
             ->value('total');
         $this->prodAlreadyWeighed = (int) $alreadyWeighed;
-        $this->prodRemainingPieces = max(0, $lot->quantity - $this->prodAlreadyWeighed);
+        $this->prodRemainingPieces = $lot->quantity - $this->prodAlreadyWeighed;
 
         $this->prodWeighedPieces = 0;
         $this->prodWeighedAt = now()->format('Y-m-d\TH:i');
@@ -1519,11 +1593,6 @@ class ShippingListDisplay extends Component
 
         if (!$this->selectedLotForProduction) {
             session()->flash('error', 'Lote no encontrado.');
-            return;
-        }
-
-        if ($this->prodWeighedPieces > $this->prodRemainingPieces) {
-            $this->addError('prodWeighedPieces', 'Las piezas pesadas (' . number_format($this->prodWeighedPieces) . ') sobrepasan la cantidad pendiente (' . number_format($this->prodRemainingPieces) . ').');
             return;
         }
 
@@ -1814,11 +1883,6 @@ class ShippingListDisplay extends Component
 
         if (!$this->selectedLotForProdKit) {
             session()->flash('error', 'Lote no encontrado.');
-            return;
-        }
-
-        if ($this->prodKitWeighedPieces > $this->prodKitRemainingPieces && $this->prodKitRemainingPieces > 0) {
-            $this->addError('prodKitWeighedPieces', 'Las piezas (' . number_format($this->prodKitWeighedPieces) . ') sobrepasan la cantidad pendiente del kit (' . number_format($this->prodKitRemainingPieces) . ').');
             return;
         }
 

@@ -127,11 +127,21 @@
                                     Horas Req.</th>
                                 <th
                                     class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                                    Lote/Viajero</th>
+                                    Lotes</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                    Kits</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             @foreach ($workOrderItems as $index => $item)
+                                @php
+                                    $isCrimp = $item['is_crimp'] ?? false;
+                                    $lots = $lotNumbers[$index] ?? [];
+                                    $lotCount = is_array($lots) ? count($lots) : 0;
+                                    $kits = $kitNumbers[$index] ?? [];
+                                    $kitCount = is_array($kits) ? count($kits) : 0;
+                                @endphp
                                 <tr>
                                     <td class="px-4 py-3 text-gray-500 dark:text-gray-400">{{ $index + 1 }}</td>
                                     <td class="px-4 py-3 font-medium text-blue-600 dark:text-blue-400">
@@ -139,30 +149,28 @@
                                     <td class="px-4 py-3 font-medium text-blue-600 dark:text-blue-400">
                                         {{ $item['po_number'] ?? '-' }}</td>
                                     <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                                        {{ $item['part_number'] }}</td>
+                                        {{ $item['part_number'] }}
+                                        @if ($isCrimp)
+                                            <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">CRIMP</span>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
                                         {{ Str::limit($item['part_description'] ?? '', 30) }}</td>
                                     <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">
                                         {{ number_format($item['quantity']) }}</td>
                                     <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
                                         {{ number_format($item['required_hours'], 2) }}</td>
+                                    {{-- Lotes column --}}
                                     <td class="px-4 py-3">
                                         <div class="flex items-center gap-2">
-                                            @php
-                                                $lots = $lotNumbers[$index] ?? [];
-                                                $lotCount = is_array($lots) ? count($lots) : 0;
-                                            @endphp
-
                                             @if ($lotCount > 0)
                                                 <div class="flex flex-wrap gap-1 flex-1">
                                                     @foreach ($lots as $lot)
                                                         @if (is_array($lot) && !empty($lot['number']))
-                                                            <span
-                                                                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                                                                 {{ $lot['number'] }}
                                                                 @if (!empty($lot['quantity']))
-                                                                    <span
-                                                                        class="ml-1 text-blue-600 dark:text-blue-300">({{ number_format($lot['quantity']) }})</span>
+                                                                    <span class="ml-1 text-blue-600 dark:text-blue-300">({{ number_format($lot['quantity']) }})</span>
                                                                 @endif
                                                             </span>
                                                         @endif
@@ -171,17 +179,46 @@
                                             @else
                                                 <span class="text-gray-400 text-sm flex-1">Sin lotes</span>
                                             @endif
-
                                             <button wire:click="openLotModal({{ $index }})" type="button"
                                                 class="inline-flex items-center justify-center p-1.5 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
                                                 title="Gestionar lotes">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                                 </svg>
                                             </button>
                                         </div>
+                                    </td>
+                                    {{-- Kits column (only for crimp) --}}
+                                    <td class="px-4 py-3">
+                                        @if ($isCrimp)
+                                            <div class="flex items-center gap-2">
+                                                @if ($kitCount > 0)
+                                                    <div class="flex flex-wrap gap-1 flex-1">
+                                                        @foreach ($kits as $kit)
+                                                            @if (is_array($kit) && !empty($kit['number']))
+                                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                                                    {{ $kit['number'] }}
+                                                                    @if (!empty($kit['quantity']))
+                                                                        <span class="ml-1 text-purple-600 dark:text-purple-300">({{ number_format($kit['quantity']) }})</span>
+                                                                    @endif
+                                                                </span>
+                                                            @endif
+                                                        @endforeach
+                                                    </div>
+                                                @else
+                                                    <span class="text-gray-400 text-sm flex-1">Sin kits</span>
+                                                @endif
+                                                <button wire:click="openKitModal({{ $index }})" type="button"
+                                                    class="inline-flex items-center justify-center p-1.5 rounded-md text-gray-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
+                                                    title="Gestionar kits">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        @else
+                                            <span class="text-gray-400 text-xs">N/A</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -192,7 +229,7 @@
                                     class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">Total:</td>
                                 <td class="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">
                                     {{ number_format($totalRequiredHours, 2) }} hrs</td>
-                                <td></td>
+                                <td colspan="2"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -329,6 +366,113 @@
                         </button>
                         <button wire:click="closeLotModal" type="button"
                             class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal para Agregar Múltiples Kits (crimp parts) --}}
+    @if ($showKitModal && $currentKitIndex !== null)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="kit-modal-title" role="dialog"
+            aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                {{-- Background overlay --}}
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closeKitModal">
+                </div>
+
+                {{-- Modal panel --}}
+                <div
+                    class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg border-2 border-purple-200 dark:border-purple-700 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        {{-- Header --}}
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 dark:text-white" id="kit-modal-title">
+                                    Gestionar Kits
+                                    <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">CRIMP</span>
+                                </h3>
+                                @if (isset($workOrderItems[$currentKitIndex]))
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        PO:
+                                        <strong>{{ $workOrderItems[$currentKitIndex]['po_number'] ?? 'N/A' }}</strong>
+                                        |
+                                        Parte: <strong>{{ $workOrderItems[$currentKitIndex]['part_number'] }}</strong>
+                                    </p>
+                                @endif
+                            </div>
+                            <button wire:click="closeKitModal" class="text-gray-400 hover:text-gray-500">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {{-- Kits List --}}
+                        <div class="space-y-3 max-h-80 overflow-y-auto">
+                            @foreach ($tempKits as $kitIndex => $kit)
+                                <div class="flex items-start gap-2">
+                                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400 w-8 pt-2">
+                                        {{ $kitIndex + 1 }}.
+                                    </span>
+                                    <div class="flex-1 space-y-2">
+                                        <div>
+                                            <label
+                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                No. Kit
+                                            </label>
+                                            <input type="text" wire:model="tempKits.{{ $kitIndex }}.number"
+                                                placeholder="Ej: KIT-001"
+                                                class="w-full rounded-md p-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500" />
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Cantidad
+                                            </label>
+                                            <input type="number" wire:model="tempKits.{{ $kitIndex }}.quantity"
+                                                placeholder="Ej: 500" min="1"
+                                                class="w-full rounded-md p-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500" />
+                                        </div>
+                                    </div>
+                                    @if (count($tempKits) > 1)
+                                        <button wire:click="removeKitInput({{ $kitIndex }})" type="button"
+                                            class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition mt-6"
+                                            title="Eliminar kit">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                </path>
+                                            </svg>
+                                        </button>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+
+                        {{-- Add More Button --}}
+                        <button wire:click="addKitInput" type="button"
+                            class="mt-4 w-full inline-flex items-center justify-center px-4 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-purple-500 hover:text-purple-500 transition">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Agregar otro kit
+                        </button>
+                    </div>
+
+                    {{-- Footer --}}
+                    <div class="bg-gray-50 dark:bg-gray-900 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                        <button wire:click="saveKits" type="button"
+                            class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            Guardar Kits
+                        </button>
+                        <button wire:click="closeKitModal" type="button"
+                            class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:mt-0 sm:w-auto sm:text-sm">
                             Cancelar
                         </button>
                     </div>

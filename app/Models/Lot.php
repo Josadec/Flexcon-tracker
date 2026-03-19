@@ -53,9 +53,6 @@ class Lot extends Model
         'surplus_delivered',
         'surplus_delivered_at',
         'surplus_delivered_by',
-        'returned_to_packaging_at',
-        'returned_to_packaging_by',
-        'returned_to_packaging_reason',
     ];
 
     protected $casts = [
@@ -75,7 +72,6 @@ class Lot extends Model
         'surplus_received_at' => 'datetime',
         'surplus_delivered' => 'boolean',
         'surplus_delivered_at' => 'datetime',
-        'returned_to_packaging_at' => 'datetime',
     ];
 
     /**
@@ -716,6 +712,14 @@ class Lot extends Model
     public function packagingRecords(): HasMany
     {
         return $this->hasMany(PackagingRecord::class);
+    }
+
+    /**
+     * Get the completion logs for this lot.
+     */
+    public function completionLogs(): HasMany
+    {
+        return $this->hasMany(LotCompletionLog::class);
     }
 
     /**

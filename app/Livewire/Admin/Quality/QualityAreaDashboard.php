@@ -9,9 +9,11 @@ use App\Models\WorkOrder;
 use App\Models\PurchaseOrder;
 use App\Models\SentList;
 use Livewire\Component;
+use App\Traits\ComputesAreaStats;
 
 class QualityAreaDashboard extends Component
 {
+    use ComputesAreaStats;
     public function render()
     {
         // ── WO metrics ──
@@ -56,6 +58,7 @@ class QualityAreaDashboard extends Component
             ->get();
 
         return view('livewire.admin.quality.quality-area-dashboard', [
+            'areaStats' => $this->computeAreaStats(),
             'pendingSentLists'  => $pendingSentLists,
             'totalWOs' => $totalWOs,
             'activeWOs' => $activeWOs,

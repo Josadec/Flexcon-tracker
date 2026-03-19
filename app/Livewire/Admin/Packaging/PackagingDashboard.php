@@ -8,10 +8,12 @@ use App\Models\Lot;
 use App\Models\PackagingRecord;
 use App\Models\WorkOrder;
 use App\Models\SentList;
+use App\Traits\ComputesAreaStats;
 
 #[Layout('components.layouts.app')]
 class PackagingDashboard extends Component
 {
+    use ComputesAreaStats;
     public function render()
     {
         // Lots with packaging records
@@ -68,6 +70,7 @@ class PackagingDashboard extends Component
             ->get();
 
         return view('livewire.admin.packaging.packaging-dashboard', [
+            'areaStats' => $this->computeAreaStats(),
             'pendingSentLists'  => $pendingSentLists,
             'lotsWithPackaging' => $lotsWithPackaging,
             'lotsPendingPackaging' => $lotsPendingPackaging,
