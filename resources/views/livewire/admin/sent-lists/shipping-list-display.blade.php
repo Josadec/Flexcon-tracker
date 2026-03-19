@@ -287,7 +287,6 @@
                                                     $lotKit = $lot->kits->sortByDesc('created_at')->first();
                                                     $lotKitStatus = $lotKit?->status ?? 'none';
                                                     $lotKitColor = match ($lotKitStatus) {
-                                                        'in_process' => 'bg-indigo-500',
                                                         'preparing' => 'bg-yellow-400',
                                                         'ready' => 'bg-indigo-500',
                                                         'released' => 'bg-green-500',
@@ -1133,12 +1132,12 @@
                                                         @php
                                                             $inspKitColor = match($inspKit->status) {
                                                                 'released' => 'bg-green-500',
-                                                                'in_process' => 'bg-indigo-500',
+                                                                'in_assembly' => 'bg-orange-500',
                                                                 default => 'bg-yellow-500',
                                                             };
                                                             $inspKitLabel = match($inspKit->status) {
                                                                 'released' => 'Liberado',
-                                                                'in_process' => 'En Proceso',
+                                                                'in_assembly' => 'En Ensamble',
                                                                 default => 'Preparando',
                                                             };
                                                         @endphp
@@ -1334,12 +1333,12 @@
                                                     @php
                                                         $kitStatusColor = match($kit->status) {
                                                             'released' => 'bg-green-500',
-                                                            'in_process' => 'bg-indigo-500',
+                                                            'in_assembly' => 'bg-orange-500',
                                                             default => 'bg-yellow-500',
                                                         };
                                                         $kitStatusLabel = match($kit->status) {
                                                             'released' => 'Liberado',
-                                                            'in_process' => 'En Proceso',
+                                                            'in_assembly' => 'En Ensamble',
                                                             default => 'Preparando',
                                                         };
                                                     @endphp
@@ -1405,16 +1404,16 @@
                                         </span>
                                     </button>
 
-                                    {{-- En Proceso --}}
+                                    {{-- En Ensamble --}}
                                     <button type="button"
-                                        x-on:click="kitSt = 'in_process'"
-                                        :class="kitSt === 'in_process'
-                                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700 shadow-sm'
-                                            : 'border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10'"
+                                        x-on:click="kitSt = 'in_assembly'"
+                                        :class="kitSt === 'in_assembly'
+                                            ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/30 ring-2 ring-orange-300 dark:ring-orange-700 shadow-sm'
+                                            : 'border-gray-200 dark:border-gray-600 hover:border-orange-300 dark:hover:border-orange-600 hover:bg-orange-50/50 dark:hover:bg-orange-900/10'"
                                         class="flex flex-col items-center p-4 border-2 rounded-lg transition-all duration-200 cursor-pointer">
                                         <div
-                                            :class="kitSt === 'in_process' ? 'ring-2 ring-indigo-300 ring-offset-2 dark:ring-offset-gray-800' : ''"
-                                            class="w-8 h-8 rounded-full bg-indigo-500 mb-2 flex items-center justify-center">
+                                            :class="kitSt === 'in_assembly' ? 'ring-2 ring-orange-300 ring-offset-2 dark:ring-offset-gray-800' : ''"
+                                            class="w-8 h-8 rounded-full bg-orange-500 mb-2 flex items-center justify-center">
                                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -1422,9 +1421,9 @@
                                             </svg>
                                         </div>
                                         <span
-                                            :class="kitSt === 'in_process' ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-300'"
+                                            :class="kitSt === 'in_assembly' ? 'text-orange-700 dark:text-orange-300' : 'text-gray-700 dark:text-gray-300'"
                                             class="text-sm font-medium">
-                                            En Proceso
+                                            En Ensamble
                                         </span>
                                     </button>
                                 </div>
@@ -1434,11 +1433,11 @@
                                     :class="{
                                         'bg-gray-50 dark:bg-gray-700/20 text-gray-500 dark:text-gray-400': kitSt === 'preparing',
                                         'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300': kitSt === 'released',
-                                        'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300': kitSt === 'in_process'
+                                        'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300': kitSt === 'in_assembly'
                                     }">
                                     <span x-show="kitSt === 'preparing'">Kit pendiente de revision</span>
                                     <span x-show="kitSt === 'released'">Kit aprobado - Listo para produccion</span>
-                                    <span x-show="kitSt === 'in_process'">Kit en proceso - En preparacion</span>
+                                    <span x-show="kitSt === 'in_assembly'">Kit en ensamble - Material en uso</span>
                                 </div>
                             </div>
                         @endif
@@ -1524,15 +1523,14 @@
                                     @php
                                         $mkStatusColor = match ($kit['status'] ?? 'preparing') {
                                             'released' => 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20',
-                                            'in_process' => 'border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20',
+                                            'in_assembly' => 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20',
                                             'ready' => 'border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20',
                                             default => 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30',
                                         };
                                         $mkStatusLabel = match ($kit['status'] ?? 'preparing') {
                                             'released' => 'Aprobado',
-                                            'in_process' => 'En Proceso',
+                                            'in_assembly' => 'En Ensamble',
                                             'ready' => 'Listo',
-                                            'in_assembly' => 'En ensamble',
                                             default => 'En preparación',
                                         };
                                     @endphp
@@ -1548,7 +1546,7 @@
                                                 <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full
                                                     {{ match ($kit['status'] ?? 'preparing') {
                                                         'released' => 'bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-300',
-                                                        'in_process' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-800/30 dark:text-indigo-300',
+                                                        'in_assembly' => 'bg-orange-100 text-orange-800 dark:bg-orange-800/30 dark:text-orange-300',
                                                         default => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
                                                     } }}">
                                                     {{ $mkStatusLabel }}
@@ -1564,10 +1562,10 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                                 </svg>
                                             </button>
-                                            <button wire:click="updateKitStatus({{ $kit['id'] }}, 'in_process')"
+                                            <button wire:click="updateKitStatus({{ $kit['id'] }}, 'in_assembly')"
                                                 class="w-7 h-7 rounded-full flex items-center justify-center transition-all
-                                                    {{ ($kit['status'] ?? '') === 'in_process' ? 'bg-indigo-500 ring-2 ring-indigo-300 dark:ring-indigo-700' : 'bg-indigo-400/50 hover:bg-indigo-500' }}"
-                                                title="En Proceso">
+                                                    {{ ($kit['status'] ?? '') === 'in_assembly' ? 'bg-orange-500 ring-2 ring-orange-300 dark:ring-orange-700' : 'bg-orange-400/50 hover:bg-orange-500' }}"
+                                                title="En Ensamble">
                                                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                 </svg>
