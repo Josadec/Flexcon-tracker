@@ -12,7 +12,7 @@
             </svg>
             Nuevo Usuario
         </a>
-    </div>http://flexcon-tracker.la/admin/sent-lists/displayhttp://flexcon-tracker.la/admin/sent-lists/display
+    </div>
 
     <!-- Stats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">

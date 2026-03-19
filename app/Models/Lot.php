@@ -53,6 +53,7 @@ class Lot extends Model
         'surplus_delivered',
         'surplus_delivered_at',
         'surplus_delivered_by',
+        'completion_count',
     ];
 
     protected $casts = [
@@ -72,6 +73,7 @@ class Lot extends Model
         'surplus_received_at' => 'datetime',
         'surplus_delivered' => 'boolean',
         'surplus_delivered_at' => 'datetime',
+        'completion_count' => 'integer',
     ];
 
     /**
