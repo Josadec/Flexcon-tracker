@@ -75,7 +75,6 @@
                                 $badgeClasses = match($invoice->status) {
                                     'draft'     => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
                                     'issued'    => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-                                    'paid'      => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
                                     'cancelled' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
                                     default     => 'bg-gray-100 text-gray-800',
                                 };
@@ -133,6 +132,18 @@
                         </svg>
                         Volver a la lista
                     </a>
+
+                    {{-- Separador visual: el boton Eliminar es destructivo, se separa del resto --}}
+                    @if ($invoice->isDraft() || $invoice->isCancelled())
+                        <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 self-center mx-1"></div>
+                        <button wire:click="confirmDelete"
+                                class="inline-flex items-center px-4 py-2 bg-white hover:bg-red-50 text-red-600 border border-red-300 hover:border-red-400 text-sm font-medium rounded-lg shadow-sm transition-colors duration-200 dark:bg-gray-800 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/20">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            Eliminar
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -186,50 +197,8 @@
                         @endif
                     </div>
 
-                    {{-- LOT NO. con editor inline Alpine.js --}}
-                    <div>
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">LOT NO.</p>
-                        @if (! $editingLotNo)
-                            <div class="flex items-center gap-2 mt-1">
-                                <p class="text-base font-mono text-gray-900 dark:text-white">
-                                    {{ $invoice->lot_no ?? '-' }}
-                                </p>
-                                @if ($invoice->status !== 'paid' && $invoice->status !== 'cancelled')
-                                    <button wire:click="startEditingLotNo"
-                                            title="Editar LOT NO."
-                                            class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </button>
-                                @endif
-                            </div>
-                        @else
-                            <div class="mt-1 flex items-center gap-2">
-                                <input
-                                    wire:model="lotNoValue"
-                                    type="text"
-                                    maxlength="20"
-                                    placeholder="ej: 030926x01"
-                                    class="border border-indigo-400 rounded-lg px-2 py-1 text-sm font-mono w-36 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white dark:border-indigo-500"
-                                    autofocus
-                                >
-                                <button wire:click="updateLotNo"
-                                        class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors">
-                                    Guardar
-                                </button>
-                                <button wire:click="cancelEditingLotNo"
-                                        class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-medium rounded-lg transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
-                                    Cancelar
-                                </button>
-                            </div>
-                            @error('lotNoValue')
-                                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                            @enderror
-                        @endif
-                    </div>
 
-                    @if ($invoice->isIssued() || $invoice->isPaid())
+                    @if ($invoice->isIssued())
                         <div>
                             <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Emitido por</p>
                             <p class="text-base text-gray-900 dark:text-white mt-1">{{ $invoice->issuer?->name ?? '-' }}</p>
@@ -269,72 +238,56 @@
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-800">
                                 <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">LOT NO.</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">W/O</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">P.O No.</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Part No.</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Description</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Item No.</th>
-                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">QTY</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">LOT NO.</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">P.O No.</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">W/O</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Quantity</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Unit Cost</th>
-                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
                                 @foreach ($invoice->productItems as $item)
                                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-100
                                         {{ (float) $item->unit_cost === 0.0 ? 'bg-amber-50 dark:bg-amber-900/10' : '' }}">
-                                        <td class="px-4 py-3 text-sm font-mono text-gray-700 dark:text-gray-300">
-                                            {{ $item->lot_number ?? '-' }}
-                                        </td>
-                                        <td class="px-4 py-3 text-sm font-mono text-gray-900 dark:text-white">
-                                            {{ $item->wo_number ?? '-' }}
-                                        </td>
-                                        <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                            {{ $item->po_number ?? '-' }}
-                                        </td>
                                         <td class="px-4 py-3 text-sm text-gray-900 dark:text-white max-w-xs truncate">
                                             {{ $item->description ?? '-' }}
                                         </td>
                                         <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                                             {{ $item->item_number ?? '-' }}
                                         </td>
-                                        <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
-                                            {{ number_format($item->quantity) }}
-                                        </td>
-                                        {{-- Unit Cost editable en draft --}}
-                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">
-                                            @if ($invoice->canBeModified() && $editingUnitCostId === $item->id)
-                                                <div class="flex items-center justify-end gap-1">
+                                        {{-- LOT NO. editable por item en draft --}}
+                                        <td class="px-4 py-3 text-sm font-mono text-gray-700 dark:text-gray-300">
+                                            @if ($invoice->isDraft() && $editingLotItemId === $item->id)
+                                                <div class="flex items-center gap-1">
                                                     <input
-                                                        wire:model="editingUnitCostValue"
-                                                        type="number"
-                                                        step="0.0001"
-                                                        min="0"
-                                                        class="border border-indigo-400 rounded px-2 py-0.5 text-sm w-28 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                                                        wire:model="editingLotItemValue"
+                                                        type="text"
+                                                        class="border border-indigo-400 rounded px-2 py-0.5 text-sm w-28 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white font-mono"
                                                         autofocus
-                                                        wire:keydown.enter="updateUnitCost"
-                                                        wire:keydown.escape="cancelEditingUnitCost"
+                                                        wire:keydown.enter="saveLotItem"
+                                                        wire:keydown.escape="cancelEditingLotItem"
                                                     >
-                                                    <button wire:click="updateUnitCost" class="text-green-600 hover:text-green-800 transition-colors" title="Guardar">
+                                                    <button wire:click="saveLotItem" class="text-green-600 hover:text-green-800 transition-colors" title="Guardar">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                                         </svg>
                                                     </button>
-                                                    <button wire:click="cancelEditingUnitCost" class="text-gray-400 hover:text-gray-600 transition-colors" title="Cancelar">
+                                                    <button wire:click="cancelEditingLotItem" class="text-gray-400 hover:text-gray-600 transition-colors" title="Cancelar">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                                         </svg>
                                                     </button>
                                                 </div>
                                             @else
-                                                <div class="flex items-center justify-end gap-1 group">
-                                                    <span class="{{ (float) $item->unit_cost === 0.0 ? 'text-amber-600 dark:text-amber-400' : '' }}">
-                                                        ${{ $item->formattedUnitCost }}
-                                                    </span>
-                                                    @if ($invoice->canBeModified())
-                                                        <button wire:click="startEditingUnitCost({{ $item->id }})"
-                                                                class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-indigo-600 transition-all"
-                                                                title="Editar precio">
+                                                <div class="flex items-center gap-1 group">
+                                                    <span>{{ $item->lot_number ?? '-' }}</span>
+                                                    @if ($invoice->isDraft())
+                                                        <button wire:click="startEditingLotItem({{ $item->id }})"
+                                                                class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-indigo-600 transition-all cursor-pointer"
+                                                                title="Editar LOT NO.">
                                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                             </svg>
@@ -342,6 +295,21 @@
                                                     @endif
                                                 </div>
                                             @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                            {{ $item->po_number ?? '-' }}
+                                        </td>
+                                        <td class="px-4 py-3 text-sm font-mono text-gray-900 dark:text-white">
+                                            {{ $item->wo_number ?? '-' }}
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
+                                            {{ number_format($item->quantity) }}
+                                        </td>
+                                        {{-- Unit Cost (solo lectura) --}}
+                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">
+                                            <span class="{{ (float) $item->unit_cost === 0.0 ? 'text-amber-600 dark:text-amber-400' : '' }}">
+                                                ${{ $item->formattedUnitCost }}
+                                            </span>
                                         </td>
                                         <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
                                             ${{ $item->formattedTotalCost }}
@@ -360,10 +328,10 @@
         </div>
 
         <!-- Sección de cargos fijos -->
-        @if ($invoice->chargeItems->count() > 0)
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
-                <div class="p-6">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Cargos Adicionales</h2>
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+            <div class="p-6">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Cargos Adicionales</h2>
+                @if ($invoice->chargeItems->count() > 0)
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-800">
@@ -422,9 +390,13 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
+                @else
+                    <div class="text-center py-6 bg-gray-50 dark:bg-gray-900 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">No hay cargos adicionales registrados para este Invoice.</p>
+                    </div>
+                @endif
             </div>
-        @endif
+        </div>
 
         <!-- Panel de totales -->
         <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
@@ -558,6 +530,60 @@
                         <button wire:click="cancelCancelation" type="button"
                                 class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-600 dark:text-white dark:border-gray-600 dark:hover:bg-gray-500">
                             Volver
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal confirmación: Eliminar Invoice -->
+    @if ($confirmingDelete)
+        <div class="fixed z-10 inset-0 overflow-y-auto">
+            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                    <div class="absolute inset-0 bg-gray-900 opacity-75"></div>
+                </div>
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full dark:bg-gray-800">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 dark:bg-gray-800">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/40 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+                                    Eliminar Invoice#{{ $invoice->invoice_number }}
+                                </h3>
+                                <div class="mt-2 space-y-2">
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                        Esta accion <strong class="text-gray-700 dark:text-gray-200">no se puede deshacer</strong>.
+                                        El Invoice y todos sus items seran eliminados permanentemente.
+                                    </p>
+                                    @if ($invoice->packingSlip)
+                                        <p class="text-sm text-blue-600 dark:text-blue-400">
+                                            El Packing Slip <span class="font-mono font-semibold">{{ $invoice->packingSlip->ps_number }}</span>
+                                            quedara disponible para generar un nuevo Invoice.
+                                        </p>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse dark:bg-gray-700">
+                        <button wire:click="deleteInvoice" type="button"
+                                wire:loading.attr="disabled"
+                                wire:target="deleteInvoice"
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-700 text-base font-medium text-white hover:bg-red-800 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed sm:ml-3 sm:w-auto sm:text-sm">
+                            <span wire:loading.remove wire:target="deleteInvoice">Si, eliminar</span>
+                            <span wire:loading wire:target="deleteInvoice">Eliminando...</span>
+                        </button>
+                        <button wire:click="cancelDelete" type="button"
+                                wire:loading.attr="disabled"
+                                wire:target="deleteInvoice"
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none disabled:opacity-60 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-600 dark:text-white dark:border-gray-600 dark:hover:bg-gray-500">
+                            Cancelar
                         </button>
                     </div>
                 </div>

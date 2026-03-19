@@ -435,26 +435,22 @@
                 </div>
                 <div class="p-6">
                     @if (! $packingSlip->hasInvoice())
-                        {{-- Sin Invoice: botón de creación --}}
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        {{-- Sin Invoice: indicador informativo — la creación corresponde al depto. de Ordenes --}}
+                        <div class="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
                             <div>
-                                <p class="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                                    Este Packing Slip aún no tiene un Invoice generado.
+                                <p class="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                                    Listo para Invoice
                                 </p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Al crear el Invoice se calcularán los precios por tier y los cargos fijos automáticamente.
+                                <p class="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                                    Este Packing Slip fue despachado y está disponible para que el departamento de Ordenes genere el Invoice correspondiente.
                                 </p>
                             </div>
-                            <button wire:click="confirmCreateInvoice"
-                                    class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200 whitespace-nowrap">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                </svg>
-                                Crear Invoice
-                            </button>
                         </div>
                     @else
-                        {{-- Con Invoice: panel de info y enlace --}}
+                        {{-- Con Invoice: panel de info y enlace (solo lectura, sin botón de crear) --}}
                         @php $inv = $packingSlip->invoice; @endphp
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
@@ -501,50 +497,6 @@
                     @endif
                 </div>
             </div>
-
-            {{-- Modal confirmación: Crear Invoice --}}
-            @if ($showCreateInvoiceConfirm)
-                <div class="fixed z-10 inset-0 overflow-y-auto">
-                    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                        <div class="fixed inset-0 transition-opacity" aria-hidden="true">
-                            <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
-                        </div>
-                        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full dark:bg-gray-800">
-                            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 dark:bg-gray-800">
-                                <div class="sm:flex sm:items-start">
-                                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
-                                        <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                                        <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                                            Crear Invoice
-                                        </h3>
-                                        <div class="mt-2">
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                                Se generará un Invoice en estado <strong>Borrador</strong> a partir del Packing Slip
-                                                <strong>{{ $packingSlip->ps_number }}</strong>. Se calcularán los precios por tier
-                                                y se agregarán los cargos fijos automáticamente.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse dark:bg-gray-700">
-                                <button wire:click="createInvoice" type="button"
-                                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
-                                    Crear Invoice
-                                </button>
-                                <button wire:click="cancelCreateInvoice" type="button"
-                                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-600 dark:text-white dark:border-gray-600 dark:hover:bg-gray-500">
-                                    Cancelar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @endif
         @endif
 
         <!-- Metadatos -->

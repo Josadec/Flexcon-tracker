@@ -33,147 +33,221 @@
             background: #ffffff;
         }
 
-        /* Banner azul marino principal */
+        /* ============================================================
+           BANNER PRINCIPAL
+           Layout: logo-left | center (FLEXCON + INVOICE) | right (Clave/Rev table)
+           ============================================================ */
         .banner {
             background-color: #1e3a5f;
             color: #ffffff;
-            padding: 6px 10px;
+            padding: 10px 10px;
             display: table;
             width: 100%;
+            table-layout: fixed;
         }
 
         .banner-left {
             display: table-cell;
             vertical-align: middle;
-            width: 120px;
+            width: 140px;
         }
 
         .banner-left img {
-            max-height: 45px;
-            max-width: 110px;
+            max-height: 80px;
+            max-width: 130px;
         }
 
         .banner-center {
             display: table-cell;
             vertical-align: middle;
             text-align: center;
+            padding: 2px 0;
         }
 
         .banner-center .company-name {
-            font-size: 13pt;
+            font-size: 32pt;
             font-weight: bold;
-            letter-spacing: 1px;
-            line-height: 1.2;
+            letter-spacing: 4px;
+            line-height: 1.0;
+            color: #ffffff;
         }
 
         .banner-center .doc-title {
-            font-size: 14pt;
+            font-size: 16pt;
             font-weight: bold;
-            letter-spacing: 3px;
-            line-height: 1.2;
+            letter-spacing: 6px;
+            line-height: 1.1;
+            color: #c8d8ea;
         }
 
+        /* Tabla Clave/Revision en el banner derecho */
         .banner-right {
             display: table-cell;
             vertical-align: middle;
             text-align: right;
-            white-space: nowrap;
-            font-size: 8pt;
-            width: 130px;
+            width: 110px;
         }
 
-        .banner-right .doc-ref {
+        .clave-table {
+            display: table;
+            border-collapse: collapse;
+            margin-left: auto;
+            border: 2px solid #ffffff;
+        }
+
+        .clave-row {
+            display: table-row;
+        }
+
+        .clave-label {
+            display: table-cell;
+            background-color: #2d5a8e;
+            color: #ffffff;
             font-size: 7.5pt;
-            line-height: 1.5;
+            font-weight: bold;
+            padding: 3px 6px;
+            border: 1px solid #ffffff;
+            white-space: nowrap;
+            vertical-align: middle;
         }
 
-        /* Barra de direccion */
+        .clave-value {
+            display: table-cell;
+            background-color: #ffffff;
+            color: #1a1a1a;
+            font-size: 7.5pt;
+            font-weight: bold;
+            padding: 3px 8px;
+            border: 1px solid #cccccc;
+            white-space: nowrap;
+            vertical-align: middle;
+            text-align: center;
+            min-width: 40px;
+        }
+
+        /* ============================================================
+           BARRA DE DIRECCION
+           ============================================================ */
         .address-bar {
-            background-color: #f0f4f8;
+            background-color: #ffffff;
             border-bottom: 1px solid #c0ccd8;
             text-align: center;
             padding: 3px 10px;
-            font-size: 7.5pt;
-            color: #2d3748;
+            font-size: 8pt;
+            color: #1a1a1a;
         }
 
-        /* Barra de contacto */
+        /* ============================================================
+           BARRA DE CONTACTO: PH# izquierda | email derecha
+           ============================================================ */
         .contact-bar {
             background-color: #ffffff;
             border-bottom: 1px solid #c0ccd8;
             padding: 3px 10px;
             display: table;
             width: 100%;
+            table-layout: fixed;
         }
 
-        .contact-bar .contact-cell {
+        .contact-left {
             display: table-cell;
             vertical-align: middle;
-            font-size: 7.5pt;
-            padding-right: 20px;
-            white-space: nowrap;
-        }
-
-        .contact-bar .contact-cell strong {
-            font-weight: bold;
-        }
-
-        /* Bloque Sold To / Shipped To / Referencias */
-        .client-block {
-            padding: 5px 10px 4px 10px;
-            border-bottom: 1px solid #c0ccd8;
-            display: table;
-            width: 100%;
-        }
-
-        .client-col {
-            display: table-cell;
-            vertical-align: top;
-            width: 33%;
-            font-size: 7.5pt;
-            line-height: 1.5;
-        }
-
-        .client-col .client-label {
-            font-weight: bold;
             font-size: 8pt;
-            color: #1e3a5f;
-            text-transform: uppercase;
-            border-bottom: 1px solid #1e3a5f;
-            margin-bottom: 2px;
-            padding-bottom: 1px;
+            color: #1a1a1a;
         }
 
-        /* Barra de Invoice: numero en rojo + fecha */
-        .invoice-id-bar {
-            background-color: #ffffff;
-            border-bottom: 2px solid #1e3a5f;
-            padding: 4px 10px;
-            display: table;
-            width: 100%;
-        }
-
-        .invoice-id-bar .inv-number {
-            display: table-cell;
-            vertical-align: middle;
-            font-size: 11pt;
-            font-weight: bold;
-            color: #cc0000;
-            letter-spacing: 1px;
-        }
-
-        .invoice-id-bar .inv-date {
+        .contact-right {
             display: table-cell;
             vertical-align: middle;
             text-align: right;
             font-size: 8pt;
             font-weight: bold;
             color: #1a1a1a;
+        }
+
+        /* ============================================================
+           BLOQUE SOLD TO / SHIPPED TO / REFERENCIAS
+           3 columnas: sold-to | shipped-to | packing slip + FOB
+           ============================================================ */
+        .client-block {
+            padding: 5px 10px 5px 10px;
+            border-bottom: 1px solid #c0ccd8;
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .client-col {
+            display: table-cell;
+            vertical-align: top;
+            width: 33.33%;
+            font-size: 8pt;
+            line-height: 1.5;
+            color: #1a1a1a;
+        }
+
+        .client-col .client-label {
+            font-size: 8pt;
+            color: #1a1a1a;
+            margin-bottom: 1px;
+        }
+
+        /* Columna derecha: packing slip en negrita + FOB */
+        .client-col-right {
+            display: table-cell;
+            vertical-align: top;
+            width: 33.33%;
+            font-size: 8pt;
+            line-height: 1.8;
+            color: #1a1a1a;
+            text-align: right;
+        }
+
+        .ps-number {
+            font-weight: bold;
+            font-size: 8.5pt;
+        }
+
+        .ps-hash {
+            color: #cc0000;
+            font-weight: bold;
+        }
+
+        /* ============================================================
+           BARRA INVOICE # y DATE
+           Invoice# en rojo a la izquierda | DATE en negro bold a la derecha
+           ============================================================ */
+        .invoice-id-bar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #cccccc;
+            padding: 5px 10px;
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .inv-number {
+            display: table-cell;
+            vertical-align: middle;
+            font-size: 14pt;
+            font-weight: bold;
+            color: #cc0000;
+            letter-spacing: 1px;
+        }
+
+        .inv-date {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: right;
+            font-size: 10pt;
+            font-weight: bold;
+            color: #1a1a1a;
             white-space: nowrap;
         }
 
         /* ============================================================
-           PAGINACION (numero de pagina fijo abajo)
+           PIE DE PAGINA FIJO
+           "N de M" a la izquierda | "FPL-12 Rev 01" a la derecha
            ============================================================ */
         #page-footer {
             position: fixed;
@@ -182,9 +256,10 @@
             right: 0;
             display: table;
             width: 100%;
-            font-size: 7.5pt;
-            color: #555555;
-            padding: 2px 10px;
+            table-layout: fixed;
+            font-size: 8pt;
+            color: #1a1a1a;
+            padding: 3px 10px;
             border-top: 1px solid #c0ccd8;
             background: #ffffff;
         }
@@ -199,8 +274,8 @@
             display: table-cell;
             vertical-align: middle;
             text-align: right;
-            font-size: 7.5pt;
-            color: #555555;
+            font-size: 8pt;
+            color: #1a1a1a;
         }
 
         #page-footer .page-number:after {
@@ -209,14 +284,13 @@
 
         /* ============================================================
            CONTENIDO PRINCIPAL
-           El margin-top debe compensar la altura del encabezado fijo.
-           Ajustar si el header cambia de altura.
-           Encabezado aproximado: banner(~58px) + address(~22px) +
-             contact(~20px) + client(~60px) + invoice-id(~26px) = ~186px
+           margin-top debe compensar la altura total del header fijo:
+             banner(~70px) + address(~22px) + contact(~22px)
+             + client(~62px) + invoice-id(~34px) = ~210px
            ============================================================ */
         #main-content {
-            margin-top: 192px;
-            margin-bottom: 22px;
+            margin-top: 255px;
+            margin-bottom: 24px;
             padding: 0 10px;
         }
 
@@ -228,99 +302,106 @@
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 7.5pt;
-            margin-top: 4px;
+            font-size: 8pt;
+            margin-top: 2px;
         }
 
+        /* Encabezado: fondo azul oscuro, texto blanco, bold */
         .items-table thead tr th {
             background-color: #1e3a5f;
             color: #ffffff;
             padding: 4px 5px;
-            text-align: left;
-            font-size: 7pt;
+            text-align: center;
+            font-size: 7.5pt;
             font-weight: bold;
             border: 1px solid #1e3a5f;
             white-space: nowrap;
         }
 
-        .items-table thead tr th.col-right {
+        .items-table thead tr th.th-left {
+            text-align: left;
+        }
+
+        .items-table thead tr th.th-right {
             text-align: right;
         }
 
-        /* Filas de producto */
+        /* Filas de producto: texto negro, borde gris claro */
         .items-table tbody tr.data-row td {
             padding: 3px 5px;
-            border: 1px solid #d1d9e0;
-            vertical-align: top;
+            border: 1px solid #cccccc;
+            vertical-align: middle;
             color: #1a1a1a;
+            text-align: center;
+            font-size: 8pt;
         }
 
-        .items-table tbody tr.data-row:nth-child(even) td {
-            background-color: #f7f9fb;
+        .items-table tbody tr.data-row td.td-left {
+            text-align: left;
         }
 
-        .items-table tbody tr.data-row td.col-right {
+        .items-table tbody tr.data-row td.td-right {
             text-align: right;
             white-space: nowrap;
         }
 
-        .items-table tbody tr.data-row td.col-qty {
-            text-align: right;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-
-        /* Filas de cargos fijos */
+        /* Filas de cargos fijos: descripcion centrada en primeras columnas */
         .items-table tbody tr.charge-row td {
             padding: 3px 5px;
-            border: 1px solid #d1d9e0;
+            border: 1px solid #cccccc;
             vertical-align: middle;
-            background-color: #fafbfc;
             color: #1a1a1a;
+            font-size: 8pt;
+            background-color: #ffffff;
         }
 
         .items-table tbody tr.charge-row td.charge-label {
-            font-style: italic;
-            color: #444444;
+            text-align: center;
+            color: #1a1a1a;
         }
 
-        .items-table tbody tr.charge-row td.col-right {
+        .items-table tbody tr.charge-row td.td-right {
             text-align: right;
             white-space: nowrap;
         }
 
-        /* Separador entre items de producto y cargos fijos */
+        /* Separador visual entre items de producto y cargos fijos */
         .items-table tbody tr.separator-row td {
             padding: 0;
-            height: 3px;
-            background-color: #c0ccd8;
+            height: 2px;
+            background-color: #cccccc;
             border: none;
         }
 
-        /* Fila Grand Total */
+        /* Fila Grand Total: fondo azul oscuro, texto blanco, bold grande */
         .items-table tbody tr.grand-total-row td {
-            padding: 4px 5px;
+            padding: 5px 5px;
             border: 1px solid #1e3a5f;
             background-color: #1e3a5f;
             color: #ffffff;
             font-weight: bold;
-            font-size: 8pt;
+            font-size: 9pt;
         }
 
-        .items-table tbody tr.grand-total-row td.total-label {
-            text-align: right;
-            letter-spacing: 1px;
+        .items-table tbody tr.grand-total-row td.total-empty {
+            background-color: #1e3a5f;
         }
 
         .items-table tbody tr.grand-total-row td.total-qty {
             text-align: right;
             white-space: nowrap;
+            font-size: 10pt;
+        }
+
+        .items-table tbody tr.grand-total-row td.total-spacer {
+            background-color: #1e3a5f;
         }
 
         .items-table tbody tr.grand-total-row td.total-amount {
             text-align: right;
             white-space: nowrap;
-            font-size: 8.5pt;
+            font-size: 10pt;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -331,22 +412,30 @@
          ================================================================ --}}
     <div id="page-header">
 
-        {{-- Banner azul marino --}}
+        {{-- Banner azul marino: logo | FLEXCON/INVOICE | Clave/Rev --}}
         <div class="banner">
             <div class="banner-left">
                 @if (file_exists($logoPath))
                     <img src="{{ $logoPath }}" alt="Flexcon Logo">
                 @else
-                    <span style="font-size:10pt; font-weight:bold; color:#ffffff;">FLEXCON</span>
+                    <span style="font-size:9pt; font-weight:bold; color:#ffffff;">FLEXCON</span>
                 @endif
             </div>
             <div class="banner-center">
-                <div class="company-name">{{ $issuer['name'] ?? 'FLEXCON' }}</div>
+                <div class="company-name">FLEXCON</div>
                 <div class="doc-title">INVOICE</div>
             </div>
             <div class="banner-right">
-                <div class="doc-ref">Clave: FPL-12</div>
-                <div class="doc-ref">Revision: 01</div>
+                <div class="clave-table">
+                    <div class="clave-row">
+                        <div class="clave-label">Clave:</div>
+                        <div class="clave-value">FPL-12</div>
+                    </div>
+                    <div class="clave-row">
+                        <div class="clave-label">Revisi&oacute;n:</div>
+                        <div class="clave-value">01</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -355,48 +444,50 @@
             330 Rocky Woods Lane &bull; Bigfork, Montana &bull; 59911
         </div>
 
-        {{-- Barra de contacto --}}
+        {{-- Barra de contacto: PH# izquierda | email derecha --}}
         <div class="contact-bar">
-            <div class="contact-cell">
-                <strong>{{ $issuer['phone'] ?? 'PH# 425-466-2184' }}</strong>
+            <div class="contact-left">
+                {{ $issuer['phone'] ?? 'PH# 425-466-2184' }}
             </div>
-            <div class="contact-cell">
+            <div class="contact-right">
                 {{ $issuer['email'] ?? 'frank@flexconinc.com' }}
             </div>
         </div>
 
-        {{-- Bloque Sold To / Shipped To / Referencia PS --}}
+        {{-- Bloque Sold To / Shipped To / Packing Slip + FOB --}}
         <div class="client-block">
             <div class="client-col">
-                <div class="client-label">Sold to</div>
+                <div class="client-label">Sold to:</div>
                 <div>{{ $invoice->sold_to_name }}</div>
                 @foreach (explode("\n", $invoice->sold_to_address) as $line)
-                    <div>{{ trim($line) }}</div>
+                    @if (trim($line) !== '')
+                        <div>{{ trim($line) }}</div>
+                    @endif
                 @endforeach
             </div>
             <div class="client-col">
-                <div class="client-label">Shipped to</div>
+                <div class="client-label">Shipped to:</div>
                 <div>{{ $invoice->shipped_to_name }}</div>
                 @foreach (explode("\n", $invoice->shipped_to_address) as $line)
-                    <div>{{ trim($line) }}</div>
+                    @if (trim($line) !== '')
+                        <div>{{ trim($line) }}</div>
+                    @endif
                 @endforeach
             </div>
-            <div class="client-col" style="text-align:right;">
+            <div class="client-col-right">
                 @if ($invoice->packingSlip)
-                    <div style="font-weight:bold; font-size:7.5pt;">
-                        Packing Slip #{{ $invoice->packingSlip->ps_number }}
-                    </div>
+                    <div class="ps-number">Packing Slip <span class="ps-hash">#{{ $invoice->packingSlip->ps_number }}</span></div>
                 @endif
-                <div style="margin-top:4px;">
-                    <strong>F.O.B:</strong> {{ $invoice->fob_location }}
-                </div>
+                <div>&nbsp;</div>
+                <div>&nbsp;</div>
+                <div><strong>F.O.B:</strong> {{ $invoice->fob_location }}</div>
             </div>
         </div>
 
-        {{-- Barra de identificacion del Invoice --}}
+        {{-- Barra de Invoice # y DATE --}}
         <div class="invoice-id-bar">
             <div class="inv-number">Invoice#{{ $invoice->invoice_number }}</div>
-            <div class="inv-date">DATE: {{ $invoice->invoice_date?->format('F-d-Y') ?? '-' }}</div>
+            <div class="inv-date">DATE : {{ $invoice->invoice_date?->format('F-d-Y') ?? '-' }}</div>
         </div>
 
     </div>{{-- /#page-header --}}
@@ -419,14 +510,14 @@
         <table class="items-table">
             <thead>
                 <tr>
-                    <th style="width:22%;">DESCRIPTION</th>
+                    <th class="th-left" style="width:22%;">DESCRIPTION</th>
                     <th style="width:10%;">Item No.</th>
                     <th style="width:9%;">LOT NO.</th>
-                    <th style="width:7%;">P.O No.</th>
+                    <th style="width:7%;">P.O  No.</th>
                     <th style="width:7%;">W.O No.</th>
-                    <th style="width:9%;" class="col-right">QUANTITY</th>
-                    <th style="width:10%;" class="col-right">UNIT COST</th>
-                    <th style="width:10%;" class="col-right">TOTAL</th>
+                    <th class="th-right" style="width:9%;">QUANTITY</th>
+                    <th class="th-right" style="width:10%;">UNIT COST</th>
+                    <th class="th-right" style="width:10%;">TOTAL</th>
                 </tr>
             </thead>
             <tbody>
@@ -434,14 +525,14 @@
                 {{-- Filas de producto (is_fixed_charge = false) --}}
                 @foreach ($productItems as $item)
                     <tr class="data-row">
-                        <td>{{ $item->description ?? '-' }}</td>
+                        <td class="td-left">{{ $item->description ?? '-' }}</td>
                         <td>{{ $item->item_number ?? '-' }}</td>
                         <td>{{ $item->lot_number ?? '-' }}</td>
                         <td>{{ $item->po_number ?? '-' }}</td>
                         <td>{{ $item->wo_number ?? '-' }}</td>
-                        <td class="col-qty">{{ number_format($item->quantity) }}</td>
-                        <td class="col-right">{{ number_format((float) $item->unit_cost, 4) }}</td>
-                        <td class="col-right">{{ number_format((float) $item->line_total, 2) }}</td>
+                        <td class="td-right">{{ number_format($item->quantity) }}</td>
+                        <td class="td-right">{{ number_format((float) $item->unit_cost, 4) }}</td>
+                        <td class="td-right">{{ number_format((float) $item->line_total, 2) }}</td>
                     </tr>
                 @endforeach
 
@@ -455,20 +546,20 @@
                 {{-- Filas de cargos fijos (is_fixed_charge = true) --}}
                 @foreach ($fixedChargeItems as $charge)
                     <tr class="charge-row">
-                        {{-- La descripcion del cargo ocupa las 5 primeras columnas --}}
+                        {{-- La descripcion ocupa las primeras 5 columnas, centrada --}}
                         <td colspan="5" class="charge-label">{{ $charge->description }}</td>
-                        <td class="col-right">&nbsp;</td>
-                        <td class="col-right">{{ number_format((float) $charge->unit_cost, 2) }}</td>
-                        <td class="col-right">{{ number_format((float) $charge->line_total, 2) }}</td>
+                        <td class="td-right">{{ number_format((float) $charge->unit_cost, 0) }}</td>
+                        <td class="td-right">&nbsp;</td>
+                        <td class="td-right">{{ number_format((float) $charge->line_total, 2) }}</td>
                     </tr>
                 @endforeach
 
                 {{-- Fila Grand Total --}}
                 <tr class="grand-total-row">
-                    <td colspan="4">&nbsp;</td>
-                    <td class="total-label">TOTAL:</td>
+                    <td colspan="4" class="total-empty">&nbsp;</td>
+                    <td class="total-empty">&nbsp;</td>
                     <td class="total-qty">{{ number_format((int) $invoice->total_quantity) }}</td>
-                    <td>&nbsp;</td>
+                    <td class="total-spacer">&nbsp;</td>
                     <td class="total-amount">
                         ${{ number_format((float) $invoice->grand_total, 2) }}
                     </td>

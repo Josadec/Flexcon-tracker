@@ -232,10 +232,6 @@ Route::middleware(['auth', 'verified', 'role:admin|Empaques'])->group(function (
     Route::get('/invoices', \App\Livewire\Admin\Invoices\InvoiceList::class)->name('invoices.index');
     Route::get('/invoices/{invoice}', \App\Livewire\Admin\Invoices\InvoiceShow::class)->name('invoices.show');
 
-    // Accion POST: generar Invoice desde un Packing Slip en estado shipped
-    Route::post('/packing-slips/{packingSlip}/invoice', [InvoiceController::class, 'createFromPackingSlip'])
-        ->name('packing-slips.create-invoice');
-
     // Descarga del PDF del Invoice (fuerza descarga del archivo)
     Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])
         ->name('invoices.pdf');

@@ -17,14 +17,14 @@ class Invoice extends Model
     // =========================================================
     // Constantes de estado del ciclo de vida
     // =========================================================
-    public const STATUS_DRAFT    = 'draft';
-    public const STATUS_ISSUED   = 'issued';
-    public const STATUS_PAID     = 'paid';
+    public const STATUS_DRAFT     = 'draft';
+    public const STATUS_ISSUED    = 'issued';
+    public const STATUS_CANCELLED = 'cancelled';
 
     public const STATUSES = [
-        self::STATUS_DRAFT  => 'Borrador',
-        self::STATUS_ISSUED => 'Emitido',
-        self::STATUS_PAID   => 'Pagado',
+        self::STATUS_DRAFT     => 'Borrador',
+        self::STATUS_ISSUED    => 'Emitido',
+        self::STATUS_CANCELLED => 'Cancelado',
     ];
 
     // =========================================================
@@ -240,11 +240,6 @@ class Invoice extends Model
         return $query->where('status', self::STATUS_ISSUED);
     }
 
-    public function scopePaid(Builder $query): Builder
-    {
-        return $query->where('status', self::STATUS_PAID);
-    }
-
     public function scopeProduct(Builder $query): Builder
     {
         return $query->where('type', self::TYPE_PRODUCT);
@@ -273,9 +268,9 @@ class Invoice extends Model
         return $this->status === self::STATUS_ISSUED;
     }
 
-    public function isPaid(): bool
+    public function isCancelled(): bool
     {
-        return $this->status === self::STATUS_PAID;
+        return $this->status === self::STATUS_CANCELLED;
     }
 
     /**
@@ -288,11 +283,11 @@ class Invoice extends Model
 
     /**
      * Indica si el PDF del Invoice esta disponible para descarga.
-     * El PDF solo se genera para Invoices emitidos o pagados.
+     * El PDF se genera para Invoices en estado issued.
      */
     public function isPdfAvailable(): bool
     {
-        return in_array($this->status, [self::STATUS_ISSUED, self::STATUS_PAID]);
+        return $this->status === self::STATUS_ISSUED;
     }
 
     /**
@@ -305,15 +300,15 @@ class Invoice extends Model
 
     /**
      * Color de badge para UI (Tailwind CSS).
-     * draft=yellow, issued=green, paid=blue
+     * draft=yellow, issued=green, cancelled=red
      */
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
-            self::STATUS_DRAFT  => 'yellow',
-            self::STATUS_ISSUED => 'green',
-            self::STATUS_PAID   => 'blue',
-            default             => 'gray',
+            self::STATUS_DRAFT      => 'yellow',
+            self::STATUS_ISSUED     => 'green',
+            self::STATUS_CANCELLED  => 'red',
+            default                 => 'gray',
         };
     }
 

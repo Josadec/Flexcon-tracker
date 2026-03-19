@@ -4,8 +4,10 @@ namespace App\Livewire\Admin\Invoices;
 
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Services\InvoiceDeleteService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
+use RuntimeException;
 
 class InvoiceShow extends Component
 {
@@ -19,13 +21,14 @@ class InvoiceShow extends Component
     public ?int    $editingChargeId     = null;
     public string  $editingChargeAmount = '';
 
-    // Edicion inline de unit_cost de items de parte
-    public ?int    $editingUnitCostId    = null;
-    public string  $editingUnitCostValue = '';
+    // Edicion inline de lot_number por item
+    public ?int    $editingLotItemId    = null;
+    public string  $editingLotItemValue = '';
 
     // Confirmacion de acciones de estado
     public bool $confirmingIssue  = false;
     public bool $confirmingCancel = false;
+    public bool $confirmingDelete = false;
 
     public function mount(Invoice $invoice): void
     {
@@ -69,11 +72,6 @@ class InvoiceShow extends Component
             'lotNoValue.required' => 'El LOT NO. es obligatorio.',
             'lotNoValue.regex'    => 'Formato inválido. Use MMDDYY + x + 2 dígitos (ej: 030926x01).',
         ]);
-
-        if ($this->invoice->status === Invoice::STATUS_PAID) {
-            $this->dispatch('notify', ['type' => 'error', 'message' => 'No se puede editar el LOT NO. de un Invoice pagado.']);
-            return;
-        }
 
         $newLotNo = trim($this->lotNoValue);
 
@@ -174,12 +172,12 @@ class InvoiceShow extends Component
     }
 
     // -----------------------------------------------------------------------
-    // Edicion de unit_cost de items de producto
+    // Edicion de lot_number por item de producto
     // -----------------------------------------------------------------------
 
-    public function startEditingUnitCost(int $itemId): void
+    public function startEditingLotItem(int $itemId): void
     {
-        if (! $this->invoice->canBeModified()) {
+        if (! $this->invoice->isDraft()) {
             return;
         }
 
@@ -189,49 +187,42 @@ class InvoiceShow extends Component
             return;
         }
 
-        $this->editingUnitCostId    = $itemId;
-        $this->editingUnitCostValue = (string) $item->unit_cost;
+        $this->editingLotItemId    = $itemId;
+        $this->editingLotItemValue = (string) ($item->lot_number ?? '');
     }
 
-    public function cancelEditingUnitCost(): void
+    public function cancelEditingLotItem(): void
     {
-        $this->editingUnitCostId    = null;
-        $this->editingUnitCostValue = '';
-        $this->resetErrorBag('editingUnitCostValue');
+        $this->editingLotItemId    = null;
+        $this->editingLotItemValue = '';
+        $this->resetErrorBag('editingLotItemValue');
     }
 
     /**
-     * Actualiza el unit_cost de un item de producto, recalcula line_total y totales.
+     * Actualiza el lot_number de un item de producto individual.
      * Solo disponible en estado draft.
      */
-    public function updateUnitCost(): void
+    public function saveLotItem(): void
     {
-        if (! $this->invoice->canBeModified()) {
-            $this->dispatch('notify', ['type' => 'error', 'message' => 'Solo se pueden editar precios en Invoices en borrador.']);
+        if (! $this->invoice->isDraft()) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => 'Solo se puede editar el LOT NO. en Invoices en borrador.']);
             return;
         }
 
         $this->validate([
-            'editingUnitCostValue' => ['required', 'numeric', 'min:0'],
+            'editingLotItemValue' => ['required', 'string', 'max:50'],
         ], [
-            'editingUnitCostValue.required' => 'El precio unitario es obligatorio.',
-            'editingUnitCostValue.numeric'  => 'El precio unitario debe ser un número válido.',
-            'editingUnitCostValue.min'      => 'El precio no puede ser negativo.',
+            'editingLotItemValue.required' => 'El LOT NO. es obligatorio.',
+            'editingLotItemValue.max'      => 'El LOT NO. no puede superar 50 caracteres.',
         ]);
 
-        $item = InvoiceItem::where('invoice_id', $this->invoice->id)
-            ->where('id', $this->editingUnitCostId)
+        InvoiceItem::where('invoice_id', $this->invoice->id)
+            ->where('id', $this->editingLotItemId)
             ->where('is_fixed_charge', false)
-            ->firstOrFail();
+            ->update(['lot_number' => trim($this->editingLotItemValue)]);
 
-        $item->unit_cost = (string) $this->editingUnitCostValue;
-        $item->recalculateLineTotal();
-
-        // Recalcular totales del Invoice
-        $this->invoice->calculateTotals()->save();
-
-        $this->editingUnitCostId    = null;
-        $this->editingUnitCostValue = '';
+        $this->editingLotItemId    = null;
+        $this->editingLotItemValue = '';
 
         $this->invoice->refresh()->load([
             'packingSlip',
@@ -241,7 +232,7 @@ class InvoiceShow extends Component
             'issuer',
         ]);
 
-        $this->dispatch('notify', ['type' => 'success', 'message' => 'Precio actualizado y totales recalculados.']);
+        $this->dispatch('notify', ['type' => 'success', 'message' => 'LOT NO. del item actualizado correctamente.']);
     }
 
     // -----------------------------------------------------------------------
@@ -320,7 +311,7 @@ class InvoiceShow extends Component
             return;
         }
 
-        $this->invoice->update(['status' => 'cancelled']);
+        $this->invoice->update(['status' => Invoice::STATUS_CANCELLED]);
 
         $this->confirmingCancel = false;
 
@@ -333,6 +324,48 @@ class InvoiceShow extends Component
         ]);
 
         $this->dispatch('notify', ['type' => 'success', 'message' => "Invoice #{$this->invoice->invoice_number} cancelado."]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Eliminacion del Invoice
+    // -----------------------------------------------------------------------
+
+    public function confirmDelete(): void
+    {
+        $this->confirmingDelete = true;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->confirmingDelete = false;
+    }
+
+    /**
+     * Elimina el Invoice usando InvoiceDeleteService.
+     *
+     * Solo disponible para Invoices en estado draft o cancelled.
+     * Redirige a la lista de Invoices con mensaje de exito.
+     * Si el servicio lanza RuntimeException, despacha un toast de error.
+     */
+    public function deleteInvoice(InvoiceDeleteService $service): mixed
+    {
+        $invoiceNumber = $this->invoice->invoice_number;
+
+        try {
+            $service->delete($this->invoice);
+
+            return redirect()
+                ->route('admin.invoices.index')
+                ->with('success', "Invoice #{$invoiceNumber} eliminado correctamente.");
+
+        } catch (RuntimeException $e) {
+            $this->confirmingDelete = false;
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     // -----------------------------------------------------------------------
