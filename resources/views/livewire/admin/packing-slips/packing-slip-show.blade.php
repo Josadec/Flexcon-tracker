@@ -113,6 +113,25 @@
                         </button>
                     @endif
 
+                    {{-- Ver PDF en nueva pestana --}}
+                    <a href="{{ route('admin.packing-slips.pdf', $packingSlip) }}"
+                       target="_blank"
+                       class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                        Ver PDF
+                    </a>
+
+                    {{-- Descargar PDF --}}
+                    <a href="{{ route('admin.packing-slips.pdf.download', $packingSlip) }}"
+                       class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Descargar PDF
+                    </a>
+
                     <a href="{{ route('admin.packing-slips.index') }}" wire:navigate
                        class="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -264,9 +283,9 @@
                                                     class="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm w-36 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                                                 >
                                             </td>
-                                            {{-- Label Spec (desde Part, solo lectura) --}}
+                                            {{-- Label Spec (desde Part, solo lectura). Muestra "-" si no hay valor. --}}
                                             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
-                                                {{ $lot->workOrder?->purchaseOrder?->part?->label_spec ?? '—' }}
+                                                {{ $lot->workOrder?->purchaseOrder?->part?->label_spec ?: '-' }}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -357,25 +376,24 @@
                                                        @keydown.escape="editing = false"
                                                        x-effect="if (editing) $el.focus()">
                                             </td>
-                                            {{-- Label Spec: muestra snapshot si existe, si no jala del Part --}}
+                                            {{-- Label Spec: muestra snapshot si existe, si no jala del Part.
+                                                 Si ninguno tiene valor, se muestra "-" segun requerimiento del cliente. --}}
                                             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
-                                                {{ $item->label_spec ?: ($item->lot?->workOrder?->purchaseOrder?->part?->label_spec ?: '—') }}
+                                                {{ $item->label_spec ?: ($item->lot?->workOrder?->purchaseOrder?->part?->label_spec ?: '-') }}
                                             </td>
                                         </tr>
                                     @endforeach
-                                    {{-- Fila de subtotal por PO: solo si el grupo tiene mas de 1 item --}}
-                                    @if ($poItems->count() > 1)
-                                        <tr class="bg-blue-50 dark:bg-blue-900/20 border-t-2 border-blue-200 dark:border-blue-700">
-                                            <td colspan="3" class="px-4 py-2"></td>
-                                            <td class="px-4 py-2 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider text-right">
-                                                Total PO {{ $poNumber }}:
-                                            </td>
-                                            <td class="px-4 py-2 text-sm font-bold text-right text-blue-700 dark:text-blue-300">
-                                                {{ number_format($poItems->sum('quantity_packed')) }}
-                                            </td>
-                                            <td colspan="2"></td>
-                                        </tr>
-                                    @endif
+                                    {{-- Fila de subtotal por PO: siempre visible para reflejar el formato FPL-10 --}}
+                                    <tr class="bg-blue-50 dark:bg-blue-900/20 border-t-2 border-blue-200 dark:border-blue-700">
+                                        <td colspan="3" class="px-4 py-2"></td>
+                                        <td class="px-4 py-2 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider text-right">
+                                            Total PO {{ $poNumber }}:
+                                        </td>
+                                        <td class="px-4 py-2 text-sm font-bold text-right text-blue-700 dark:text-blue-300">
+                                            {{ number_format($poItems->sum('quantity_packed')) }}
+                                        </td>
+                                        <td colspan="2"></td>
+                                    </tr>
                                 @endforeach
                             </tbody>
                             <tfoot class="bg-gray-50 dark:bg-gray-800">
@@ -401,6 +419,85 @@
                 @endif
             </div>
         </div>
+
+        <!-- ================================================================ -->
+        <!-- PANEL INVOICE (visible solo cuando shipped) -->
+        <!-- ================================================================ -->
+        @if ($packingSlip->isShipped())
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+                <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/30 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Invoice</h2>
+                    </div>
+                </div>
+                <div class="p-6">
+                    @if (! $packingSlip->hasInvoice())
+                        {{-- Sin Invoice: indicador informativo — la creación corresponde al depto. de Ordenes --}}
+                        <div class="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                                    Listo para Invoice
+                                </p>
+                                <p class="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                                    Este Packing Slip fue despachado y está disponible para que el departamento de Ordenes genere el Invoice correspondiente.
+                                </p>
+                            </div>
+                        </div>
+                    @else
+                        {{-- Con Invoice: panel de info y enlace (solo lectura, sin botón de crear) --}}
+                        @php $inv = $packingSlip->invoice; @endphp
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Invoice #</p>
+                                    <p class="text-base font-mono font-semibold text-gray-900 dark:text-white mt-0.5">
+                                        Invoice#{{ $inv->invoice_number }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</p>
+                                    @php
+                                        $invBadge = match($inv->status) {
+                                            'draft'     => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+                                            'issued'    => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                                            'paid'      => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+                                            'cancelled' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+                                            default     => 'bg-gray-100 text-gray-800',
+                                        };
+                                    @endphp
+                                    <span class="mt-0.5 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full {{ $invBadge }}">
+                                        {{ $inv->statusLabel }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        {{ $inv->isIssued() || $inv->isPaid() ? 'Fecha emisión' : 'Fecha creación' }}
+                                    </p>
+                                    <p class="text-sm text-gray-700 dark:text-gray-300 mt-0.5">
+                                        {{ ($inv->issued_at ?? $inv->created_at)?->format('d/m/Y H:i') ?? '-' }}
+                                    </p>
+                                </div>
+                            </div>
+                            <a href="{{ route('admin.invoices.show', $inv->invoice_number) }}"
+                               wire:navigate
+                               class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200 whitespace-nowrap">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                Ver Invoice
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
 
         <!-- Metadatos -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

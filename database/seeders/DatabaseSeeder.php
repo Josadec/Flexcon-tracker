@@ -49,6 +49,13 @@ class DatabaseSeeder extends Seeder
             
             // 8. Datos de prueba
             WorkOrderTestSeeder::class,
+
+            // 9. Catalogo de tipos de cargo del Invoice FPL-12 (Fase 5)
+            // Requiere que la migracion 2026_03_18_100000_create_invoice_charge_types_table
+            // haya sido ejecutada previamente.
+            // Carga: Machine Maintenance ($1,200), Administration Fee ($250), SHIPPING COST ($450).
+            // Decision P-12-02 / D-12-22: montos editables por Admin desde /admin/invoice-charge-types.
+            InvoiceChargeTypeSeeder::class,
         ]);
 
         // Create admin user AFTER roles are created

@@ -3,7 +3,7 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
-use App\Models\{Shift, Part, SentList, User, Lot};
+use App\Models\{Shift, Part, SentList, User, Lot, Kit};
 use App\Services\CapacityCalculatorService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -61,6 +61,12 @@ class CapacityWizard extends Component
     public bool $showLotModal = false;
     public ?int $currentLotIndex = null; // Índice del item actual para agregar lotes
     public array $tempLots = []; // Lotes temporales para el modal
+
+    // Kit data (for crimp parts)
+    public array $kitNumbers = []; // Kit numbers per PO index
+    public bool $showKitModal = false;
+    public ?int $currentKitIndex = null;
+    public array $tempKits = []; // Kits temporales para el modal
 
     // Step 4 - Fechas programadas de envío
     public ?string $scheduledShipDate = null; // UNA fecha para toda la lista
@@ -418,6 +424,7 @@ class CapacityWizard extends Component
                     'part_id' => $po->part_id,
                     'part_number' => $po->part->number,
                     'part_description' => $po->part->description,
+                    'is_crimp' => (bool) ($po->part->is_crimp ?? false),
                     'quantity' => $po->quantity,
                     'required_hours' => $requiredHours,
                     'po_id' => $po->id,
@@ -526,6 +533,7 @@ class CapacityWizard extends Component
                 'part_id' => $this->currentPartId,
                 'part_number' => $part->number,
                 'part_description' => $part->description,
+                'is_crimp' => (bool) ($part->is_crimp ?? false),
                 'quantity' => $this->currentQuantity,
                 'required_hours' => $result['required_hours'],
                 'po_id' => null, // Agregado manualmente, no desde PO
@@ -649,6 +657,68 @@ class CapacityWizard extends Component
         }
     }
 
+    // ==========================================
+    // Kit Modal Methods (for crimp parts)
+    // ==========================================
+
+    public function openKitModal(int $index)
+    {
+        $this->currentKitIndex = $index;
+        $existingKits = $this->kitNumbers[$index] ?? [];
+
+        if (empty($existingKits)) {
+            $this->tempKits = [['number' => '', 'quantity' => '']];
+        } else {
+            $this->tempKits = array_map(function ($kit) {
+                if (is_array($kit) && isset($kit['number'])) {
+                    return $kit;
+                }
+                return ['number' => $kit, 'quantity' => ''];
+            }, $existingKits);
+        }
+
+        $this->showKitModal = true;
+    }
+
+    public function closeKitModal()
+    {
+        $this->showKitModal = false;
+        $this->currentKitIndex = null;
+        $this->tempKits = [];
+    }
+
+    public function addKitInput()
+    {
+        $this->tempKits[] = ['number' => '', 'quantity' => ''];
+    }
+
+    public function removeKitInput(int $kitIndex)
+    {
+        if (count($this->tempKits) > 1) {
+            unset($this->tempKits[$kitIndex]);
+            $this->tempKits = array_values($this->tempKits);
+        }
+    }
+
+    public function saveKits()
+    {
+        if ($this->currentKitIndex === null) {
+            return;
+        }
+
+        $filteredKits = array_values(array_filter($this->tempKits, function ($kit) {
+            return !empty(trim($kit['number'] ?? ''));
+        }));
+
+        if (!empty($filteredKits)) {
+            $this->kitNumbers[$this->currentKitIndex] = $filteredKits;
+        } else {
+            unset($this->kitNumbers[$this->currentKitIndex]);
+        }
+
+        $this->closeKitModal();
+    }
+
     public function generateSentList()
     {
         if (empty($this->workOrderItems)) {
@@ -719,6 +789,7 @@ class CapacityWizard extends Component
                         }
                         
                         // Crear registros Lot reales para que aparezcan en /admin/lots
+                        $createdLotIds = [];
                         if ($purchaseOrder && $purchaseOrder->workOrder && !empty($lotNumbersArray)) {
                             $workOrder = $purchaseOrder->workOrder;
                             $partDescription = $purchaseOrder->part->description ?? 'Sin descripción';
@@ -728,13 +799,12 @@ class CapacityWizard extends Component
                                 $lotQuantity = isset($lot['quantity']) && $lot['quantity'] !== '' ? intval($lot['quantity']) : 0;
                                 
                                 if (!empty($lotNumber)) {
-                                    // Verificar si ya existe un lote con ese número para esta WO
                                     $existingLot = Lot::where('work_order_id', $workOrder->id)
                                         ->where('lot_number', $lotNumber)
                                         ->first();
                                     
                                     if (!$existingLot) {
-                                        Lot::create([
+                                        $newLot = Lot::create([
                                             'work_order_id' => $workOrder->id,
                                             'lot_number' => $lotNumber,
                                             'description' => $partDescription,
@@ -742,6 +812,50 @@ class CapacityWizard extends Component
                                             'status' => Lot::STATUS_PENDING,
                                             'comments' => "Generado automáticamente desde Capacity Wizard",
                                         ]);
+                                        $createdLotIds[] = $newLot->id;
+                                    } else {
+                                        $createdLotIds[] = $existingLot->id;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Crear registros Kit para partes crimp y asociarlos a los lotes
+                        $isCrimp = $item['is_crimp'] ?? false;
+                        if ($isCrimp && $purchaseOrder && $purchaseOrder->workOrder) {
+                            $workOrder = $purchaseOrder->workOrder;
+                            $kitNumbersArray = [];
+                            
+                            if (isset($this->kitNumbers[$index]) && is_array($this->kitNumbers[$index])) {
+                                foreach ($this->kitNumbers[$index] as $kit) {
+                                    if (is_array($kit) && !empty($kit['number'])) {
+                                        $kitNumbersArray[] = $kit;
+                                    }
+                                }
+                            }
+                            
+                            foreach ($kitNumbersArray as $kit) {
+                                $kitNumber = trim($kit['number'] ?? '');
+                                $kitQuantity = isset($kit['quantity']) && $kit['quantity'] !== '' ? intval($kit['quantity']) : 0;
+                                
+                                if (!empty($kitNumber)) {
+                                    $existingKit = Kit::where('work_order_id', $workOrder->id)
+                                        ->where('kit_number', $kitNumber)
+                                        ->first();
+                                    
+                                    if (!$existingKit) {
+                                        $newKit = Kit::create([
+                                            'work_order_id' => $workOrder->id,
+                                            'kit_number' => $kitNumber,
+                                            'quantity' => $kitQuantity > 0 ? $kitQuantity : intval($item['quantity']),
+                                            'status' => Kit::STATUS_PREPARING,
+                                            'current_approval_cycle' => 1,
+                                        ]);
+                                        
+                                        // Associate kit with all lots of this WO
+                                        if (!empty($createdLotIds)) {
+                                            $newKit->lots()->syncWithoutDetaching($createdLotIds);
+                                        }
                                     }
                                 }
                             }
@@ -781,6 +895,10 @@ class CapacityWizard extends Component
             'showLotModal',
             'currentLotIndex',
             'tempLots',
+            'kitNumbers',
+            'showKitModal',
+            'currentKitIndex',
+            'tempKits',
         ]);
 
         $this->numPersons = 0;

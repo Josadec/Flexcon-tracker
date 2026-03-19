@@ -1,0 +1,12 @@
+[   13784ms] [WARNING] Livewire: The published Livewire assets are out of date
+ See: https://livewire.laravel.com/docs/installation#publishing-livewires-frontend-assets @ http://flexcon-tracker.test:8088/login:539
+[   76830ms] TypeError: Cannot read properties of null (reading 'onSwap')
+    at HTMLDocument.<anonymous> (http://flexcon-tracker.test:8088/flux/flux.js?id=bdbfbc9b:125:103572)
+    at forwardEvent (http://flexcon-tracker.test:8088/vendor/livewire/livewire.js?id=646f9d24:9613:14)
+    at HTMLDocument.<anonymous> (http://flexcon-tracker.test:8088/vendor/livewire/livewire.js?id=646f9d24:9609:57)
+    at fireEventForOtherLibrariesToHookInto (http://flexcon-tracker.test:8088/vendor/livewire/livewire.js?id=646f9d24:8145:14)
+    at http://flexcon-tracker.test:8088/vendor/livewire/livewire.js?id=646f9d24:8041:9
+    at http://flexcon-tracker.test:8088/vendor/livewire/livewire.js?id=646f9d24:7529:7
+    at http://flexcon-tracker.test:8088/vendor/livewire/livewire.js?id=646f9d24:7551:7
+[   76839ms] [WARNING] Livewire: The published Livewire assets are out of date
+ See: https://livewire.laravel.com/docs/installation#publishing-livewires-frontend-assets @ :1

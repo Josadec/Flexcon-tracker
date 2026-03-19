@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PackingSlipPdfController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -217,8 +219,26 @@ Route::middleware(['auth', 'verified', 'role:admin|Empaques'])->group(function (
     Route::get('/packing-slips/create', \App\Livewire\Admin\PackingSlips\PackingSlipCreate::class)->name('packing-slips.create');
     Route::get('/packing-slips/{packingSlip}', \App\Livewire\Admin\PackingSlips\PackingSlipShow::class)->name('packing-slips.show');
 
+    // PDF del Packing Slip (FPL-10)
+    Route::get('/packing-slips/{packingSlip}/pdf', [PackingSlipPdfController::class, 'show'])->name('packing-slips.pdf');
+    Route::get('/packing-slips/{packingSlip}/pdf/download', [PackingSlipPdfController::class, 'download'])->name('packing-slips.pdf.download');
+
     // Cola de despacho (Shipping Queue)
     Route::get('/shipping-queue', \App\Livewire\Admin\Shipping\ShippingQueue::class)->name('shipping.queue');
+
+    // ---------------------------------------------------------------
+    // Invoices FPL-12
+    // ---------------------------------------------------------------
+    Route::get('/invoices', \App\Livewire\Admin\Invoices\InvoiceList::class)->name('invoices.index');
+    Route::get('/invoices/{invoice}', \App\Livewire\Admin\Invoices\InvoiceShow::class)->name('invoices.show');
+
+    // Descarga del PDF del Invoice (fuerza descarga del archivo)
+    Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])
+        ->name('invoices.pdf');
+
+    // Stream del PDF del Invoice (visualiza en el navegador, sin descarga forzada)
+    Route::get('/invoices/{invoice}/pdf/stream', [InvoiceController::class, 'streamPdf'])
+        ->name('invoices.pdf.stream');
 });
 
 // Inspection Area Routes (requires Inspection role)

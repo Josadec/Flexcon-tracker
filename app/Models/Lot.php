@@ -53,10 +53,13 @@ class Lot extends Model
         'surplus_delivered',
         'surplus_delivered_at',
         'surplus_delivered_by',
+<<<<<<< HEAD
         'returned_to_packaging_at',
         'returned_to_packaging_by',
         'returned_to_packaging_reason',
         'completion_count',
+=======
+>>>>>>> 2f1c5b3c62d373755ba02ce779899df6c3544f22
     ];
 
     protected $casts = [
@@ -76,7 +79,10 @@ class Lot extends Model
         'surplus_received_at' => 'datetime',
         'surplus_delivered' => 'boolean',
         'surplus_delivered_at' => 'datetime',
+<<<<<<< HEAD
         'returned_to_packaging_at' => 'datetime',
+=======
+>>>>>>> 2f1c5b3c62d373755ba02ce779899df6c3544f22
     ];
 
     /**
