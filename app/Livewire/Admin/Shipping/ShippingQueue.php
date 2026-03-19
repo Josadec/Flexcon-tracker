@@ -100,7 +100,9 @@ class ShippingQueue extends Component
             unset($this->labelSpecs[$lotId]);
         } else {
             $this->selectedLotIds[] = $lotId;
-            $this->labelSpecs[$lotId] = ''; // Campo de label_spec vacio por defecto
+            // Auto-poblar desde el catálogo de partes (ya no es editable manualmente)
+            $lot2 = Lot::with('workOrder.purchaseOrder.part')->find($lotId);
+            $this->labelSpecs[$lotId] = $lot2?->workOrder?->purchaseOrder?->part?->label_spec ?? '';
         }
     }
 

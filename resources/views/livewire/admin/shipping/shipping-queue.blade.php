@@ -417,7 +417,6 @@
                                         <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">Qty</th>
                                         <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">
                                             Label Spec
-                                            <span class="font-normal text-gray-400">(opcional)</span>
                                         </th>
                                     </tr>
                                 </thead>
@@ -436,14 +435,9 @@
                                                 {{ number_format($lot->quantity_packed_final ?? 0) }}
                                             </td>
                                             <td class="px-4 py-2.5">
-                                                {{-- Ingreso manual de label_spec por lote (decision D-06-02) --}}
-                                                <input
-                                                    wire:model="labelSpecs.{{ $lot->id }}"
-                                                    type="text"
-                                                    placeholder="Ej: M83519/2-8"
-                                                    maxlength="50"
-                                                    class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
-                                                >
+                                                <span class="text-xs font-mono text-gray-700 dark:text-gray-300">
+                                                    {{ $lot->workOrder?->purchaseOrder?->part?->label_spec ?? '—' }}
+                                                </span>
                                             </td>
                                         </tr>
                                     @endforeach
