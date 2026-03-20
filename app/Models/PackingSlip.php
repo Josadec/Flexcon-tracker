@@ -87,6 +87,9 @@ class PackingSlip extends Model
             if (empty($ps->ps_number)) {
                 $ps->ps_number = static::generatePsNumber();
             }
+            if (empty($ps->document_date)) {
+                $ps->document_date = Carbon::today();
+            }
         });
     }
 

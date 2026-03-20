@@ -113,24 +113,35 @@
                         </button>
                     @endif
 
-                    {{-- Ver PDF en nueva pestana --}}
-                    <a href="{{ route('admin.packing-slips.pdf', $packingSlip) }}"
-                       target="_blank"
-                       class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                        </svg>
-                        Ver PDF
-                    </a>
+                    @if ($packingSlip->document_date)
+                        {{-- Ver PDF en nueva pestana --}}
+                        <a href="{{ route('admin.packing-slips.pdf', $packingSlip) }}"
+                           target="_blank"
+                           class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            Ver PDF
+                        </a>
 
-                    {{-- Descargar PDF --}}
-                    <a href="{{ route('admin.packing-slips.pdf.download', $packingSlip) }}"
-                       class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                        </svg>
-                        Descargar PDF
-                    </a>
+                        {{-- Descargar PDF --}}
+                        <a href="{{ route('admin.packing-slips.pdf.download', $packingSlip) }}"
+                           class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Descargar PDF
+                        </a>
+                    @else
+                        {{-- Sin DATE: botones deshabilitados con tooltip --}}
+                        <span title="Asigna la fecha del documento (DATE) para poder generar el PDF"
+                              class="inline-flex items-center px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 text-sm font-medium rounded-lg cursor-not-allowed opacity-60">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            Sin DATE — PDF no disponible
+                        </span>
+                    @endif
 
                     <a href="{{ route('admin.packing-slips.index') }}" wire:navigate
                        class="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
@@ -453,7 +464,7 @@
                         {{-- Con Invoice: panel de info y enlace (solo lectura, sin botón de crear) --}}
                         @php $inv = $packingSlip->invoice; @endphp
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1 w-full">
                                 <div>
                                     <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Invoice #</p>
                                     <p class="text-base font-mono font-semibold text-gray-900 dark:text-white mt-0.5">
@@ -483,15 +494,6 @@
                                     </p>
                                 </div>
                             </div>
-                            <a href="{{ route('admin.invoices.show', $inv->invoice_number) }}"
-                               wire:navigate
-                               class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200 whitespace-nowrap">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                </svg>
-                                Ver Invoice
-                            </a>
                         </div>
                     @endif
                 </div>
