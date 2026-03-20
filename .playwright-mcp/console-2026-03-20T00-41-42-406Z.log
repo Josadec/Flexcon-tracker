@@ -1,0 +1,2 @@
+[     669ms] [WARNING] Livewire: The published Livewire assets are out of date
+ See: https://livewire.laravel.com/docs/installation#publishing-livewires-frontend-assets @ http://flexcon-tracker.test:8088/login:539
