@@ -73,6 +73,7 @@
                         <div class="flex items-center mt-2 space-x-3">
                             @php
                                 $badgeClasses = match($packingSlip->status) {
+                                    'draft'     => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
                                     'pending'   => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
                                     'shipped'   => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
                                     'cancelled' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
@@ -132,15 +133,6 @@
                             </svg>
                             Descargar PDF
                         </a>
-                    @else
-                        {{-- Sin DATE: botones deshabilitados con tooltip --}}
-                        <span title="Asigna la fecha del documento (DATE) para poder generar el PDF"
-                              class="inline-flex items-center px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 text-sm font-medium rounded-lg cursor-not-allowed opacity-60">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                            </svg>
-                            Sin DATE — PDF no disponible
-                        </span>
                     @endif
 
                     <a href="{{ route('admin.packing-slips.index') }}" wire:navigate
@@ -161,11 +153,50 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Número de PS</p>
-                        <p class="text-base font-mono text-gray-900 dark:text-white mt-1">{{ $packingSlip->ps_number }}</p>
+                        @if (!$packingSlip->isShipped())
+                            <div x-data="{ editing: false, value: '{{ $packingSlip->ps_number }}' }" class="mt-1">
+                                <span x-show="!editing" @click="editing = true"
+                                      class="text-base font-mono text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 hover:underline inline-flex items-center gap-1">
+                                    <span x-text="value"></span>
+                                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </span>
+                                <input x-show="editing" x-model="value" type="text"
+                                       maxlength="30"
+                                       class="border border-blue-400 rounded px-2 py-0.5 text-sm font-mono w-40 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                       @blur="editing = false; $wire.updatePsNumber(value)"
+                                       @keydown.enter="editing = false; $wire.updatePsNumber(value)"
+                                       @keydown.escape="editing = false; value = '{{ $packingSlip->ps_number }}'"
+                                       x-effect="if (editing) $el.focus()">
+                            </div>
+                        @else
+                            <p class="text-base font-mono text-gray-900 dark:text-white mt-1">{{ $packingSlip->ps_number }}</p>
+                        @endif
                     </div>
                     <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Fecha del Documento</p>
-                        <p class="text-base text-gray-900 dark:text-white mt-1">{{ $packingSlip->document_date?->format('d/m/Y') ?? '-' }}</p>
+                        @if (!$packingSlip->isShipped())
+                            <div x-data="{ editing: false, value: '{{ $packingSlip->document_date?->format('Y-m-d') ?? now()->format('Y-m-d') }}' }" class="mt-1">
+                                <span x-show="!editing" @click="editing = true"
+                                      class="text-base text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 hover:underline inline-flex items-center gap-1">
+                                    <span x-text="new Date(value + 'T00:00:00').toLocaleDateString('es-MX', {day:'2-digit',month:'2-digit',year:'numeric'})"></span>
+                                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </span>
+                                <div x-show="editing" x-cloak style="display:none">
+                                    <input x-model="value" type="date"
+                                           class="border border-blue-400 rounded px-2 py-0.5 text-sm w-40 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                           @blur="editing = false; $wire.updateDocumentDate(value)"
+                                           @keydown.enter="editing = false; $wire.updateDocumentDate(value)"
+                                           @keydown.escape="editing = false"
+                                           x-effect="if (editing) $nextTick(() => $el.focus())">
+                                </div>
+                            </div>
+                        @else
+                            <p class="text-base text-gray-900 dark:text-white mt-1">{{ $packingSlip->document_date?->format('d/m/Y') ?? '-' }}</p>
+                        @endif
                         <p class="text-xs text-gray-400 dark:text-gray-500">Campo DATE del FPL-10</p>
                     </div>
                     <div>

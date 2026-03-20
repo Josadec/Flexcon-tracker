@@ -65,19 +65,19 @@
         }
 
         .banner-center .company-name {
-            font-size: 32pt;
-            font-weight: bold;
+            font-size: 13pt;
+            font-weight: normal;
             letter-spacing: 4px;
-            line-height: 1.0;
-            color: #ffffff;
+            line-height: 1.1;
+            color: #8aaec8;
         }
 
         .banner-center .doc-title {
-            font-size: 16pt;
+            font-size: 30pt;
             font-weight: bold;
-            letter-spacing: 6px;
-            line-height: 1.1;
-            color: #c8d8ea;
+            letter-spacing: 10px;
+            line-height: 1.0;
+            color: #ffffff;
         }
 
         /* Tabla Clave/Revision en el banner derecho */
@@ -422,8 +422,8 @@
                 @endif
             </div>
             <div class="banner-center">
-                <div class="company-name">FLEXCON</div>
                 <div class="doc-title">INVOICE</div>
+                <div class="company-name">FLEXCON</div>
             </div>
             <div class="banner-right">
                 <div class="clave-table">
@@ -548,8 +548,8 @@
                     <tr class="charge-row">
                         {{-- La descripcion ocupa las primeras 5 columnas, centrada --}}
                         <td colspan="5" class="charge-label">{{ $charge->description }}</td>
-                        <td class="td-right">{{ number_format((float) $charge->unit_cost, 0) }}</td>
                         <td class="td-right">&nbsp;</td>
+                        <td class="td-right">{{ number_format((float) $charge->unit_cost, 0) }}</td>
                         <td class="td-right">{{ number_format((float) $charge->line_total, 2) }}</td>
                     </tr>
                 @endforeach

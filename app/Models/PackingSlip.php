@@ -18,11 +18,13 @@ class PackingSlip extends Model
     // =========================================================
     // Constantes de estado del ciclo de vida
     // =========================================================
+    public const STATUS_DRAFT     = 'draft';
     public const STATUS_PENDING   = 'pending';
     public const STATUS_SHIPPED   = 'shipped';
     public const STATUS_CANCELLED = 'cancelled';
 
     public const STATUSES = [
+        self::STATUS_DRAFT     => 'Borrador',
         self::STATUS_PENDING   => 'Pendiente',
         self::STATUS_SHIPPED   => 'Despachado',
         self::STATUS_CANCELLED => 'Cancelado',
@@ -87,9 +89,10 @@ class PackingSlip extends Model
             if (empty($ps->ps_number)) {
                 $ps->ps_number = static::generatePsNumber();
             }
-            if (empty($ps->document_date)) {
-                $ps->document_date = Carbon::today();
-            }
+            // document_date NO se asigna automaticamente: debe quedar NULL hasta que
+            // el usuario confirme la fecha del documento. Los botones de PDF en la vista
+            // dependen de que document_date tenga valor, por lo que asignarla aqui
+            // causaria que aparecieran desde el momento de creacion (bug reportado).
         });
     }
 
@@ -155,6 +158,11 @@ class PackingSlip extends Model
     // Scopes
     // =========================================================
 
+    public function scopeDraft(Builder $query): Builder
+    {
+        return $query->where('status', self::STATUS_DRAFT);
+    }
+
     public function scopePending(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_PENDING);
@@ -193,6 +201,11 @@ class PackingSlip extends Model
         return $this->invoice_id !== null;
     }
 
+    public function isDraft(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
     public function isPending(): bool
     {
         return $this->status === self::STATUS_PENDING;
@@ -222,6 +235,7 @@ class PackingSlip extends Model
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
+            self::STATUS_DRAFT     => 'yellow',
             self::STATUS_PENDING   => 'orange',
             self::STATUS_SHIPPED   => 'green',
             self::STATUS_CANCELLED => 'red',

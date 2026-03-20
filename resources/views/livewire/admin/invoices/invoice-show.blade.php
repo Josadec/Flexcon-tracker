@@ -178,7 +178,26 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Número de Invoice</p>
-                        <p class="text-base font-mono text-gray-900 dark:text-white mt-1">Invoice#{{ $invoice->invoice_number }}</p>
+                        @if ($invoice->isDraft())
+                            <div x-data="{ editing: false, value: '{{ $invoice->invoice_number }}' }" class="mt-1">
+                                <span x-show="!editing" @click="editing = true"
+                                      class="text-base font-mono text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 hover:underline inline-flex items-center gap-1">
+                                    <span x-text="'Invoice#' + value"></span>
+                                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </span>
+                                <input x-show="editing" x-model="value" type="text"
+                                       maxlength="10"
+                                       class="border border-blue-400 rounded px-2 py-0.5 text-sm font-mono w-28 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                       @blur="editing = false; $wire.updateInvoiceNumber(value)"
+                                       @keydown.enter="editing = false; $wire.updateInvoiceNumber(value)"
+                                       @keydown.escape="editing = false; value = '{{ $invoice->invoice_number }}'"
+                                       x-effect="if (editing) $el.focus()">
+                            </div>
+                        @else
+                            <p class="text-base font-mono text-gray-900 dark:text-white mt-1">Invoice#{{ $invoice->invoice_number }}</p>
+                        @endif
                     </div>
                     <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Fecha del Invoice</p>

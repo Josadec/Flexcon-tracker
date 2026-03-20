@@ -17,14 +17,16 @@ class PackingSlipCreate extends Component
 
     public function mount(): void
     {
-        $this->document_date = now()->toDateString();
+        // document_date NO se pre-llena: el PS se crea en estado pendiente sin fecha
+        // de documento. La fecha se asigna posteriormente desde la vista de detalle.
+        $this->document_date = '';
     }
 
     protected function rules(): array
     {
         return [
             'notes'            => 'nullable|string|max:1000',
-            'document_date'    => 'required|date',
+            'document_date'    => 'nullable|date',
             'selectedLotIds'   => 'required|array|min:1',
             'selectedLotIds.*' => 'integer|exists:lots,id',
             'dateSpecs'        => 'array',
@@ -74,11 +76,12 @@ class PackingSlipCreate extends Component
             }
         }
 
-        // Crear el Packing Slip
+        // Crear el Packing Slip en estado borrador, sin document_date
+        // (la fecha se asigna manualmente desde la vista de detalle del PS).
         $packingSlip = PackingSlip::create([
             'created_by'    => Auth::id(),
-            'status'        => PackingSlip::STATUS_PENDING,
-            'document_date' => $this->document_date ?: now()->toDateString(),
+            'status'        => PackingSlip::STATUS_DRAFT,
+            'document_date' => $this->document_date ?: null,
             'notes'         => $this->notes ?: null,
         ]);
 

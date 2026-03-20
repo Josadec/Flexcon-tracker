@@ -197,10 +197,10 @@ class ShippingQueue extends Component
 
         DB::beginTransaction();
         try {
-            // Crear el Packing Slip en estado pending
+            // Crear el Packing Slip en estado borrador
             $packingSlip = PackingSlip::create([
                 'created_by' => Auth::id(),
-                'status'     => PackingSlip::STATUS_PENDING,
+                'status'     => PackingSlip::STATUS_DRAFT,
                 'notes'      => $this->psNotes ?: null,
             ]);
 
