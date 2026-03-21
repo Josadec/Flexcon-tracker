@@ -60,17 +60,25 @@ class PackingSlip extends Model
     }
 
     /**
-     * Retorna el valor que se incrusta en la URL (lowercase para URLs limpias).
+     * Retorna el valor que se incrusta en la URL (lowercase + URL-encoded para URLs limpias y seguras).
      * Ejemplo: PS-2026-0002 → ps-2026-0002
+     * Ejemplo: #0001234    → %230001234  (el # se codifica para no romperse como fragmento HTML)
+     *
+     * Nota: rawurlencode() no modifica letras, dígitos ni los caracteres - _ . ~
+     * por lo que los ps_number con formato estándar PS-YYYY-NNNN no cambian.
      */
     public function getRouteKey(): string
     {
-        return strtolower($this->ps_number);
+        return rawurlencode(strtolower($this->ps_number));
     }
 
     /**
      * Resuelve el binding de forma case-insensitive para que la URL
      * ps-2026-0002 encuentre el registro PS-2026-0002 en la BD.
+     *
+     * El router de Laravel/Symfony decodifica los segmentos %XX antes de invocar
+     * este método, por lo que $value llega como '#0001234' (no '%230001234').
+     * Usamos strtoupper() para normalizar al formato almacenado en la BD.
      */
     public function resolveRouteBinding($value, $field = null): ?self
     {

@@ -103,8 +103,8 @@
                         </button>
                     </div>
 
-                    @if (!$packingSlip->isShipped())
-                        {{-- Botón toggle para el panel de edición de lotes integrado --}}
+                    @if ($packingSlip->isDraft())
+                        {{-- Botón toggle para el panel de edición de lotes integrado (solo en Borrador) --}}
                         <button wire:click="toggleEditingLots"
                                 class="inline-flex items-center px-4 py-2 {{ $editingLots ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-600 hover:bg-gray-700' }} text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,8 +114,8 @@
                         </button>
                     @endif
 
-                    @if ($packingSlip->document_date)
-                        {{-- Ver PDF en nueva pestana --}}
+                    @if ($packingSlip->document_date && !$packingSlip->isDraft() && !$packingSlip->isPending())
+                        {{-- Ver PDF en nueva pestana (oculto en Borrador y Pendiente) --}}
                         <a href="{{ route('admin.packing-slips.pdf', $packingSlip) }}"
                            target="_blank"
                            class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
@@ -125,7 +125,7 @@
                             Ver PDF
                         </a>
 
-                        {{-- Descargar PDF --}}
+                        {{-- Descargar PDF (oculto en Borrador) --}}
                         <a href="{{ route('admin.packing-slips.pdf.download', $packingSlip) }}"
                            class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,7 +153,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Número de PS</p>
-                        @if (!$packingSlip->isShipped())
+                        @if ($packingSlip->isDraft())
                             <div x-data="{ editing: false, value: '{{ $packingSlip->ps_number }}' }" class="mt-1">
                                 <span x-show="!editing" @click="editing = true"
                                       class="text-base font-mono text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 hover:underline inline-flex items-center gap-1">
@@ -176,7 +176,7 @@
                     </div>
                     <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Fecha del Documento</p>
-                        @if (!$packingSlip->isShipped())
+                        @if ($packingSlip->isDraft())
                             <div x-data="{ editing: false, value: '{{ $packingSlip->document_date?->format('Y-m-d') ?? now()->format('Y-m-d') }}' }" class="mt-1">
                                 <span x-show="!editing" @click="editing = true"
                                       class="text-base text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 hover:underline inline-flex items-center gap-1">
@@ -221,16 +221,38 @@
 
                     <div class="{{ $packingSlip->isShipped() ? '' : 'md:col-span-3' }}">
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Notas</p>
-                        <p class="text-base text-gray-900 dark:text-white mt-1">{{ $packingSlip->notes ?: '-' }}</p>
+                        @if ($packingSlip->isDraft() || $packingSlip->isPending())
+                            {{-- Editable inline en Borrador y Pendiente --}}
+                            <div class="mt-1">
+                                <textarea
+                                    wire:model="notesValue"
+                                    rows="3"
+                                    placeholder="Agregar notas..."
+                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white dark:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 resize-y"
+                                ></textarea>
+                                <div class="mt-2">
+                                    <button wire:click="updateNotes"
+                                            class="inline-flex items-center px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors cursor-pointer">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                        Guardar
+                                    </button>
+                                </div>
+                            </div>
+                        @else
+                            {{-- Solo lectura en cualquier otro estado --}}
+                            <p class="text-base text-gray-900 dark:text-white mt-1">{{ $packingSlip->notes ?: '-' }}</p>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- ================================================================ -->
-        <!-- PANEL DE EDICIÓN DE LOTES (visible solo cuando !shipped y editingLots) -->
+        <!-- PANEL DE EDICIÓN DE LOTES (visible solo cuando draft y editingLots) -->
         <!-- ================================================================ -->
-        @if (!$packingSlip->isShipped() && $editingLots)
+        @if ($packingSlip->isDraft() && $editingLots)
             <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border-2 border-amber-400 dark:border-amber-600 overflow-hidden mb-6"
                  id="lot-editing-panel">
                 <div class="px-6 py-4 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700">
@@ -403,20 +425,26 @@
                                             <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
                                                 {{ number_format($item->quantity_packed) }}
                                             </td>
-                                            {{-- Celda editable: Date (editable en todos los estados) --}}
+                                            {{-- Celda Date: editable solo en Borrador --}}
                                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400"
-                                                x-data="{ editing: false, value: '{{ $item->lot_date_code ?? '' }}' }">
-                                                <span x-show="!editing" @click="editing = true"
-                                                      class="cursor-pointer hover:text-blue-600 hover:underline min-w-[80px] inline-block"
-                                                      x-text="value || '-'"></span>
-                                                <input x-show="editing" x-model="value" type="text"
-                                                       maxlength="20"
-                                                       placeholder="ej: 250512A22"
-                                                       class="border border-blue-400 rounded px-2 py-0.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                       @blur="editing = false; $wire.updateItemDate({{ $item->id }}, value)"
-                                                       @keydown.enter="editing = false; $wire.updateItemDate({{ $item->id }}, value)"
-                                                       @keydown.escape="editing = false"
-                                                       x-effect="if (editing) $el.focus()">
+                                                @if ($packingSlip->isDraft())
+                                                x-data="{ editing: false, value: '{{ $item->lot_date_code ?? '' }}' }"
+                                                @endif>
+                                                @if (!$packingSlip->isDraft())
+                                                    <span class="min-w-[80px] inline-block">{{ $item->lot_date_code ?: '-' }}</span>
+                                                @else
+                                                    <span x-show="!editing" @click="editing = true"
+                                                          class="cursor-pointer hover:text-blue-600 hover:underline min-w-[80px] inline-block"
+                                                          x-text="value || '-'"></span>
+                                                    <input x-show="editing" x-model="value" type="text"
+                                                           maxlength="20"
+                                                           placeholder="ej: 250512A22"
+                                                           class="border border-blue-400 rounded px-2 py-0.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                           @blur="editing = false; $wire.updateItemDate({{ $item->id }}, value)"
+                                                           @keydown.enter="editing = false; $wire.updateItemDate({{ $item->id }}, value)"
+                                                           @keydown.escape="editing = false"
+                                                           x-effect="if (editing) $el.focus()">
+                                                @endif
                                             </td>
                                             {{-- Label Spec: muestra snapshot si existe, si no jala del Part.
                                                  Si ninguno tiene valor, se muestra "-" segun requerimiento del cliente. --}}
