@@ -12,11 +12,55 @@ use App\Models\LotCompletionLog;
 use App\Models\Weighing;
 use Livewire\Component;
 use Livewire\Attributes\On;
-
-
+use Illuminate\Support\Facades\Auth;
 
 class ShippingListDisplay extends Component
 {
+    // ===============================================
+    // DEPARTMENT ACCESS CONTROL
+    // ===============================================
+
+    /**
+     * Role → department mapping.
+     * admin has access to ALL departments.
+     */
+    private const ROLE_DEPARTMENT_MAP = [
+        'Materials'  => ['materials'],
+        'Production' => ['production'],
+        'Quality'    => ['quality'],
+        'Shipping'   => ['packaging'],
+    ];
+
+    /**
+     * Check if the current user can interact with a specific department.
+     */
+    public function canAccessDepartment(string $department): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+        if ($user->hasRole('admin')) return true;
+
+        foreach (self::ROLE_DEPARTMENT_MAP as $role => $departments) {
+            if ($user->hasRole($role) && in_array($department, $departments)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Abort action if user cannot access the given department.
+     */
+    private function guardDepartment(string $department): bool
+    {
+        if (!$this->canAccessDepartment($department)) {
+            session()->flash('error', 'No tienes permiso para realizar acciones en esta área.');
+            return false;
+        }
+        return true;
+    }
+
     public $refreshInterval = 30; // Segundos para auto-refresh
     public $filterDepartment = '';
     public $filterStatus = '';
@@ -205,6 +249,8 @@ class ShippingListDisplay extends Component
 
     public function openLotModal($workOrderId)
     {
+        if (!$this->guardDepartment('materials')) return;
+
         $this->selectedWorkOrderId = $workOrderId;
         $this->selectedWorkOrder = WorkOrder::with(['purchaseOrder.part', 'lots'])->find($workOrderId);
         
@@ -260,6 +306,8 @@ class ShippingListDisplay extends Component
 
     public function saveLots()
     {
+        if (!$this->guardDepartment('materials')) return;
+
         // Validar
         $this->validate([
             'lots.*.number' => 'required|string|max:255',
@@ -344,6 +392,8 @@ class ShippingListDisplay extends Component
      */
     public function openKitModal($lotId)
     {
+        if (!$this->guardDepartment('materials')) return;
+
         $this->selectedLotForKit = Lot::with(['workOrder.purchaseOrder.part', 'kits'])->find($lotId);
 
         if (!$this->selectedLotForKit) {
@@ -423,6 +473,8 @@ class ShippingListDisplay extends Component
      */
     public function saveNewKit()
     {
+        if (!$this->guardDepartment('materials')) return;
+
         $this->validate([
             'newKitNumber' => 'required|string|max:255|unique:kits,kit_number',
         ], [
@@ -468,6 +520,8 @@ class ShippingListDisplay extends Component
      */
     public function saveKitStatus()
     {
+        if (!$this->guardDepartment('materials')) return;
+
         $this->validate([
             'kitStatus' => 'required|in:released,in_assembly',
         ], [
@@ -505,6 +559,8 @@ class ShippingListDisplay extends Component
      */
     public function openKitManageModal($lotId)
     {
+        if (!$this->guardDepartment('materials')) return;
+
         $this->selectedLotForKitManage = Lot::with(['workOrder.purchaseOrder.part', 'kits'])->find($lotId);
 
         if (!$this->selectedLotForKitManage) {
@@ -535,6 +591,8 @@ class ShippingListDisplay extends Component
      */
     public function saveNewKitManage()
     {
+        if (!$this->guardDepartment('materials')) return;
+
         $this->validate([
             'newKitNumber' => 'required|string|max:255|unique:kits,kit_number',
             'newKitQuantity' => 'required|integer|min:1',
@@ -589,6 +647,8 @@ class ShippingListDisplay extends Component
      */
     public function updateKitStatus($kitId, $status)
     {
+        if (!$this->guardDepartment('materials')) return;
+
         if (!in_array($status, ['released', 'in_assembly', 'preparing'])) {
             return;
         }
@@ -617,6 +677,8 @@ class ShippingListDisplay extends Component
      */
     public function removeKit($kitId)
     {
+        if (!$this->guardDepartment('materials')) return;
+
         if (!$this->selectedLotForKitManage) {
             return;
         }
@@ -643,6 +705,8 @@ class ShippingListDisplay extends Component
      */
     public function openMaterialModal($lotId)
     {
+        if (!$this->guardDepartment('materials')) return;
+
         $this->selectedLotForMaterial = Lot::with(['workOrder.purchaseOrder.part'])->find($lotId);
 
         if (!$this->selectedLotForMaterial) {
@@ -678,6 +742,8 @@ class ShippingListDisplay extends Component
      */
     public function saveMaterialStatus()
     {
+        if (!$this->guardDepartment('materials')) return;
+
         if (!$this->selectedLotForMaterial) {
             session()->flash('error', 'Lote no encontrado.');
             $this->closeMaterialModal();
@@ -751,6 +817,8 @@ class ShippingListDisplay extends Component
      */
     public function openInspectionModal($lotId)
     {
+        if (!$this->guardDepartment('quality')) return;
+
         $this->selectedLotId = $lotId;
         $this->selectedLot = Lot::with(['workOrder.purchaseOrder.part', 'kits'])->find($lotId);
 
@@ -799,6 +867,8 @@ class ShippingListDisplay extends Component
      */
     public function saveInspectionStatus()
     {
+        if (!$this->guardDepartment('quality')) return;
+
         // Validar
         $rules = [
             'inspectionStatus' => 'required|in:pending,approved,rejected',
@@ -850,6 +920,8 @@ class ShippingListDisplay extends Component
 
     public function openPackagingModal($lotId)
     {
+        if (!$this->guardDepartment('packaging')) return;
+
         $lot = Lot::with(['workOrder.purchaseOrder.part', 'packagingRecords.packedBy', 'qualityWeighings'])->find($lotId);
 
         if (!$lot) {
@@ -936,6 +1008,8 @@ class ShippingListDisplay extends Component
      */
     public function savePackaging()
     {
+        if (!$this->guardDepartment('packaging')) return;
+
         $this->validate([
             'pkgPackedPieces' => 'required|integer|min:0',
             'pkgPackedAt' => 'required|date',
@@ -951,7 +1025,7 @@ class ShippingListDisplay extends Component
             return;
         }
 
-        $surplus = max(0, $this->pkgPendingPieces - $this->pkgPackedPieces);
+        $surplus = max(0, (int) $this->pkgSurplusPieces);
 
         $data = [
             'lot_id' => $this->selectedLotForPackaging->id,
@@ -994,6 +1068,8 @@ class ShippingListDisplay extends Component
      */
     public function editPackagingRecord($recordId)
     {
+        if (!$this->guardDepartment('packaging')) return;
+
         $record = PackagingRecord::find($recordId);
         if (!$record) {
             session()->flash('error', 'Registro no encontrado.');
@@ -1034,6 +1110,8 @@ class ShippingListDisplay extends Component
      */
     public function deletePackagingRecord($recordId)
     {
+        if (!$this->guardDepartment('packaging')) return;
+
         $record = PackagingRecord::find($recordId);
         if ($record) {
             $record->delete();
@@ -1075,6 +1153,8 @@ class ShippingListDisplay extends Component
      */
     public function saveAdjustSurplus()
     {
+        if (!$this->guardDepartment('packaging')) return;
+
         $this->validate([
             'pkgAdjustedSurplus' => 'required|integer|min:0',
             'pkgAdjustmentReason' => 'required|string|min:3|max:500',
@@ -1115,6 +1195,8 @@ class ShippingListDisplay extends Component
      */
     public function receiveViajero()
     {
+        if (!$this->guardDepartment('packaging')) return;
+
         if (!$this->selectedLotForPackaging) {
             session()->flash('error', 'Lote no encontrado.');
             return;
@@ -1136,6 +1218,8 @@ class ShippingListDisplay extends Component
      */
     public function reopenPackaging()
     {
+        if (!$this->guardDepartment('packaging')) return;
+
         if (!$this->selectedLotForPackaging) return;
 
         $this->selectedLotForPackaging->update([
@@ -1169,6 +1253,8 @@ class ShippingListDisplay extends Component
      */
     public function openDecisionModal($lotId)
     {
+        if (!$this->guardDepartment('materials')) return;
+
         $lot = Lot::with(['workOrder.purchaseOrder.part', 'packagingRecords'])->find($lotId);
 
         if (!$lot) {
@@ -1215,6 +1301,8 @@ class ShippingListDisplay extends Component
      */
     public function decisionCompleteLot()
     {
+        if (!$this->guardDepartment('materials')) return;
+
         if (!$this->selectedLotForDecision) return;
 
         $lot = $this->selectedLotForDecision;
@@ -1280,7 +1368,7 @@ class ShippingListDisplay extends Component
             $lot->kits()->update(['status' => Kit::STATUS_PREPARING]);
         }
 
-        session()->flash('message', 'Lote completado (ciclo ' . $newCycle . '). Se reinició con ' . number_format($missing) . ' piezas faltantes para reprocesar.');
+        session()->flash('message', 'Lote completado (Completado ' . $newCycle . '). Se reinició con ' . number_format($missing) . ' piezas faltantes para reprocesar.');
         $this->closeDecisionModal();
         $this->dispatch('refresh-display');
     }
@@ -1291,6 +1379,8 @@ class ShippingListDisplay extends Component
      */
     public function decisionNewLot()
     {
+        if (!$this->guardDepartment('materials')) return;
+
         if (!$this->selectedLotForDecision) return;
 
         $this->createLotType = 'new_lot';
@@ -1304,6 +1394,8 @@ class ShippingListDisplay extends Component
      */
     public function decisionCloseAsIs()
     {
+        if (!$this->guardDepartment('materials')) return;
+
         if (!$this->selectedLotForDecision) {
             session()->flash('error', 'Lote no encontrado.');
             return;
@@ -1333,6 +1425,8 @@ class ShippingListDisplay extends Component
      */
     public function reopenLot()
     {
+        if (!$this->guardDepartment('materials')) return;
+
         if (!$this->selectedLotForDecision) {
             session()->flash('error', 'Lote no encontrado.');
             return;
@@ -1364,6 +1458,8 @@ class ShippingListDisplay extends Component
      */
     public function confirmSurplusReceived()
     {
+        if (!$this->guardDepartment('materials')) return;
+
         if (!$this->selectedLotForDecision) {
             session()->flash('error', 'Lote no encontrado.');
             return;
@@ -1393,6 +1489,8 @@ class ShippingListDisplay extends Component
      */
     public function openDeliverMaterialModal($lotId)
     {
+        if (!$this->guardDepartment('packaging')) return;
+
         $lot = Lot::with(['workOrder.purchaseOrder.part', 'packagingRecords'])->find($lotId);
 
         if (!$lot) {
@@ -1420,6 +1518,8 @@ class ShippingListDisplay extends Component
      */
     public function confirmDeliverMaterial()
     {
+        if (!$this->guardDepartment('packaging')) return;
+
         if (!$this->selectedLotForDelivery) {
             session()->flash('error', 'Lote no encontrado.');
             return;
@@ -1459,6 +1559,8 @@ class ShippingListDisplay extends Component
      */
     public function confirmCreateLot()
     {
+        if (!$this->guardDepartment('materials')) return;
+
         $this->validate([
             'createLotName' => 'required|string|max:255',
             'createLotQuantity' => 'required|integer|min:1',
@@ -1539,6 +1641,8 @@ class ShippingListDisplay extends Component
 
     public function openProductionModal($lotId)
     {
+        if (!$this->guardDepartment('production')) return;
+
         $lot = Lot::with(['workOrder.purchaseOrder.part', 'kits'])->find($lotId);
 
         if (!$lot) {
@@ -1581,6 +1685,8 @@ class ShippingListDisplay extends Component
 
     public function saveProduction()
     {
+        if (!$this->guardDepartment('production')) return;
+
         $this->validate([
             'prodWeighedPieces' => 'required|integer|min:1',
             'prodWeighedAt' => 'required|date',
@@ -1618,6 +1724,8 @@ class ShippingListDisplay extends Component
 
     public function openQualityModal($lotId)
     {
+        if (!$this->guardDepartment('quality')) return;
+
         $lot = Lot::with(['workOrder.purchaseOrder.part', 'kits', 'weighings', 'qualityWeighings.weighedBy'])->find($lotId);
 
         if (!$lot) {
@@ -1688,6 +1796,8 @@ class ShippingListDisplay extends Component
 
     public function saveQuality()
     {
+        if (!$this->guardDepartment('quality')) return;
+
         $this->validate([
             'qualGoodPieces' => 'required|integer|min:0',
             'qualBadPieces' => 'required|integer|min:0',
@@ -1755,6 +1865,8 @@ class ShippingListDisplay extends Component
 
     public function editQualityWeighing($qualityWeighingId)
     {
+        if (!$this->guardDepartment('quality')) return;
+
         $qw = QualityWeighing::find($qualityWeighingId);
         if (!$qw) {
             session()->flash('error', 'Pesada no encontrada.');
@@ -1785,6 +1897,8 @@ class ShippingListDisplay extends Component
 
     public function deleteQualityWeighing($qualityWeighingId)
     {
+        if (!$this->guardDepartment('quality')) return;
+
         $qw = QualityWeighing::find($qualityWeighingId);
         if ($qw) {
             $qw->delete();
@@ -1803,6 +1917,8 @@ class ShippingListDisplay extends Component
 
     public function openProdKitModal($lotId)
     {
+        if (!$this->guardDepartment('production')) return;
+
         $lot = Lot::with(['workOrder.purchaseOrder.part', 'kits'])->find($lotId);
 
         if (!$lot) {
@@ -1869,6 +1985,8 @@ class ShippingListDisplay extends Component
 
     public function saveProdKit()
     {
+        if (!$this->guardDepartment('production')) return;
+
         $this->validate([
             'prodKitSelectedId' => 'required',
             'prodKitWeighedPieces' => 'required|integer|min:1',
@@ -1908,6 +2026,8 @@ class ShippingListDisplay extends Component
 
     public function openQualKitModal($lotId)
     {
+        if (!$this->guardDepartment('quality')) return;
+
         $lot = Lot::with(['workOrder.purchaseOrder.part', 'kits', 'weighings', 'qualityWeighings'])->find($lotId);
 
         if (!$lot) {
@@ -1986,6 +2106,8 @@ class ShippingListDisplay extends Component
 
     public function saveQualKit()
     {
+        if (!$this->guardDepartment('quality')) return;
+
         $this->validate([
             'qualKitSelectedId' => 'required',
             'qualKitGoodPieces' => 'required|integer|min:0',
@@ -2090,6 +2212,10 @@ class ShippingListDisplay extends Component
 
         return view('livewire.admin.sent-lists.shipping-list-display', [
             'workOrdersGrouped' => $workOrdersGrouped,
+            'canMaterials'  => $this->canAccessDepartment('materials'),
+            'canProduction' => $this->canAccessDepartment('production'),
+            'canQuality'    => $this->canAccessDepartment('quality'),
+            'canPackaging'  => $this->canAccessDepartment('packaging'),
         ])->layout('components.layouts.app');
     }
 }

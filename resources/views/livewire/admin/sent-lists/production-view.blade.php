@@ -39,9 +39,8 @@
                 <div class="p-4 space-y-4">
                     @foreach ($wo->lots as $lot)
                         @php
-                            $totalWeighed  = $lot->weighings->sum('quantity');
+                            $totalWeighed  = $lot->weighings->whereNull('kit_id')->sum('good_pieces');
                             $targetQty     = $lot->quantity;
-                            $remaining     = max(0, $targetQty - $totalWeighed);
                             $progressPct   = $targetQty > 0 ? min(100, round(($totalWeighed / $targetQty) * 100)) : 0;
                             $isCompleted   = $lot->status === 'completed';
                             $progressColor = $isCompleted ? 'bg-green-500' : ($progressPct > 0 ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600');
@@ -52,11 +51,11 @@
                             <div class="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700/40">
                                 <div class="flex items-center gap-3">
                                     <span class="font-mono text-sm font-semibold text-gray-800 dark:text-gray-200">Lote {{ $lot->lot_number }}</span>
+                                    @if ($lot->completion_count > 0)
+                                        <span class="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded">Completado {{ $lot->completion_count }}</span>
+                                    @endif
                                     <span class="text-xs text-gray-500 dark:text-gray-400">
                                         Meta: {{ number_format($targetQty) }} pzas
-                                        @if ($remaining > 0 && !$isCompleted)
-                                            | Restantes: {{ number_format($remaining) }}
-                                        @endif
                                     </span>
                                 </div>
                                 <div class="flex items-center gap-3">
@@ -74,33 +73,13 @@
                                             class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded-lg transition-colors">
                                             Reabrir
                                         </button>
-                                    @elseif ($remaining > 0)
+                                    @else
                                         <button wire:click="openWeighingModal({{ $lot->id }})"
                                             class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                             </svg>
                                             Agregar Pesada
-                                        </button>
-                                        {{-- Completar lote parcial --}}
-                                        @if ($totalWeighed > 0)
-                                            <button wire:click="markLotComplete({{ $lot->id }})"
-                                                wire:confirm="¿Marcar el lote como completado con {{ number_format($totalWeighed) }} de {{ number_format($targetQty) }} piezas?"
-                                                class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                </svg>
-                                                Completar
-                                            </button>
-                                        @endif
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">Restantes: {{ number_format($remaining) }}</span>
-                                    @else
-                                        <button wire:click="markLotComplete({{ $lot->id }})"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                            </svg>
-                                            Marcar Completo
                                         </button>
                                     @endif
                                 </div>
@@ -149,7 +128,7 @@
                                                         {{ \Carbon\Carbon::parse($weighing->weighed_at)->format('d/m/Y H:i') }}
                                                     </td>
                                                     <td class="px-4 py-2 text-right font-semibold text-gray-900 dark:text-gray-100">
-                                                        {{ number_format($weighing->quantity) }}
+                                                        {{ number_format($weighing->good_pieces) }}
                                                     </td>
                                                     <td class="px-4 py-2 text-gray-600 dark:text-gray-400">
                                                         {{ $weighing->weighedBy->name ?? 'N/A' }}
@@ -158,13 +137,21 @@
                                                         {{ $weighing->comments ?: '-' }}
                                                     </td>
                                                     <td class="px-4 py-2 text-center">
-                                                        <button wire:click="deleteWeighing({{ $weighing->id }})"
-                                                            wire:confirm="¿Eliminar esta pesada?"
-                                                            class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors">
-                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                            </svg>
-                                                        </button>
+                                                        <div class="flex items-center justify-center gap-1">
+                                                            <button wire:click="editWeighing({{ $weighing->id }})"
+                                                                class="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors" title="Editar">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                                </svg>
+                                                            </button>
+                                                            <button wire:click="deleteWeighing({{ $weighing->id }})"
+                                                                wire:confirm="¿Eliminar esta pesada?"
+                                                                class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors" title="Eliminar">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -172,7 +159,7 @@
                                         <tfoot class="bg-gray-50 dark:bg-gray-900/30">
                                             <tr>
                                                 <td class="px-4 py-2 font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase">Total</td>
-                                                <td class="px-4 py-2 text-right font-bold text-gray-900 dark:text-white text-xs">{{ number_format($lotOnlyTotal) }}</td>
+                                                <td class="px-4 py-2 text-right font-bold text-gray-900 dark:text-white text-xs">{{ number_format($lotOnlyWeighings->sum('good_pieces')) }}</td>
                                                 <td colspan="3"></td>
                                             </tr>
                                         </tfoot>
@@ -201,7 +188,7 @@
                             @foreach ($wo->kits as $kit)
                                 @php
                                     $kitWeighings = $wo->lots->flatMap->weighings->where('kit_id', $kit->id)->values();
-                                    $kitWeighed   = $kitWeighings->sum('quantity');
+                                    $kitWeighed   = $kitWeighings->sum('good_pieces');
                                     $kitTarget    = $kit->quantity;
                                     $kitPct       = $kitTarget > 0 ? min(100, round(($kitWeighed / $kitTarget) * 100)) : 0;
                                     $kitBarColor  = $kitPct >= 100 ? 'bg-green-500' : ($kitPct > 0 ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600');
@@ -253,7 +240,7 @@
                                                             {{ \Carbon\Carbon::parse($kw->weighed_at)->format('d/m/Y H:i') }}
                                                         </td>
                                                         <td class="px-3 py-1.5 text-right font-semibold text-purple-700 dark:text-purple-300">
-                                                            {{ number_format($kw->quantity) }}
+                                                            {{ number_format($kw->good_pieces) }}
                                                         </td>
                                                         <td class="px-3 py-1.5 text-gray-600 dark:text-gray-400">
                                                             {{ $kw->weighedBy->name ?? 'N/A' }}
@@ -262,13 +249,21 @@
                                                             {{ $kw->comments ?: '-' }}
                                                         </td>
                                                         <td class="px-3 py-1.5 text-center">
-                                                            <button wire:click="deleteWeighing({{ $kw->id }})"
-                                                                wire:confirm="¿Eliminar esta pesada de kit?"
-                                                                class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors">
-                                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                                </svg>
-                                                            </button>
+                                                            <div class="flex items-center justify-center gap-1">
+                                                                <button wire:click="editWeighing({{ $kw->id }})"
+                                                                    class="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors" title="Editar">
+                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                                    </svg>
+                                                                </button>
+                                                                <button wire:click="deleteWeighing({{ $kw->id }})"
+                                                                    wire:confirm="¿Eliminar esta pesada de kit?"
+                                                                    class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors" title="Eliminar">
+                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 @endforeach
@@ -310,18 +305,23 @@
             $modalLot       = $workOrders->flatMap->lots->firstWhere('id', $weighingLotId);
             $modalWo        = $modalLot ? $workOrders->firstWhere('id', $modalLot->work_order_id) : null;
             $modalIsCrimp   = $modalWo ? ($modalWo->purchaseOrder->part->is_crimp ?? false) : false;
-            $modalRemaining = $modalLot ? max(0, $modalLot->quantity - $modalLot->weighings->sum('quantity')) : 0;
+            $modalTotalWeighed = $modalLot ? (int) $modalLot->weighings->whereNull('kit_id')->sum('good_pieces') : 0;
+            $modalKit = $weighingKitId ? ($modalWo ? $modalWo->kits->firstWhere('id', $weighingKitId) : null) : null;
         @endphp
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/60" wire:click="closeWeighingModal"></div>
             <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 bg-blue-600 dark:bg-blue-700">
+                <div class="flex items-center justify-between px-6 py-4 {{ $modalKit ? 'bg-purple-600 dark:bg-purple-700' : 'bg-blue-600 dark:bg-blue-700' }}">
                     <div>
-                        <h3 class="text-lg font-bold text-white">Registrar Pesada</h3>
+                        <h3 class="text-lg font-bold text-white">Registrar Pesada {{ $modalKit ? '(Kit)' : '' }}</h3>
                         @if ($modalLot)
-                            <p class="text-sm text-blue-100 mt-0.5">
-                                Lote {{ $modalLot->lot_number }}
-                                &mdash; Restantes: {{ number_format($modalRemaining) }} pzas
+                            <p class="text-sm {{ $modalKit ? 'text-purple-100' : 'text-blue-100' }} mt-0.5">
+                                @if ($modalKit)
+                                    Kit {{ $modalKit->kit_number }} &mdash; {{ number_format($modalKit->quantity) }} pzas
+                                @else
+                                    Lote {{ $modalLot->lot_number }}
+                                    &mdash; Pesadas: {{ number_format($modalTotalWeighed) }} / {{ number_format($modalLot->quantity) }} pzas
+                                @endif
                             </p>
                         @endif
                     </div>
@@ -333,34 +333,25 @@
                 </div>
 
                 <div class="px-6 py-4 space-y-4">
+                    {{-- Editing indicator --}}
+                    @if ($editingWeighingId)
+                        <div class="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <span class="text-sm text-blue-700 dark:text-blue-300 font-medium">Editando pesada existente</span>
+                            <button wire:click="closeWeighingModal" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 underline">Cancelar</button>
+                        </div>
+                    @endif
+
                     {{-- Quantity --}}
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Piezas pesadas <span class="text-red-500">*</span>
-                            @if ($modalRemaining > 0)
-                                <span class="text-xs font-normal text-gray-500 dark:text-gray-400">(máx. {{ number_format($modalRemaining) }})</span>
-                            @endif
                         </label>
-                        <input type="number" wire:model="weighingQuantity" min="1" max="{{ $modalRemaining }}" placeholder="0"
+                        <input type="number" wire:model="weighingQuantity" min="1" placeholder="0"
                             class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         @error('weighingQuantity')
                             <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
                         @enderror
                     </div>
-
-                    {{-- Kit selector (CRIMP only) --}}
-                    @if ($modalIsCrimp && $modalWo && $modalWo->kits->isNotEmpty())
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kit asociado</label>
-                            <select wire:model="weighingKitId"
-                                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="">-- Sin kit --</option>
-                                @foreach ($modalWo->kits as $kit)
-                                    <option value="{{ $kit->id }}">{{ $kit->kit_number }} ({{ number_format($kit->quantity) }} pzas)</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif
 
                     {{-- Date/Time --}}
                     <div>
@@ -386,8 +377,8 @@
                         Cancelar
                     </button>
                     <button wire:click="saveWeighing"
-                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
-                        Guardar Pesada
+                        class="px-4 py-2 text-sm font-medium text-white {{ $editingWeighingId ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700' }} rounded-lg transition-colors">
+                        {{ $editingWeighingId ? 'Actualizar Pesada' : 'Guardar Pesada' }}
                     </button>
                 </div>
             </div>
@@ -409,13 +400,13 @@
                 </div>
 
                 <div class="px-6 py-4 space-y-4">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Resumen de piezas producidas por lote:</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Resumen de piezas producidas por lote{{ $workOrders->contains(fn($wo) => $wo->purchaseOrder->part->is_crimp ?? false) ? ' y kit' : '' }}:</p>
 
                     <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
                         <table class="w-full text-sm">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Lote</th>
+                                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Lote / Kit</th>
                                     <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Meta</th>
                                     <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Pesadas</th>
                                     <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">%</th>
@@ -423,8 +414,9 @@
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                                 @foreach ($workOrders as $wo)
+                                    @php $woIsCrimp = $wo->purchaseOrder->part->is_crimp ?? false; @endphp
                                     @foreach ($wo->lots as $lot)
-                                        @php $weighed = $lot->weighings->sum('quantity'); @endphp
+                                        @php $weighed = $lot->weighings->whereNull('kit_id')->sum('good_pieces'); @endphp
                                         <tr>
                                             <td class="px-4 py-2.5 font-mono text-gray-800 dark:text-gray-200">{{ $lot->lot_number }}</td>
                                             <td class="px-4 py-2.5 text-right text-gray-600 dark:text-gray-400">{{ number_format($lot->quantity) }}</td>
@@ -435,6 +427,28 @@
                                             </td>
                                         </tr>
                                     @endforeach
+                                    {{-- Kit rows for CRIMP --}}
+                                    @if ($woIsCrimp && $wo->kits->isNotEmpty())
+                                        @foreach ($wo->kits as $kit)
+                                            @php
+                                                $kitWeighed = $wo->lots->flatMap->weighings->where('kit_id', $kit->id)->sum('good_pieces');
+                                                $kitPct = $kit->quantity > 0 ? min(100, round($kitWeighed / $kit->quantity * 100)) : 0;
+                                            @endphp
+                                            <tr class="bg-purple-50/50 dark:bg-purple-900/10">
+                                                <td class="px-4 py-2 font-mono text-purple-700 dark:text-purple-300 text-xs">
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                                        {{ $kit->kit_number }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-2 text-right text-xs text-purple-600 dark:text-purple-400">{{ number_format($kit->quantity) }}</td>
+                                                <td class="px-4 py-2 text-right text-xs font-semibold text-purple-700 dark:text-purple-300">{{ number_format($kitWeighed) }}</td>
+                                                <td class="px-4 py-2 text-right">
+                                                    <span class="text-xs {{ $kitPct >= 100 ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400' }} font-medium">{{ $kitPct }}%</span>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @endif
                                 @endforeach
                             </tbody>
                         </table>

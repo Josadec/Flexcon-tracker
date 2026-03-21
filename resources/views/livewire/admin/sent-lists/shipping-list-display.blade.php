@@ -264,12 +264,16 @@
                                     <tr class="bg-gray-50 dark:bg-gray-700/20">
                                         <td class="px-4 py-2 pl-8 text-xs text-gray-600 dark:text-gray-400">Lote</td>
                                         <td class="px-4 py-2 text-xs">
-                                            <button wire:click="openLotModal({{ $wo->id }})"
-                                                class="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
-                                                {{ $lot->lot_number }}
-                                            </button>
+                                            @if ($canMaterials)
+                                                <button wire:click="openLotModal({{ $wo->id }})"
+                                                    class="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
+                                                    {{ $lot->lot_number }}
+                                                </button>
+                                            @else
+                                                <span class="text-gray-600 dark:text-gray-400">{{ $lot->lot_number }}</span>
+                                            @endif
                                             @if ($lot->completion_count > 0)
-                                                <span class="ml-1 px-1 py-0.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded font-semibold" title="Ciclo de completado {{ $lot->completion_count }}">C{{ $lot->completion_count }}</span>
+                                                <span class="ml-1 px-1 py-0.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded font-semibold" title="Ciclo de completado {{ $lot->completion_count }}">Completado {{ $lot->completion_count }}</span>
                                             @endif
                                         </td>
                                         <td class="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">
@@ -295,16 +299,20 @@
                                                     };
                                                 @endphp
                                                 <div class="flex items-center justify-center gap-1">
-                                                    <button wire:click="openKitModal({{ $lot->id }})"
-                                                        class="w-5 h-5 rounded {{ $lotKitColor }} hover:opacity-80 cursor-pointer transition-opacity"
-                                                        title="Kit: {{ $lotKit?->kit_number ?? 'Sin kit' }} - {{ $lotKit?->status_label ?? 'N/A' }}"></button>
-                                                    <button wire:click="openKitManageModal({{ $lot->id }})"
-                                                        class="w-5 h-5 rounded bg-indigo-500 hover:bg-indigo-600 cursor-pointer transition-colors flex items-center justify-center"
-                                                        title="Gestionar Kits">
-                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                                        </svg>
-                                                    </button>
+                                                    @if ($canMaterials)
+                                                        <button wire:click="openKitModal({{ $lot->id }})"
+                                                            class="w-5 h-5 rounded {{ $lotKitColor }} hover:opacity-80 cursor-pointer transition-opacity"
+                                                            title="Kit: {{ $lotKit?->kit_number ?? 'Sin kit' }} - {{ $lotKit?->status_label ?? 'N/A' }}"></button>
+                                                        <button wire:click="openKitManageModal({{ $lot->id }})"
+                                                            class="w-5 h-5 rounded bg-indigo-500 hover:bg-indigo-600 cursor-pointer transition-colors flex items-center justify-center"
+                                                            title="Gestionar Kits">
+                                                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                                            </svg>
+                                                        </button>
+                                                    @else
+                                                        <span class="w-5 h-5 rounded {{ $lotKitColor }} opacity-60" title="Kit: {{ $lotKit?->kit_number ?? 'Sin kit' }}"></span>
+                                                    @endif
                                                 </div>
                                             @else
                                                 {{-- No es CRIMP: lote = kit, semaforo basado en material_status --}}
@@ -321,26 +329,33 @@
                                                         default => 'Pendiente',
                                                     };
                                                 @endphp
-                                                <button wire:click="openMaterialModal({{ $lot->id }})"
-                                                    class="w-5 h-5 rounded {{ $matColor }} hover:opacity-80 cursor-pointer transition-opacity"
-                                                    title="Material (No CRIMP): {{ $matLabel }}"></button>
+                                                @if ($canMaterials)
+                                                    <button wire:click="openMaterialModal({{ $lot->id }})"
+                                                        class="w-5 h-5 rounded {{ $matColor }} hover:opacity-80 cursor-pointer transition-opacity"
+                                                        title="Material (No CRIMP): {{ $matLabel }}"></button>
+                                                @else
+                                                    <span class="w-5 h-5 rounded {{ $matColor }} opacity-60" title="Material: {{ $matLabel }}"></span>
+                                                @endif
                                             @endif
                                         </td>
                                         {{-- Semaforo INSP - Status de Inspeccion por Lote --}}
                                         <td class="px-4 py-2 text-center">
-                                            <button wire:click="openInspectionModal({{ $lot->id }})"
-                                                class="w-5 h-5 rounded {{ $lotInspectionColor }} {{ $canInspect ? 'hover:opacity-80 cursor-pointer' : 'cursor-not-allowed opacity-60' }} transition-opacity relative inline-flex items-center justify-center"
-                                                title="{{ $canInspect ? 'Status de Inspeccion: ' . ucfirst($inspectionStatus) : $inspectionBlockedReason ?? 'Bloqueado' }}">
-                                                @if (!$canInspect)
-                                                    {{-- Icono de candado para indicar que esta bloqueado --}}
-                                                    <svg class="w-3 h-3 text-gray-500 dark:text-gray-400"
-                                                        fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd"
-                                                            d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                                                            clip-rule="evenodd" />
-                                                    </svg>
-                                                @endif
-                                            </button>
+                                            @if ($canQuality)
+                                                <button wire:click="openInspectionModal({{ $lot->id }})"
+                                                    class="w-5 h-5 rounded {{ $lotInspectionColor }} {{ $canInspect ? 'hover:opacity-80 cursor-pointer' : 'cursor-not-allowed opacity-60' }} transition-opacity relative inline-flex items-center justify-center"
+                                                    title="{{ $canInspect ? 'Status de Inspeccion: ' . ucfirst($inspectionStatus) : $inspectionBlockedReason ?? 'Bloqueado' }}">
+                                                    @if (!$canInspect)
+                                                        <svg class="w-3 h-3 text-gray-500 dark:text-gray-400"
+                                                            fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd"
+                                                                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                                                clip-rule="evenodd" />
+                                                        </svg>
+                                                    @endif
+                                                </button>
+                                            @else
+                                                <span class="w-5 h-5 rounded {{ $lotInspectionColor }} opacity-60" title="Inspección: {{ ucfirst($inspectionStatus) }}"></span>
+                                            @endif
                                         </td>
                                         {{-- Semaforo Prod + Botón Pesada --}}
                                         <td class="px-4 py-2 text-center">
@@ -370,21 +385,23 @@
                                             @endphp
                                             <div class="flex items-center justify-center gap-1">
                                                 <span class="inline-block w-5 h-5 rounded {{ $prodSemColor }}" title="{{ $prodTitle }}"></span>
-                                                <button wire:click="openProductionModal({{ $lot->id }})"
-                                                    class="w-5 h-5 rounded bg-indigo-500 hover:bg-indigo-600 cursor-pointer transition-colors flex items-center justify-center"
-                                                    title="Pesada Lote">
-                                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 6v12m6-6H6"/>
-                                                    </svg>
-                                                </button>
-                                                @if ($part->is_crimp)
-                                                    <button wire:click="openProdKitModal({{ $lot->id }})"
-                                                        class="w-5 h-5 rounded bg-purple-500 hover:bg-purple-600 cursor-pointer transition-colors flex items-center justify-center"
-                                                        title="Pesada Kit">
+                                                @if ($canProduction)
+                                                    <button wire:click="openProductionModal({{ $lot->id }})"
+                                                        class="w-5 h-5 rounded bg-indigo-500 hover:bg-indigo-600 cursor-pointer transition-colors flex items-center justify-center"
+                                                        title="Pesada Lote">
                                                         <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 6v12m6-6H6"/>
                                                         </svg>
                                                     </button>
+                                                    @if ($part->is_crimp)
+                                                        <button wire:click="openProdKitModal({{ $lot->id }})"
+                                                            class="w-5 h-5 rounded bg-purple-500 hover:bg-purple-600 cursor-pointer transition-colors flex items-center justify-center"
+                                                            title="Pesada Kit">
+                                                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                                                            </svg>
+                                                        </button>
+                                                    @endif
                                                 @endif
                                             </div>
                                         </td>
@@ -410,23 +427,25 @@
                                             <div class="flex items-center justify-center gap-1">
                                                 <span class="inline-block w-5 h-5 rounded {{ $qualColor }} {{ !$qualHasProduction ? 'opacity-60' : '' }}"
                                                     title="{{ $qualTitle }}"></span>
-                                                @if ($qualHasProduction)
-                                                    <button wire:click="openQualityModal({{ $lot->id }})"
-                                                        class="w-5 h-5 rounded bg-teal-500 hover:bg-teal-600 cursor-pointer transition-colors flex items-center justify-center"
-                                                        title="Calidad Lote">
-                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 6v12m6-6H6"/>
-                                                        </svg>
-                                                    </button>
-                                                @endif
-                                                @if ($part->is_crimp)
-                                                    <button wire:click="openQualKitModal({{ $lot->id }})"
-                                                        class="w-5 h-5 rounded bg-cyan-500 hover:bg-cyan-600 cursor-pointer transition-colors flex items-center justify-center"
-                                                        title="Calidad Kit">
-                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                                                        </svg>
-                                                    </button>
+                                                @if ($canQuality)
+                                                    @if ($qualHasProduction)
+                                                        <button wire:click="openQualityModal({{ $lot->id }})"
+                                                            class="w-5 h-5 rounded bg-teal-500 hover:bg-teal-600 cursor-pointer transition-colors flex items-center justify-center"
+                                                            title="Calidad Lote">
+                                                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 6v12m6-6H6"/>
+                                                            </svg>
+                                                        </button>
+                                                    @endif
+                                                    @if ($part->is_crimp)
+                                                        <button wire:click="openQualKitModal({{ $lot->id }})"
+                                                            class="w-5 h-5 rounded bg-cyan-500 hover:bg-cyan-600 cursor-pointer transition-colors flex items-center justify-center"
+                                                            title="Calidad Kit">
+                                                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                                                            </svg>
+                                                        </button>
+                                                    @endif
                                                 @endif
                                             </div>
                                         </td>
@@ -450,10 +469,14 @@
                                                 };
                                             @endphp
                                             <div class="flex items-center justify-center gap-1">
-                                                <button wire:click="openPackagingModal({{ $lot->id }})"
-                                                    class="w-5 h-5 rounded {{ $pkgSemColor }} hover:opacity-80 cursor-pointer transition-opacity"
-                                                    title="{{ $pkgSemTitle }}"></button>
-                                                @if ($lot->viajero_received)
+                                                @if ($canPackaging)
+                                                    <button wire:click="openPackagingModal({{ $lot->id }})"
+                                                        class="w-5 h-5 rounded {{ $pkgSemColor }} hover:opacity-80 cursor-pointer transition-opacity"
+                                                        title="{{ $pkgSemTitle }}"></button>
+                                                @else
+                                                    <span class="w-5 h-5 rounded {{ $pkgSemColor }} opacity-60" title="{{ $pkgSemTitle }}"></span>
+                                                @endif
+                                                @if ($lot->viajero_received && $canMaterials)
                                                     <button wire:click="openDecisionModal({{ $lot->id }})"
                                                         class="w-5 h-5 rounded {{ $lot->closure_decision ? 'bg-purple-700' : 'bg-purple-500 hover:bg-purple-600' }} cursor-pointer transition-colors flex items-center justify-center"
                                                         title="Decisión Control de Materiales{{ $lot->closure_decision ? ' (decisión tomada)' : '' }}">
@@ -462,7 +485,7 @@
                                                         </svg>
                                                     </button>
                                                 @endif
-                                                @if ($lot->viajero_received && $lot->getPackagingTotalSurplus() > 0 && !$lot->surplus_delivered)
+                                                @if ($lot->viajero_received && $lot->getPackagingTotalSurplus() > 0 && !$lot->surplus_delivered && $canPackaging)
                                                     {{-- Paso 1: Empaque entrega sobrante --}}
                                                     <button wire:click="openDeliverMaterialModal({{ $lot->id }})"
                                                         class="w-5 h-5 rounded bg-amber-500 hover:bg-amber-600 cursor-pointer transition-colors flex items-center justify-center"
@@ -772,15 +795,24 @@
                             <div
                                 class="p-4 pl-8 bg-gray-50 dark:bg-gray-700/20 space-y-2 border-l-2 border-gray-300 dark:border-gray-600">
                                 <div class="flex items-center justify-between">
-                                    <button wire:click="openLotModal({{ $wo->id }})"
-                                        class="flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
-                                        <span
-                                            class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Lote</span>
-                                        <span>{{ $lot->lot_number }}</span>
-                                        @if ($lot->completion_count > 0)
-                                            <span class="px-1.5 py-0.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded font-semibold">C{{ $lot->completion_count }}</span>
-                                        @endif
-                                    </button>
+                                    @if ($canMaterials)
+                                        <button wire:click="openLotModal({{ $wo->id }})"
+                                            class="flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Lote</span>
+                                            <span>{{ $lot->lot_number }}</span>
+                                            @if ($lot->completion_count > 0)
+                                                <span class="px-1.5 py-0.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded font-semibold">Completado {{ $lot->completion_count }}</span>
+                                            @endif
+                                        </button>
+                                    @else
+                                        <span class="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Lote</span>
+                                            <span>{{ $lot->lot_number }}</span>
+                                            @if ($lot->completion_count > 0)
+                                                <span class="px-1.5 py-0.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded font-semibold">Completado {{ $lot->completion_count }}</span>
+                                            @endif
+                                        </span>
+                                    @endif
                                     <span
                                         class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded {{ $statusInfo['bg'] }} {{ $statusInfo['text'] }}">
                                         {{ $statusInfo['label'] }}
@@ -794,18 +826,22 @@
                                     class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
                                     <div class="flex items-center gap-2">
                                         <span class="text-xs text-gray-500 dark:text-gray-400">Inspeccion:</span>
-                                        <button wire:click="openInspectionModal({{ $lot->id }})"
-                                            class="w-6 h-6 rounded {{ $lotInspectionColorMobile }} {{ $canInspectMobile ? 'hover:opacity-80 cursor-pointer' : 'cursor-not-allowed opacity-60' }} transition-opacity relative inline-flex items-center justify-center"
-                                            title="{{ $canInspectMobile ? 'Status de Inspeccion: ' . ucfirst($inspectionStatusMobile) : $inspectionBlockedReasonMobile ?? 'Bloqueado' }}">
-                                            @if (!$canInspectMobile)
-                                                <svg class="w-3 h-3 text-gray-500 dark:text-gray-400"
-                                                    fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd"
-                                                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                                                        clip-rule="evenodd" />
-                                                </svg>
-                                            @endif
-                                        </button>
+                                        @if ($canQuality)
+                                            <button wire:click="openInspectionModal({{ $lot->id }})"
+                                                class="w-6 h-6 rounded {{ $lotInspectionColorMobile }} {{ $canInspectMobile ? 'hover:opacity-80 cursor-pointer' : 'cursor-not-allowed opacity-60' }} transition-opacity relative inline-flex items-center justify-center"
+                                                title="{{ $canInspectMobile ? 'Status de Inspeccion: ' . ucfirst($inspectionStatusMobile) : $inspectionBlockedReasonMobile ?? 'Bloqueado' }}">
+                                                @if (!$canInspectMobile)
+                                                    <svg class="w-3 h-3 text-gray-500 dark:text-gray-400"
+                                                        fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd"
+                                                            d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                @endif
+                                            </button>
+                                        @else
+                                            <span class="w-6 h-6 rounded {{ $lotInspectionColorMobile }} opacity-60"></span>
+                                        @endif
                                         @if ($canInspectMobile)
                                             <span
                                                 class="text-xs {{ $inspectionStatusMobile === 'approved' ? 'text-green-600 dark:text-green-400' : ($inspectionStatusMobile === 'rejected' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400') }}">
@@ -1983,8 +2019,9 @@
                                                 </div>
                                                 <div>
                                                     <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Sobrantes</label>
-                                                    <input type="number" value="{{ $pkgSurplusPieces }}" readonly
-                                                        class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded cursor-not-allowed">
+                                                    <input type="number" wire:model.live="pkgSurplusPieces" min="0"
+                                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded focus:ring-1 focus:ring-orange-500">
+                                                    <span class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 block">Auto-calculado, editable si desea</span>
                                                 </div>
                                                 <div>
                                                     <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha/Hora *</label>
@@ -2123,7 +2160,7 @@
                                     Parte: {{ $selectedLotForDecision->workOrder->purchaseOrder->part->number ?? 'N/A' }}
                                     @if ($decIsCrimp) <span class="ml-1 px-1.5 py-0.5 text-xs bg-purple-800 text-purple-100 rounded">CRIMP</span> @endif
                                     @if ($selectedLotForDecision->completion_count > 0)
-                                        <span class="ml-1 px-1.5 py-0.5 text-xs bg-amber-500 text-white rounded font-semibold">Ciclo {{ $selectedLotForDecision->completion_count + 1 }}</span>
+                                        <span class="ml-1 px-1.5 py-0.5 text-xs bg-amber-500 text-white rounded font-semibold">Completado {{ $selectedLotForDecision->completion_count }}</span>
                                     @endif
                                 </p>
                             </div>
