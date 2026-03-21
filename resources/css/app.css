@@ -36,6 +36,9 @@
     }
 }
 
+/* Oculta elementos con x-cloak hasta que Alpine.js los inicializa */
+[x-cloak] { display: none !important; }
+
 @layer base {
 
     *,

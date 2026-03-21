@@ -18,11 +18,13 @@ class PackingSlip extends Model
     // =========================================================
     // Constantes de estado del ciclo de vida
     // =========================================================
+    public const STATUS_DRAFT     = 'draft';
     public const STATUS_PENDING   = 'pending';
     public const STATUS_SHIPPED   = 'shipped';
     public const STATUS_CANCELLED = 'cancelled';
 
     public const STATUSES = [
+        self::STATUS_DRAFT     => 'Borrador',
         self::STATUS_PENDING   => 'Pendiente',
         self::STATUS_SHIPPED   => 'Despachado',
         self::STATUS_CANCELLED => 'Cancelado',
@@ -58,17 +60,25 @@ class PackingSlip extends Model
     }
 
     /**
-     * Retorna el valor que se incrusta en la URL (lowercase para URLs limpias).
+     * Retorna el valor que se incrusta en la URL (lowercase + URL-encoded para URLs limpias y seguras).
      * Ejemplo: PS-2026-0002 → ps-2026-0002
+     * Ejemplo: #0001234    → %230001234  (el # se codifica para no romperse como fragmento HTML)
+     *
+     * Nota: rawurlencode() no modifica letras, dígitos ni los caracteres - _ . ~
+     * por lo que los ps_number con formato estándar PS-YYYY-NNNN no cambian.
      */
     public function getRouteKey(): string
     {
-        return strtolower($this->ps_number);
+        return rawurlencode(strtolower($this->ps_number));
     }
 
     /**
      * Resuelve el binding de forma case-insensitive para que la URL
      * ps-2026-0002 encuentre el registro PS-2026-0002 en la BD.
+     *
+     * El router de Laravel/Symfony decodifica los segmentos %XX antes de invocar
+     * este método, por lo que $value llega como '#0001234' (no '%230001234').
+     * Usamos strtoupper() para normalizar al formato almacenado en la BD.
      */
     public function resolveRouteBinding($value, $field = null): ?self
     {
@@ -87,6 +97,10 @@ class PackingSlip extends Model
             if (empty($ps->ps_number)) {
                 $ps->ps_number = static::generatePsNumber();
             }
+            // document_date NO se asigna automaticamente: debe quedar NULL hasta que
+            // el usuario confirme la fecha del documento. Los botones de PDF en la vista
+            // dependen de que document_date tenga valor, por lo que asignarla aqui
+            // causaria que aparecieran desde el momento de creacion (bug reportado).
         });
     }
 
@@ -152,6 +166,11 @@ class PackingSlip extends Model
     // Scopes
     // =========================================================
 
+    public function scopeDraft(Builder $query): Builder
+    {
+        return $query->where('status', self::STATUS_DRAFT);
+    }
+
     public function scopePending(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_PENDING);
@@ -190,6 +209,11 @@ class PackingSlip extends Model
         return $this->invoice_id !== null;
     }
 
+    public function isDraft(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
     public function isPending(): bool
     {
         return $this->status === self::STATUS_PENDING;
@@ -219,6 +243,7 @@ class PackingSlip extends Model
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
+            self::STATUS_DRAFT     => 'yellow',
             self::STATUS_PENDING   => 'orange',
             self::STATUS_SHIPPED   => 'green',
             self::STATUS_CANCELLED => 'red',

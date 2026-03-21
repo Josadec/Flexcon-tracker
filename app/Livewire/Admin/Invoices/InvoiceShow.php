@@ -236,6 +236,55 @@ class InvoiceShow extends Component
     }
 
     // -----------------------------------------------------------------------
+    // Edicion inline del Invoice Number
+    // -----------------------------------------------------------------------
+
+    /**
+     * Actualiza el invoice_number del Invoice.
+     * Solo permitido en estado draft.
+     * Redirige a la nueva URL porque el Route Model Binding usa invoice_number como slug.
+     */
+    public function updateInvoiceNumber(string $value): void
+    {
+        if (! $this->invoice->isDraft()) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => 'Solo se puede editar el número en Invoices en borrador.',
+            ]);
+            return;
+        }
+
+        $value = trim($value);
+
+        if (empty($value) || strlen($value) > 10) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => 'El número de Invoice no puede estar vacío ni superar 10 caracteres.',
+            ]);
+            return;
+        }
+
+        // Verificar unicidad incluyendo soft-deleted para evitar conflictos con el índice UNIQUE
+        $exists = Invoice::withTrashed()
+            ->where('invoice_number', $value)
+            ->where('id', '!=', $this->invoice->id)
+            ->exists();
+
+        if ($exists) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => "El número '{$value}' ya está en uso por otro Invoice.",
+            ]);
+            return;
+        }
+
+        $this->invoice->update(['invoice_number' => $value]);
+
+        // Redirigir a la nueva URL porque el slug de la ruta cambió
+        $this->redirect(route('admin.invoices.show', $value));
+    }
+
+    // -----------------------------------------------------------------------
     // Transiciones de estado
     // -----------------------------------------------------------------------
 

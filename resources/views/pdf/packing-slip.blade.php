@@ -60,7 +60,7 @@
         }
 
         .banner-center .company-name {
-            font-size: 13pt;
+            font-size: 19pt;
             font-weight: bold;
             letter-spacing: 1px;
             line-height: 1.3;
@@ -129,9 +129,18 @@
         .ship-col {
             display: table-cell;
             vertical-align: top;
-            width: 50%;
+            width: 38%;
             font-size: 7.5pt;
             line-height: 1.5;
+        }
+
+        .ship-col-right {
+            display: table-cell;
+            vertical-align: top;
+            width: 24%;
+            font-size: 7.5pt;
+            line-height: 1.6;
+            text-align: left;
         }
 
         .ship-col .ship-label {
@@ -170,8 +179,13 @@
            Ajustar si el header cambia de altura.
            ============================================================ */
         #main-content {
-            /* Espacio reservado para el encabezado fijo (~160px) */
-            margin-top: 165px;
+            /* Espacio reservado para el encabezado fijo.
+               Banner (19pt company-name): ~64px
+               Address-bar: ~19px
+               Doc-info-bar: ~21px
+               Ship-block: ~65px
+               Total real del header: ~169px + margen de seguridad = 210px */
+            margin-top: 210px;
             /* Espacio reservado para pie de pagina fijo (~18px) */
             margin-bottom: 20px;
             padding: 0 10px;
@@ -185,17 +199,17 @@
             border-collapse: collapse;
             font-size: 7.5pt;
             margin-top: 4px;
+            table-layout: fixed;
         }
 
         .items-table thead tr th {
             background-color: #1e3a5f;
             color: #ffffff;
-            padding: 4px 5px;
+            padding: 4px 4px;
             text-align: left;
-            font-size: 7.5pt;
+            font-size: 8pt;
             font-weight: bold;
             border: 1px solid #1e3a5f;
-            white-space: nowrap;
         }
 
         .items-table thead tr th.col-qty {
@@ -306,9 +320,40 @@
         .sig-row-single {
             display: table-row;
         }
+
+        /* ============================================================
+           MARCA DE AGUA — visible solo cuando status = cancelled
+           position:fixed asegura que aparece en todas las paginas.
+           Se usa rgba() directamente en color porque DomPDF no soporta
+           la propiedad opacity de forma confiable.
+           ============================================================ */
+        .watermark {
+            position: fixed;
+            top: 38%;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 90pt;
+            font-weight: bold;
+            color: rgba(200, 0, 0, 0.13);
+            letter-spacing: 12px;
+            transform: rotate(-40deg);
+            z-index: 9999;
+            white-space: nowrap;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
+
+    {{-- ================================================================
+         MARCA DE AGUA — solo cuando status es "cancelled"
+         El elemento usa position:fixed para que DomPDF lo repita en
+         todas las paginas del documento.
+         ================================================================ --}}
+    @if($packingSlip->isCancelled())
+        <div class="watermark">CANCELADO</div>
+    @endif
 
     {{-- ================================================================
          ENCABEZADO FIJO (se repite en cada pagina)
@@ -344,33 +389,28 @@
             <div class="info-cell">
                 <strong>PH#</strong> 425-466-2184
             </div>
-            <div class="info-cell">
-                <strong>Email:</strong> Frank@flexconinc.com
-            </div>
-            <div class="info-cell">
-                <strong>Packing Slip #</strong> {{ $packingSlip->ps_number }}
-            </div>
-            <div class="info-cell">
-                <strong>F.O.B:</strong> Tecate, Ca.
-            </div>
-            <div class="info-cell">
-                <strong>DATE:</strong> {{ $packingSlip->document_date?->format('m/d/Y') ?? '-' }}
-            </div>
         </div>
 
-        {{-- Bloque Sold To / Shipped To --}}
+        {{-- Bloque Sold To / Shipped To / Info --}}
         <div class="ship-block">
             <div class="ship-col">
-                <div class="ship-label">Sold To</div>
+                <div class="ship-label">Sold To:</div>
                 <div>S.E.I.P., Inc.</div>
                 <div>915 Armorlite Dr.</div>
                 <div>San Marcos, Ca. 92069</div>
             </div>
             <div class="ship-col">
-                <div class="ship-label">Shipped To</div>
+                <div class="ship-label">Shipped To:</div>
                 <div>S.E.I.P., Inc.</div>
                 <div>915 Armorlite Dr.</div>
                 <div>San Marcos, Ca. 92069</div>
+            </div>
+            <div class="ship-col-right">
+                <div style="font-size:8pt; font-weight:bold; color:#ffffff; border-bottom:1px solid #1e3a5f; margin-top:1px; margin-bottom:2px; padding-bottom:1px; line-height:1.4;">&nbsp;</div>
+                <div><strong>Email:</strong> Frank@flexconinc.com</div>
+                <div><strong>Packing Slip #</strong> {{ $packingSlip->ps_number }}</div>
+                <div><strong>F.O.B:</strong> Tecate, Ca.</div>
+                <div><strong>DATE:</strong> {{ $packingSlip->document_date?->format('m/d/Y') ?? '-' }}</div>
             </div>
         </div>
 
@@ -391,13 +431,13 @@
         <table class="items-table">
             <thead>
                 <tr>
-                    <th style="width:12%;">Work Order</th>
-                    <th style="width:14%;">PO #</th>
+                    <th style="width:18%;">Work Order</th>
+                    <th style="width:7%;">PO #</th>
                     <th style="width:10%;">Item no</th>
-                    <th style="width:28%;">Description</th>
-                    <th style="width:10%;" class="col-qty">Quantity</th>
-                    <th style="width:13%;">Date</th>
-                    <th style="width:13%;">Label Spec</th>
+                    <th style="width:22%;">Description</th>
+                    <th style="width:11%;" class="col-qty">Quantity</th>
+                    <th style="width:14%;">Date</th>
+                    <th style="width:18%;">Label Spec</th>
                 </tr>
             </thead>
             <tbody>

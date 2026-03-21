@@ -30,7 +30,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label for="document_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Fecha del Documento <span class="text-red-500">*</span>
+                                Fecha del Documento <span class="text-gray-400 font-normal">(opcional)</span>
                             </label>
                             <input
                                 id="document_date"
@@ -41,7 +41,7 @@
                             @error('document_date')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Corresponde al campo DATE del encabezado del FPL-10.</p>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Corresponde al campo DATE del encabezado del FPL-10. Si se deja en blanco, se puede asignar después desde el detalle del PS.</p>
                         </div>
                         <div>
                             <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
