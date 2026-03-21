@@ -155,12 +155,16 @@
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Número de PS</p>
                         @if ($packingSlip->isDraft())
                             <div x-data="{ editing: false, value: '{{ $packingSlip->ps_number }}' }" class="mt-1">
-                                <span x-show="!editing" @click="editing = true"
-                                      class="text-base font-mono text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 hover:underline inline-flex items-center gap-1">
+                                <span x-show="!editing"
+                                      class="text-base font-mono text-gray-900 dark:text-white inline-flex items-center gap-1">
                                     <span x-text="value"></span>
-                                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
+                                    <button type="button" @click="editing = true"
+                                            class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                                            title="Editar PS Number">
+                                        <svg class="w-3.5 h-3.5 text-gray-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
                                 </span>
                                 <input x-show="editing" x-model="value" type="text"
                                        maxlength="30"
@@ -178,18 +182,21 @@
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Fecha del Documento</p>
                         @if ($packingSlip->isDraft())
                             <div x-data="{ editing: false, value: '{{ $packingSlip->document_date?->format('Y-m-d') ?? now()->format('Y-m-d') }}' }" class="mt-1">
-                                <span x-show="!editing" @click="editing = true"
-                                      class="text-base text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 hover:underline inline-flex items-center gap-1">
+                                <span x-show="!editing"
+                                      class="text-base text-gray-900 dark:text-white inline-flex items-center gap-1">
                                     <span x-text="new Date(value + 'T00:00:00').toLocaleDateString('es-MX', {day:'2-digit',month:'2-digit',year:'numeric'})"></span>
-                                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
+                                    <button type="button" @click="editing = true"
+                                            class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                                            title="Editar Fecha del Documento">
+                                        <svg class="w-3.5 h-3.5 text-gray-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
                                 </span>
                                 <div x-show="editing" x-cloak style="display:none">
                                     <input x-model="value" type="date"
-                                           class="border border-blue-400 rounded px-2 py-0.5 text-sm w-40 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                                           @blur="editing = false; $wire.updateDocumentDate(value)"
-                                           @keydown.enter="editing = false; $wire.updateDocumentDate(value)"
+                                           class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                           @change="editing = false; $wire.updateDocumentDate(value)"
                                            @keydown.escape="editing = false"
                                            x-effect="if (editing) $nextTick(() => $el.focus())">
                                 </div>
