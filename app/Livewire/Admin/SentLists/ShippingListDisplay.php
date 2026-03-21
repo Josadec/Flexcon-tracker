@@ -25,10 +25,10 @@ class ShippingListDisplay extends Component
      * admin has access to ALL departments.
      */
     private const ROLE_DEPARTMENT_MAP = [
-        'Materials'  => ['materials'],
-        'Production' => ['production'],
-        'Quality'    => ['quality'],
-        'Shipping'   => ['packaging'],
+        'Materiales' => ['materials'],
+        'Produccion' => ['production'],
+        'Calidad'    => ['quality'],
+        'Empaques'   => ['packaging'],
     ];
 
     /**
@@ -906,6 +906,13 @@ class ShippingListDisplay extends Component
             'inspection_completed_at' => now(),
             'inspection_completed_by' => auth()->id(),
         ]);
+
+        // Al rechazar inspección, resetear kits a 'preparing' para que Materiales los corrija
+        if ($this->inspectionStatus === 'rejected') {
+            $this->selectedLot->kits()
+                ->whereIn('status', [Kit::STATUS_RELEASED, Kit::STATUS_READY, Kit::STATUS_IN_ASSEMBLY])
+                ->update(['status' => Kit::STATUS_PREPARING]);
+        }
 
         $statusLabel = Lot::getInspectionStatuses()[$this->inspectionStatus];
         session()->flash('message', "Status de inspeccion actualizado a: {$statusLabel}");

@@ -85,6 +85,10 @@
                         :current="request()->routeIs('admin.sent-lists.index') || request()->routeIs('admin.sent-lists.show')"
                         wire:navigate>{{ __('Listas Preliminares') }}
                     </flux:navlist.item>
+                    <flux:navlist.item icon="tv" :href="route('admin.sent-lists.tv')"
+                        :current="request()->routeIs('admin.sent-lists.tv')" wire:navigate>
+                        {{ __('Monitor TV') }}
+                    </flux:navlist.item>
                     @if ($authUser->hasRole('admin'))
                         <flux:navlist.item icon="calendar-days" :href="route('admin.holidays.index')"
                             :current="request()->routeIs('admin.holidays.*')" wire:navigate>{{ __('Días Festivos') }}
@@ -123,6 +127,10 @@
                         :current="request()->routeIs('admin.sent-lists.index') || request()->routeIs('admin.sent-lists.show')"
                         wire:navigate>{{ __('Listas Preliminares') }}
                     </flux:navlist.item>
+                    <flux:navlist.item icon="tv" :href="route('admin.sent-lists.tv')"
+                        :current="request()->routeIs('admin.sent-lists.tv')" wire:navigate>
+                        {{ __('Monitor TV') }}
+                    </flux:navlist.item>
                 </flux:navlist.group>
             @endif
 
@@ -141,6 +149,18 @@
                     <flux:navlist.item icon="truck" :href="route('admin.shipping.queue')"
                         :current="request()->routeIs('admin.shipping.queue')" wire:navigate>{{ __('WO Listos para PS') }}
                     </flux:navlist.item>
+                    <flux:navlist.item icon="queue-list" :href="route('admin.sent-lists.display')"
+                        :current="request()->routeIs('admin.sent-lists.display')" wire:navigate>
+                        {{ __('Lista de Envío') }}
+                    </flux:navlist.item>
+                    <flux:navlist.item icon="list-bullet" :href="route('admin.sent-lists.index')"
+                        :current="request()->routeIs('admin.sent-lists.index') || request()->routeIs('admin.sent-lists.show')"
+                        wire:navigate>{{ __('Listas Preliminares') }}
+                    </flux:navlist.item>
+                    <flux:navlist.item icon="tv" :href="route('admin.sent-lists.tv')"
+                        :current="request()->routeIs('admin.sent-lists.tv')" wire:navigate>
+                        {{ __('Monitor TV') }}
+                    </flux:navlist.item>
                 </flux:navlist.group>
             @endif
 
@@ -157,9 +177,17 @@
                         :current="request()->routeIs('admin.quality.weighings')" wire:navigate>
                         {{ __('Pesadas Calidad') }}
                     </flux:navlist.item>
-                    <flux:navlist.item icon="truck" :href="route('admin.sent-lists.display')"
+                    <flux:navlist.item icon="queue-list" :href="route('admin.sent-lists.display')"
                         :current="request()->routeIs('admin.sent-lists.display')" wire:navigate>
                         {{ __('Lista de Envío') }}
+                    </flux:navlist.item>
+                    <flux:navlist.item icon="list-bullet" :href="route('admin.sent-lists.index')"
+                        :current="request()->routeIs('admin.sent-lists.index') || request()->routeIs('admin.sent-lists.show')"
+                        wire:navigate>{{ __('Listas Preliminares') }}
+                    </flux:navlist.item>
+                    <flux:navlist.item icon="tv" :href="route('admin.sent-lists.tv')"
+                        :current="request()->routeIs('admin.sent-lists.tv')" wire:navigate>
+                        {{ __('Monitor TV') }}
                     </flux:navlist.item>
                 </flux:navlist.group>
             @endif

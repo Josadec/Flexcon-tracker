@@ -245,7 +245,7 @@
                                         $canInspect = $lot->canBeInspected();
                                         $inspectionStatus = $lot->inspection_status ?? 'pending';
 
-                                        // Color del semaforo de inspeccion
+                                        // Color del semaforo de inspeccion (para el boton interactivo de Calidad)
                                         $lotInspectionColor = match ($inspectionStatus) {
                                             'rejected' => 'bg-red-500',
                                             'pending' => 'bg-yellow-400',
@@ -253,10 +253,10 @@
                                             default => 'bg-gray-400',
                                         };
 
-                                        // Si no puede ser inspeccionado, mostrar gris
-                                        if (!$canInspect) {
-                                            $lotInspectionColor = 'bg-gray-300 dark:bg-gray-600';
-                                        }
+                                        // Para el boton de Calidad: gris cuando no se puede inspeccionar
+                                        $lotInspectionColorBtn = $canInspect
+                                            ? $lotInspectionColor
+                                            : 'bg-gray-300 dark:bg-gray-600';
 
                                         // Obtener razon de bloqueo si existe
                                         $inspectionBlockedReason = $lot->getInspectionBlockedReason();
@@ -342,7 +342,7 @@
                                         <td class="px-4 py-2 text-center">
                                             @if ($canQuality)
                                                 <button wire:click="openInspectionModal({{ $lot->id }})"
-                                                    class="w-5 h-5 rounded {{ $lotInspectionColor }} {{ $canInspect ? 'hover:opacity-80 cursor-pointer' : 'cursor-not-allowed opacity-60' }} transition-opacity relative inline-flex items-center justify-center"
+                                                    class="w-5 h-5 rounded {{ $lotInspectionColorBtn }} {{ $canInspect ? 'hover:opacity-80 cursor-pointer' : 'cursor-not-allowed opacity-60' }} transition-opacity relative inline-flex items-center justify-center"
                                                     title="{{ $canInspect ? 'Status de Inspeccion: ' . ucfirst($inspectionStatus) : $inspectionBlockedReason ?? 'Bloqueado' }}">
                                                     @if (!$canInspect)
                                                         <svg class="w-3 h-3 text-gray-500 dark:text-gray-400"
@@ -354,7 +354,9 @@
                                                     @endif
                                                 </button>
                                             @else
-                                                <span class="w-5 h-5 rounded {{ $lotInspectionColor }} opacity-60" title="Inspección: {{ ucfirst($inspectionStatus) }}"></span>
+                                                {{-- Solo-lectura: muestra siempre el color real del estado --}}
+                                                <span class="inline-flex w-5 h-5 rounded {{ $lotInspectionColor }} opacity-70"
+                                                    title="Inspección: {{ ucfirst($inspectionStatus) }}{{ !$canInspect ? ' (bloqueado)' : '' }}"></span>
                                             @endif
                                         </td>
                                         {{-- Semaforo Prod + Botón Pesada --}}
@@ -776,7 +778,7 @@
                                 $canInspectMobile = $lot->canBeInspected();
                                 $inspectionStatusMobile = $lot->inspection_status ?? 'pending';
 
-                                // Color del semaforo de inspeccion
+                                // Color del semaforo de inspeccion (estado real, siempre visible)
                                 $lotInspectionColorMobile = match ($inspectionStatusMobile) {
                                     'rejected' => 'bg-red-500',
                                     'pending' => 'bg-yellow-400',
@@ -784,10 +786,10 @@
                                     default => 'bg-gray-400',
                                 };
 
-                                // Si no puede ser inspeccionado, mostrar gris
-                                if (!$canInspectMobile) {
-                                    $lotInspectionColorMobile = 'bg-gray-300 dark:bg-gray-600';
-                                }
+                                // Para el boton de Calidad: gris cuando no se puede inspeccionar
+                                $lotInspectionColorMobileBtn = $canInspectMobile
+                                    ? $lotInspectionColorMobile
+                                    : 'bg-gray-300 dark:bg-gray-600';
 
                                 // Obtener razon de bloqueo si existe
                                 $inspectionBlockedReasonMobile = $lot->getInspectionBlockedReason();
@@ -828,7 +830,7 @@
                                         <span class="text-xs text-gray-500 dark:text-gray-400">Inspeccion:</span>
                                         @if ($canQuality)
                                             <button wire:click="openInspectionModal({{ $lot->id }})"
-                                                class="w-6 h-6 rounded {{ $lotInspectionColorMobile }} {{ $canInspectMobile ? 'hover:opacity-80 cursor-pointer' : 'cursor-not-allowed opacity-60' }} transition-opacity relative inline-flex items-center justify-center"
+                                                class="w-6 h-6 rounded {{ $lotInspectionColorMobileBtn }} {{ $canInspectMobile ? 'hover:opacity-80 cursor-pointer' : 'cursor-not-allowed opacity-60' }} transition-opacity relative inline-flex items-center justify-center"
                                                 title="{{ $canInspectMobile ? 'Status de Inspeccion: ' . ucfirst($inspectionStatusMobile) : $inspectionBlockedReasonMobile ?? 'Bloqueado' }}">
                                                 @if (!$canInspectMobile)
                                                     <svg class="w-3 h-3 text-gray-500 dark:text-gray-400"
@@ -840,7 +842,9 @@
                                                 @endif
                                             </button>
                                         @else
-                                            <span class="w-6 h-6 rounded {{ $lotInspectionColorMobile }} opacity-60"></span>
+                                            {{-- Solo-lectura: muestra el color real del estado de inspección --}}
+                                            <span class="inline-flex w-6 h-6 rounded {{ $lotInspectionColorMobile }} opacity-70"
+                                                title="Inspección: {{ ucfirst($inspectionStatusMobile) }}{{ !$canInspectMobile ? ' (bloqueado)' : '' }}"></span>
                                         @endif
                                         @if ($canInspectMobile)
                                             <span
