@@ -1,3 +1,5 @@
+
+
 <?php
 extract(Flux::forwardedAttributes($attributes, [
     'type',
@@ -48,23 +50,32 @@ foreach ($attributes->all() as $__key => $__value) {
 unset($__defined_vars, $__key, $__value); ?>
 
 <?php
+if ($as !== 'div' || $href) {
+    if ($current !== null) {
+        // If the user manually specified :current="true/false", we need to stop Livewire from managing
+        // the data-current attribute as it would be automatically added/removed when using wire:navigate...
+        $attributes = $attributes->merge(['data-current' => $current, 'wire:current.ignore' => true]);
+    } else {
+        $hrefForCurrentDetection = str($href)->startsWith(trim(config('app.url')))
+            ? (string) str($href)->after(trim(config('app.url'), '/'))
+            : $href;
 
-$hrefForCurrentDetection = str($href)->startsWith(trim(config('app.url')))
-    ? (string) str($href)->after(trim(config('app.url'), '/'))
-    : $href;
+        if ($hrefForCurrentDetection === '') $hrefForCurrentDetection = '/';
 
-if ($hrefForCurrentDetection === '') $hrefForCurrentDetection = '/';
+        $requestIs = function ($pattern) {
+            // Support current route detection during Livewire update requests as well...
+            return app('livewire')?->isLivewireRequest()
+                ? str()->is($pattern, app('livewire')->originalPath())
+                : request()->is($pattern);
+        };
 
-$requestIs = function ($pattern) {
-    // Support current route detection during Livewire update requests as well...
-    return app('livewire')?->isLivewireRequest()
-        ? str()->is($pattern, app('livewire')->originalPath())
-        : request()->is($pattern);
-};
+        $current = $hrefForCurrentDetection
+            ? $requestIs($hrefForCurrentDetection === '/' ? '/' : trim($hrefForCurrentDetection, '/'))
+            : false;
 
-$current = $current === null ? ($hrefForCurrentDetection
-    ? $requestIs($hrefForCurrentDetection === '/' ? '/' : trim($hrefForCurrentDetection, '/'))
-    : false) : $current;
+        $attributes = $attributes->merge(['data-current' => $current]);
+    }
+}
 ?>
 
 <?php if ($as === 'div' && ! $href): ?>
@@ -74,12 +85,12 @@ $current = $current === null ? ($hrefForCurrentDetection
     </div>
 <?php elseif ($as === 'a' || $href): ?>
     
-    <a href="<?php echo e($href); ?>" <?php echo e($attributes->merge(['data-current' => $current])); ?>>
+    <a href="<?php echo e($href); ?>" <?php echo e($attributes); ?>>
         <?php echo e($slot); ?>
 
     </a>
 <?php else: ?>
-    <button <?php echo e($attributes->merge(['type' => $type, 'data-current' => $current])); ?>>
+    <button <?php echo e($attributes->merge(['type' => $type])); ?>>
         <?php echo e($slot); ?>
 
     </button>

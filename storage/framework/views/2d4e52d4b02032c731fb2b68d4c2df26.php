@@ -1,3 +1,5 @@
+
+
 <?php $attributes ??= new \Illuminate\View\ComponentAttributeBag;
 
 $__newAttributes = [];
@@ -5,6 +7,7 @@ $__propNames = \Illuminate\View\ComponentAttributeBag::extractPropNames(([
     'icon' => 'exclamation-triangle',
     'bag' => 'default',
     'message' => null,
+    'deep' => true,
     'nested' => true,
     'name' => null,
 ]));
@@ -26,6 +29,7 @@ foreach (array_filter(([
     'icon' => 'exclamation-triangle',
     'bag' => 'default',
     'message' => null,
+    'deep' => true,
     'nested' => true,
     'name' => null,
 ]), 'is_string', ARRAY_FILTER_USE_KEY) as $__key => $__value) {
@@ -44,7 +48,12 @@ unset($__defined_vars, $__key, $__value); ?>
 $errorBag = $errors->getBag($bag);
 $message ??= $name ? $errorBag->first($name) : null;
 
-if ($name && (is_null($message) || $message === '') && filter_var($nested, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) !== false) {
+// Backwards compatibility...
+if ($nested === false) {
+    $deep = false;
+}
+
+if ($name && (is_null($message) || $message === '') && filter_var($deep, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) !== false) {
     $message = $errorBag->first($name . '.*');
 }
 
@@ -65,6 +74,8 @@ $classes = Flux::classes('mt-3 text-sm font-medium text-red-500 dark:text-red-40
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes(['name' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($icon),'variant' => 'mini','class' => 'inline']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginalc7d5f44bf2a2d803ed0b55f72f1f82e2)): ?>

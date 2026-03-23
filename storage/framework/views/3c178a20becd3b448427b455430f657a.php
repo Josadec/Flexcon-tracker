@@ -222,6 +222,8 @@ $label = $alt ?? $name;
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes(['tooltip' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($tooltip),'attributes' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($attributes)]); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
     <?php if (isset($component)) { $__componentOriginal41290c80ee95fab383f81660ba8bf860 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal41290c80ee95fab383f81660ba8bf860 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'e60dd9d2c3a62d619c9acb38f20d5aa5::button-or-link','data' => ['attributes' => $attributes->class($classes)->merge($circle ? ['data-circle' => 'true'] : []),'as' => $as,'href' => $href,'dataFluxAvatar' => true,'dataSlot' => 'avatar','dataSize' => ''.e($size).'']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -232,6 +234,8 @@ $label = $alt ?? $name;
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes(['attributes' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($attributes->class($classes)->merge($circle ? ['data-circle' => 'true'] : [])),'as' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($as),'href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($href),'data-flux-avatar' => true,'data-slot' => 'avatar','data-size' => ''.e($size).'']); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
         <?php if ($src): ?>
             <img src="<?php echo e($src); ?>" alt="<?php echo e($alt ?? $name); ?>" class="rounded-[var(--avatar-radius)] size-full object-cover">
         <?php elseif ($icon): ?>
@@ -245,6 +249,8 @@ $label = $alt ?? $name;
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes(['name' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($icon),'variant' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($iconVariant),'class' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($iconClasses)]); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginalc7d5f44bf2a2d803ed0b55f72f1f82e2)): ?>

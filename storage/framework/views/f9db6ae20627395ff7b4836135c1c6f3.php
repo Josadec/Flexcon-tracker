@@ -61,6 +61,8 @@ unset($__defined_vars, $__key, $__value); ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes(['content' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($tooltip),'position' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($tooltipPosition),'kbd' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($tooltipKbd)]); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
         <?php echo e($slot); ?>
 
      <?php echo $__env->renderComponent(); ?>
