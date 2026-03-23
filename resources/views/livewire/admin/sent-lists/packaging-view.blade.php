@@ -66,6 +66,9 @@
                                 {{-- Izquierda: lot number + badges de piezas --}}
                                 <div class="flex items-center gap-3">
                                     <span class="font-mono text-sm font-semibold text-gray-800 dark:text-gray-200">Lote {{ $lot->lot_number }}</span>
+                                    @if ($lot->completion_count > 0)
+                                        <span class="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded">Completado {{ $lot->completion_count }}</span>
+                                    @endif
                                     @if ($hasRecords)
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -348,9 +351,10 @@
 
                     {{-- Surplus pieces --}}
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Piezas sobrantes <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Piezas sobrantes</label>
                         <input type="number" wire:model="surplusPieces" min="0" placeholder="0"
                             class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Puede ingresar manualmente la cantidad de sobrantes.</p>
                         @error('surplusPieces')
                             <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
                         @enderror
@@ -457,7 +461,7 @@
                                                 </svg>
                                             </div>
                                             <div class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">Completar Lote</div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Nuevo {{ $decIsCrimp ? 'lote + kit' : 'lote' }} de {{ number_format($decMissing) }} pz</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Reiniciar con {{ number_format($decMissing) }} pz faltantes</div>
                                         </button>
                                     @endif
 

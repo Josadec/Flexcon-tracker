@@ -4,8 +4,11 @@ namespace App\Livewire\Admin\SentLists;
 
 use App\Models\Kit;
 use App\Models\Lot;
+use App\Models\LotCompletionLog;
 use App\Models\PackagingRecord;
+use App\Models\QualityWeighing;
 use App\Models\SentList;
+use App\Models\Weighing;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -68,29 +71,29 @@ class SentListPackagingView extends Component
     {
         $this->validate([
             'packedPieces'      => 'required|integer|min:0',
-            'surplusPieces'     => 'required|integer|min:0',
             'packedAt'          => 'required|date',
             'packagingComments' => 'nullable|string|max:500',
         ], [
             'packedPieces.required'  => 'Las piezas empacadas son obligatorias.',
-            'surplusPieces.required' => 'Las piezas sobrantes son obligatorias.',
             'packedAt.required'      => 'La fecha/hora es obligatoria.',
         ]);
 
-        if ($this->packedPieces > $this->modalAvailable) {
-            $this->addError('packedPieces', "No puede empacar más de {$this->modalAvailable} piezas disponibles.");
-            return;
-        }
+        $surplus = max(0, (int) $this->surplusPieces);
 
         PackagingRecord::create([
             'lot_id'           => $this->packagingLotId,
             'available_pieces' => $this->modalAvailable,
             'packed_pieces'    => $this->packedPieces,
-            'surplus_pieces'   => $this->surplusPieces,
+            'surplus_pieces'   => $surplus,
             'comments'         => $this->packagingComments ?: null,
             'packed_at'        => $this->packedAt,
             'packed_by'        => Auth::id(),
         ]);
+
+        $message = 'Empaque registrado correctamente.';
+        if ($surplus > 0) {
+            $message .= ' ' . number_format($surplus) . ' piezas sobrantes.';
+        }
 
         $this->showPackagingModal = false;
         $this->packagingLotId    = null;
@@ -99,7 +102,7 @@ class SentListPackagingView extends Component
         $this->packagingComments = '';
         $this->modalAvailable    = 0;
         $this->sentList->refresh();
-        session()->flash('message', 'Empaque registrado correctamente.');
+        session()->flash('message', $message);
     }
 
     public function closePackagingModal(): void
@@ -183,16 +186,78 @@ class SentListPackagingView extends Component
     }
 
     /**
-     * Decision: Completar Lote — create a new lot with the missing pieces.
+     * Decision: Completar Lote — reset the SAME lot with missing pieces.
+     * Saves a completion log, soft-deletes old records, resets pipeline.
      */
     public function decisionCompleteLot(): void
     {
         if (!$this->selectedLotForDecision) return;
 
-        $this->createLotType     = 'complete';
-        $this->createLotQuantity = $this->decMissing;
-        $this->createLotName     = Lot::generateNextLotNumber($this->selectedLotForDecision->work_order_id);
-        $this->showCreateLotFormModal = true;
+        $lot     = $this->selectedLotForDecision;
+        $missing = $this->decMissing;
+
+        if ($missing <= 0) {
+            session()->flash('error', 'No hay piezas faltantes para completar.');
+            return;
+        }
+
+        $newCycle = ($lot->completion_count ?? 0) + 1;
+
+        // 1. Save completion log
+        LotCompletionLog::create([
+            'lot_id'                 => $lot->id,
+            'cycle_number'           => $newCycle,
+            'original_quantity'      => $lot->quantity,
+            'packed_pieces'          => $this->decPacked,
+            'surplus_pieces'         => $this->decSurplus,
+            'missing_pieces'         => $missing,
+            'production_good_pieces' => $lot->getProductionGoodPieces(),
+            'quality_good_pieces'    => $lot->getQualityGoodPieces(),
+            'completed_by'           => Auth::id(),
+            'completed_at'           => now(),
+        ]);
+
+        // 2. Soft-delete old records so the lot starts a fresh cycle
+        Weighing::where('lot_id', $lot->id)->delete();
+        QualityWeighing::where('lot_id', $lot->id)->delete();
+        PackagingRecord::where('lot_id', $lot->id)->delete();
+
+        // 3. Reset lot with missing quantity and fresh statuses
+        $lot->update([
+            'quantity'               => $missing,
+            'completion_count'       => $newCycle,
+            'closure_decision'       => null,
+            'closure_decided_by'     => null,
+            'closure_decided_at'     => null,
+            'status'                 => Lot::STATUS_IN_PROGRESS,
+            'material_status'        => 'pending',
+            'inspection_status'      => Lot::INSPECTION_PENDING,
+            'inspection_comments'    => null,
+            'inspection_completed_at' => null,
+            'inspection_completed_by' => null,
+            'packaging_status'       => 'pending',
+            'packaging_comments'     => null,
+            'packaging_inspected_by' => null,
+            'packaging_inspected_at' => null,
+            'viajero_received'       => false,
+            'viajero_received_at'    => null,
+            'viajero_received_by'    => null,
+            'surplus_received'       => false,
+            'surplus_received_at'    => null,
+            'surplus_received_by'    => null,
+            'surplus_delivered'       => false,
+            'surplus_delivered_at'    => null,
+            'surplus_delivered_by'    => null,
+        ]);
+
+        // 4. If crimp part, reset kit statuses
+        if ($this->decIsCrimp) {
+            $lot->kits()->update(['status' => Kit::STATUS_PREPARING]);
+        }
+
+        session()->flash('message', 'Lote completado (Completado ' . $newCycle . '). Se reinició con ' . number_format($missing) . ' piezas faltantes para reprocesar.');
+        $this->closeDecisionModal();
+        $this->sentList->refresh();
     }
 
     /**

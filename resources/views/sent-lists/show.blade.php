@@ -6,7 +6,7 @@
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Detalle y flujo por departamentos</p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0 ml-auto">
-                @if ($sentList->isPending())
+                @if ($sentList->isPending() && (auth()->user()->hasRole('admin') || auth()->user()->hasRole('Materiales')))
                     <a href="{{ route('admin.sent-lists.edit', $sentList) }}"
                         class="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,7 +121,23 @@
         </div>
 
         {{-- Department tabs --}}
-        <div x-data="{ activeTab: '{{ $sentList->current_department }}' }" class="space-y-0">
+        @php
+            $authUser = auth()->user();
+            // Tabs que el usuario puede CLICKEAR (interactuar)
+            $allowedTabs = match(true) {
+                $authUser->hasRole('admin')      => ['materiales', 'inspeccion', 'produccion', 'calidad', 'envios'],
+                $authUser->hasRole('Materiales') => ['materiales'],
+                $authUser->hasRole('Produccion') => ['produccion'],
+                $authUser->hasRole('Calidad')    => ['calidad', 'inspeccion'],
+                $authUser->hasRole('Empaques')   => ['envios'],
+                default                          => [],
+            };
+            // Tab inicial: el primero permitido para el rol (o el departamento actual si es admin)
+            $initialTab = $authUser->hasRole('admin')
+                ? $sentList->current_department
+                : ($allowedTabs[0] ?? $sentList->current_department);
+        @endphp
+        <div x-data="{ activeTab: '{{ $initialTab }}' }" class="space-y-0">
             {{-- Tab buttons --}}
             <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-t-lg overflow-hidden">
                 <div class="flex overflow-x-auto">
@@ -136,46 +152,69 @@
                                 'envios'      => !is_null($sentList->shipping_approved_at),
                                 default       => false,
                             };
+                            $canClickTab = in_array($deptKey, $allowedTabs);
                         @endphp
-                        <button
-                            @click="activeTab = '{{ $deptKey }}'"
-                            :class="activeTab === '{{ $deptKey }}'
-                                ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 font-semibold'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/30'"
-                            class="flex items-center gap-2 px-5 py-3.5 text-sm whitespace-nowrap transition-colors border-b-2 border-transparent">
-                            @if ($isDone)
-                                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            @elseif ($isActive)
-                                <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse inline-block"></span>
-                            @else
-                                <span class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 inline-block"></span>
-                            @endif
-                            {{ $deptLabel }}
-                            @if ($isActive)
-                                <span class="px-1.5 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded">Activo</span>
-                            @endif
-                        </button>
+                        @if ($canClickTab)
+                            <button
+                                @click="activeTab = '{{ $deptKey }}'"
+                                :class="activeTab === '{{ $deptKey }}'
+                                    ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 font-semibold'
+                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/30'"
+                                class="flex items-center gap-2 px-5 py-3.5 text-sm whitespace-nowrap transition-colors border-b-2 border-transparent">
+                        @else
+                            <span
+                                class="flex items-center gap-2 px-5 py-3.5 text-sm whitespace-nowrap border-b-2 border-transparent opacity-50 cursor-not-allowed text-gray-400 dark:text-gray-600">
+                        @endif
+                                @if ($isDone)
+                                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                @elseif ($isActive)
+                                    <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse inline-block"></span>
+                                @else
+                                    <span class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 inline-block"></span>
+                                @endif
+                                {{ $deptLabel }}
+                                @if ($isActive)
+                                    <span class="px-1.5 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded">Activo</span>
+                                @endif
+                        @if ($canClickTab)
+                            </button>
+                        @else
+                            </span>
+                        @endif
                     @endforeach
                 </div>
             </div>
 
-            {{-- Tab content --}}
+            {{-- Tab content — solo se renderiza el tab del departamento permitido --}}
             <div class="bg-white dark:bg-gray-800 border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-lg p-4">
-                <div x-show="activeTab === 'materiales'" x-cloak>
-                    @livewire('admin.sent-lists.sent-list-materials-view', ['sentList' => $sentList], key('dept-materials-'.$sentList->id))
-                </div>
-                <div x-show="activeTab === 'inspeccion'" x-cloak>
-                    @livewire('admin.sent-lists.sent-list-inspection-view', ['sentList' => $sentList], key('dept-inspection-'.$sentList->id))
-                </div>
-                <div x-show="activeTab === 'produccion'" x-cloak>
-                    @livewire('admin.sent-lists.sent-list-production-view', ['sentList' => $sentList], key('dept-production-'.$sentList->id))
-                </div>
-                <div x-show="activeTab === 'calidad'" x-cloak>
-                    @livewire('admin.sent-lists.sent-list-quality-view', ['sentList' => $sentList], key('dept-quality-'.$sentList->id))
-                </div>
-                <div x-show="activeTab === 'envios'" x-cloak>
-                    @livewire('admin.sent-lists.sent-list-packaging-view', ['sentList' => $sentList], key('dept-shipping-'.$sentList->id))
-                </div>
+                @if (in_array('materiales', $allowedTabs))
+                    <div x-show="activeTab === 'materiales'" x-cloak>
+                        @livewire('admin.sent-lists.sent-list-materials-view', ['sentList' => $sentList], key('dept-materials-'.$sentList->id))
+                    </div>
+                @endif
+                @if (in_array('inspeccion', $allowedTabs))
+                    <div x-show="activeTab === 'inspeccion'" x-cloak>
+                        @livewire('admin.sent-lists.sent-list-inspection-view', ['sentList' => $sentList], key('dept-inspection-'.$sentList->id))
+                    </div>
+                @endif
+                @if (in_array('produccion', $allowedTabs))
+                    <div x-show="activeTab === 'produccion'" x-cloak>
+                        @livewire('admin.sent-lists.sent-list-production-view', ['sentList' => $sentList], key('dept-production-'.$sentList->id))
+                    </div>
+                @endif
+                @if (in_array('calidad', $allowedTabs))
+                    <div x-show="activeTab === 'calidad'" x-cloak>
+                        @livewire('admin.sent-lists.sent-list-quality-view', ['sentList' => $sentList], key('dept-quality-'.$sentList->id))
+                    </div>
+                @endif
+                @if (in_array('envios', $allowedTabs))
+                    <div x-show="activeTab === 'envios'" x-cloak>
+                        @livewire('admin.sent-lists.sent-list-packaging-view', ['sentList' => $sentList], key('dept-shipping-'.$sentList->id))
+                    </div>
+                @endif
+                @if (empty($allowedTabs))
+                    <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-6">No tienes acceso a ningún departamento en esta lista.</p>
+                @endif
             </div>
         </div>
     </div>

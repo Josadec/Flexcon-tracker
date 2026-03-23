@@ -1,223 +1,182 @@
 <div
     x-data="{
-        scrollContainer: null,
-        scrollSpeed: 0.5,
+        currentSlide: 0,
+        totalSlides: {{ count($slides) ?: 1 }},
+        slideInterval: 10000,
+        timer: null,
         paused: false,
         init() {
-            this.scrollContainer = this.$refs.tableBody;
-            this.autoScroll();
+            this.startTimer();
         },
-        autoScroll() {
-            const step = () => {
-                if (!this.paused && this.scrollContainer) {
-                    this.scrollContainer.scrollTop += this.scrollSpeed;
-                    if (this.scrollContainer.scrollTop >= this.scrollContainer.scrollHeight - this.scrollContainer.clientHeight) {
-                        this.scrollContainer.scrollTop = 0;
-                    }
-                }
-                requestAnimationFrame(step);
-            };
-            requestAnimationFrame(step);
+        startTimer() {
+            this.timer = setInterval(() => {
+                if (!this.paused) this.next();
+            }, this.slideInterval);
+        },
+        next() {
+            this.currentSlide = (this.currentSlide + 1) % this.totalSlides;
+        },
+        prev() {
+            this.currentSlide = (this.currentSlide - 1 + this.totalSlides) % this.totalSlides;
+        },
+        goTo(i) {
+            this.currentSlide = i;
+            clearInterval(this.timer);
+            this.startTimer();
         }
     }"
     wire:poll.{{ $refreshInterval }}s="refreshDisplay"
-    class="min-h-screen bg-gray-950 text-white p-4 flex flex-col"
+    class="h-screen bg-white text-gray-900 p-4 flex flex-col overflow-hidden"
     @mouseenter="paused = true"
     @mouseleave="paused = false"
 >
     {{-- Header --}}
-    <div class="flex items-center justify-between mb-4 flex-shrink-0">
-        <div class="flex items-center gap-4">
-            <h1 class="text-3xl font-bold text-white tracking-wide">FLEXCON — Monitor de Producción</h1>
-            <span class="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">Auto-refresh {{ $refreshInterval }}s</span>
+    <div class="flex items-center justify-between mb-3 flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <h1 class="text-lg font-bold text-gray-800 tracking-wide">FLEXCON — Monitor de Producción</h1>
+            <span class="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{{ count($woCards) }} WOs</span>
         </div>
-        <div class="flex items-center gap-3 text-sm">
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-500"></span> Completo</span>
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-yellow-400"></span> En Proceso</span>
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-gray-600"></span> Pendiente</span>
-            <span class="text-gray-500 ml-4" id="tv-clock"></span>
+        <div class="flex items-center gap-3 text-xs text-gray-500">
+            @if (count($slides) > 1)
+                <span x-text="(currentSlide + 1) + '/{{ count($slides) }}'"></span>
+            @endif
+            <span class="font-mono" id="tv-clock"></span>
         </div>
     </div>
 
-    {{-- Donut Charts (pure SVG — no JS needed) --}}
-    <div class="grid grid-cols-5 gap-4 mb-4 flex-shrink-0">
-        @php
-            $areas = [
-                'kit' => ['label' => 'Kit / Material'],
-                'inspeccion' => ['label' => 'Inspección'],
-                'produccion' => ['label' => 'Producción'],
-                'calidad' => ['label' => 'Calidad'],
-                'empaque' => ['label' => 'Empaque'],
-            ];
-            // SVG donut config: radius=40, circumference=2*PI*40=251.327
-            $svgR = 40;
-            $svgCirc = 2 * M_PI * $svgR; // ~251.327
-        @endphp
-        @foreach ($areas as $key => $area)
-            @php
-                $stats = $areaStats[$key];
-                $total = $stats['total'] ?: 1;
-                $pctGreen = ($stats['green'] / $total) * 100;
-                $pctYellow = ($stats['yellow'] / $total) * 100;
-                $pctGray = 100 - $pctGreen - $pctYellow;
+    {{-- Slideshow --}}
+    <div class="flex-1 flex flex-col min-h-0">
+        @if (count($slides) > 0)
+            @foreach ($slides as $slideIndex => $slideCards)
+                <div x-show="currentSlide === {{ $slideIndex }}" x-cloak
+                    x-transition:enter="transition ease-out duration-400"
+                    x-transition:enter-start="opacity-0"
+                    x-transition:enter-end="opacity-100"
+                    class="flex-1 grid grid-cols-1 gap-3 min-h-0" style="grid-template-rows: repeat({{ count($slideCards) }}, minmax(0, 1fr))"
+                >
+                    @foreach ($slideCards as $card)
+                        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-0">
+                            {{-- Card Header: compact --}}
+                            <div class="px-3 py-2 bg-gray-50 border-b border-gray-200 flex-shrink-0">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <span class="text-sm font-bold text-indigo-600">{{ $card['wo'] }}</span>
+                                        <span class="text-xs text-gray-400">{{ $card['item'] }}</span>
+                                        <span class="text-xs font-semibold text-gray-800">#{{ $card['part_number'] }}</span>
+                                        @if ($card['is_crimp'])
+                                            <span class="px-1 py-0.5 text-[9px] font-bold bg-purple-100 text-purple-700 rounded leading-none">CRIMP</span>
+                                        @endif
+                                        <span class="text-[10px] text-gray-400 truncate max-w-[200px]">{{ $card['description'] }}</span>
+                                    </div>
+                                    <span class="text-[10px] text-gray-400 flex-shrink-0">{{ $card['lot_count'] }} lotes</span>
+                                </div>
+                            </div>
 
-                // SVG stroke-dasharray segments
-                $lenGreen = ($pctGreen / 100) * $svgCirc;
-                $lenYellow = ($pctYellow / 100) * $svgCirc;
-                $lenGray = ($pctGray / 100) * $svgCirc;
-
-                // SVG stroke-dashoffset (cumulative rotation)
-                $offsetGreen = 0;
-                $offsetYellow = $svgCirc - $lenGreen;
-                $offsetGray = $svgCirc - $lenGreen - $lenYellow;
-
-                $displayPct = round($pctGreen);
-            @endphp
-            <div class="bg-gray-900 rounded-xl p-4 flex flex-col items-center border border-gray-800">
-                <h3 class="text-sm font-semibold text-gray-300 mb-2">{{ $area['label'] }}</h3>
-                <div class="relative" style="width:110px;height:110px;">
-                    <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90">
-                        {{-- Background ring --}}
-                        <circle cx="50" cy="50" r="{{ $svgR }}" fill="none" stroke="#374151" stroke-width="12" />
-                        {{-- Gray segment --}}
-                        @if ($lenGray > 0)
-                            <circle cx="50" cy="50" r="{{ $svgR }}" fill="none"
-                                stroke="#4b5563" stroke-width="12"
-                                stroke-dasharray="{{ $lenGray }} {{ $svgCirc - $lenGray }}"
-                                stroke-dashoffset="{{ -($lenGreen + $lenYellow) }}"
-                                stroke-linecap="butt" />
-                        @endif
-                        {{-- Yellow segment --}}
-                        @if ($lenYellow > 0)
-                            <circle cx="50" cy="50" r="{{ $svgR }}" fill="none"
-                                stroke="#facc15" stroke-width="12"
-                                stroke-dasharray="{{ $lenYellow }} {{ $svgCirc - $lenYellow }}"
-                                stroke-dashoffset="{{ -$lenGreen }}"
-                                stroke-linecap="butt" />
-                        @endif
-                        {{-- Green segment (drawn last = on top) --}}
-                        @if ($lenGreen > 0)
-                            <circle cx="50" cy="50" r="{{ $svgR }}" fill="none"
-                                stroke="#22c55e" stroke-width="12"
-                                stroke-dasharray="{{ $lenGreen }} {{ $svgCirc - $lenGreen }}"
-                                stroke-dashoffset="0"
-                                stroke-linecap="butt" />
-                        @endif
-                    </svg>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <span class="text-2xl font-bold text-white">{{ $displayPct }}%</span>
-                    </div>
+                            {{-- Lots table: compact rows --}}
+                            <div class="flex-1 overflow-y-auto min-h-0">
+                                <table class="w-full text-[11px]">
+                                    <thead class="sticky top-0 z-10">
+                                        <tr class="bg-gray-100 text-gray-500 uppercase tracking-wider">
+                                            <th class="px-2 py-1.5 text-left font-medium">Lote</th>
+                                            <th class="px-2 py-1.5 text-right font-medium">Piezas</th>
+                                            @if ($card['is_crimp'])
+                                                <th class="px-2 py-1.5 text-left font-medium">Kit</th>
+                                            @endif
+                                            <th class="px-2 py-1.5 text-center font-medium" style="width:28%">Producción</th>
+                                            <th class="px-2 py-1.5 text-center font-medium" style="width:28%">Calidad</th>
+                                            <th class="px-2 py-1.5 text-center font-medium" style="width:28%">Empaque</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        @foreach ($card['lots'] as $li => $lot)
+                                            <tr class="{{ $li % 2 === 0 ? 'bg-white' : 'bg-gray-50/50' }}">
+                                                {{-- Lot number --}}
+                                                <td class="px-2 py-1.5 font-semibold text-gray-800 whitespace-nowrap">
+                                                    {{ $lot['lot_number'] }}
+                                                    @if ($lot['completion_count'] > 0)
+                                                        <span class="text-[9px] text-amber-600 font-normal ml-0.5">C{{ $lot['completion_count'] }}</span>
+                                                    @endif
+                                                </td>
+                                                {{-- Pieces target --}}
+                                                <td class="px-2 py-1.5 text-right text-gray-500 font-mono whitespace-nowrap">{{ number_format($lot['quantity']) }}</td>
+                                                {{-- Kit (if crimp) --}}
+                                                @if ($card['is_crimp'])
+                                                    <td class="px-2 py-1.5 whitespace-nowrap">
+                                                        @if (!empty($lot['kits']))
+                                                            @foreach ($lot['kits'] as $kit)
+                                                                @php
+                                                                    $kDot = match($kit['status']) {
+                                                                        'released' => 'bg-green-500',
+                                                                        'preparing' => 'bg-yellow-400',
+                                                                        'pending_approval' => 'bg-blue-400',
+                                                                        default => 'bg-gray-600',
+                                                                    };
+                                                                @endphp
+                                                                <span class="inline-flex items-center gap-0.5 mr-1">
+                                                                    <span class="w-1.5 h-1.5 rounded-full {{ $kDot }}"></span>
+                                                                    <span class="text-gray-600">{{ $kit['kit_number'] }}</span>
+                                                                </span>
+                                                            @endforeach
+                                                        @else
+                                                            <span class="text-gray-300">—</span>
+                                                        @endif
+                                                    </td>
+                                                @endif
+                                                {{-- Production mini bar --}}
+                                                <td class="px-2 py-1.5">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <div class="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                                            <div class="h-full rounded-full {{ $lot['prod_pct'] >= 100 ? 'bg-green-500' : ($lot['prod_pct'] > 0 ? 'bg-yellow-400' : 'bg-gray-300') }}"
+                                                                style="width:{{ max($lot['prod_pct'], 2) }}%"></div>
+                                                        </div>
+                                                        <span class="font-mono text-[10px] {{ $lot['prod_pct'] >= 100 ? 'text-green-600' : 'text-gray-500' }} whitespace-nowrap w-16 text-right">{{ number_format($lot['prod_weighed']) }}/{{ number_format($lot['quantity']) }}</span>
+                                                    </div>
+                                                </td>
+                                                {{-- Quality mini bar --}}
+                                                <td class="px-2 py-1.5">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <div class="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                                            <div class="h-full rounded-full {{ $lot['qual_pct'] >= 100 ? 'bg-green-500' : ($lot['qual_pct'] > 0 ? 'bg-blue-400' : 'bg-gray-300') }}"
+                                                                style="width:{{ max($lot['qual_pct'], 2) }}%"></div>
+                                                        </div>
+                                                        <span class="font-mono text-[10px] {{ $lot['qual_pct'] >= 100 ? 'text-green-600' : 'text-gray-500' }} whitespace-nowrap w-16 text-right">{{ number_format($lot['qual_good']) }}/{{ number_format($lot['qual_target']) }}</span>
+                                                    </div>
+                                                </td>
+                                                {{-- Packaging mini bar --}}
+                                                <td class="px-2 py-1.5">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <div class="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                                            <div class="h-full rounded-full {{ $lot['pkg_pct'] >= 100 ? 'bg-green-500' : ($lot['pkg_pct'] > 0 ? 'bg-orange-400' : 'bg-gray-300') }}"
+                                                                style="width:{{ max($lot['pkg_pct'], 2) }}%"></div>
+                                                        </div>
+                                                        <span class="font-mono text-[10px] {{ $lot['pkg_pct'] >= 100 ? 'text-green-600' : 'text-gray-500' }} whitespace-nowrap w-16 text-right">{{ number_format($lot['packed']) }}/{{ number_format($lot['pkg_target']) }}</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
-                <div class="flex items-center gap-3 mt-2 text-[11px] text-gray-400">
-                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span>{{ $stats['green'] }}</span>
-                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-400"></span>{{ $stats['yellow'] }}</span>
-                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-gray-600"></span>{{ $stats['gray'] }}</span>
-                </div>
+            @endforeach
+        @else
+            <div class="flex-1 flex items-center justify-center">
+                <p class="text-gray-400 text-lg">No hay Work Orders activas</p>
             </div>
-        @endforeach
-    </div>
+        @endif
 
-    {{-- Table --}}
-    <div class="flex-1 bg-gray-900 rounded-xl border border-gray-800 overflow-hidden flex flex-col min-h-0">
-        {{-- Table Header --}}
-        <div class="flex-shrink-0">
-            <table class="w-full">
-                <thead>
-                    <tr class="bg-gray-800/80 text-gray-300 text-sm uppercase tracking-wider">
-                        <th class="px-5 py-4 text-left w-[140px]">WO</th>
-                        <th class="px-5 py-4 text-left w-[90px]">Item</th>
-                        <th class="px-5 py-4 text-left w-[140px]"># Parte</th>
-                        <th class="px-5 py-4 text-left">Descripción</th>
-                        <th class="px-4 py-4 text-center w-[70px]">Lotes</th>
-                        <th class="px-3 py-4 text-center w-[110px]">Kit</th>
-                        <th class="px-3 py-4 text-center w-[110px]">Insp</th>
-                        <th class="px-3 py-4 text-center w-[110px]">Prod</th>
-                        <th class="px-3 py-4 text-center w-[110px]">Cal</th>
-                        <th class="px-3 py-4 text-center w-[110px]">Emp</th>
-                    </tr>
-                </thead>
-            </table>
-        </div>
-
-        {{-- Table Body (scrollable) --}}
-        <div class="flex-1 overflow-y-auto min-h-0" x-ref="tableBody">
-            <table class="w-full">
-                <tbody class="divide-y divide-gray-800/50">
-                    @forelse ($rows as $i => $row)
-                        <tr class="{{ $i % 2 === 0 ? 'bg-gray-900' : 'bg-gray-900/50' }} hover:bg-gray-800/50 transition-colors">
-                            <td class="px-5 py-4 text-base font-semibold text-indigo-400 w-[140px]">{{ $row['wo'] }}</td>
-                            <td class="px-5 py-4 text-base text-gray-300 w-[90px]">{{ $row['item'] }}</td>
-                            <td class="px-5 py-4 text-base font-medium text-white w-[140px]">{{ $row['part_number'] }}</td>
-                            <td class="px-5 py-4 text-base text-gray-400 truncate max-w-[400px]" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
-                            <td class="px-4 py-4 text-center w-[70px]">
-                                <span class="text-sm font-bold text-gray-300 bg-gray-800 px-2.5 py-1 rounded">{{ $row['lot_count'] }}</span>
-                            </td>
-                            @foreach (['kit', 'inspeccion', 'produccion', 'calidad', 'empaque'] as $areaKey)
-                                <td class="px-3 py-3 text-center w-[110px]">
-                                    @php
-                                        $a = $row[$areaKey];
-                                        $aTotal = $a['green'] + $a['yellow'] + $a['gray'];
-                                        $miniR = 15;
-                                        $miniCirc = 2 * M_PI * $miniR;
-                                        if ($aTotal > 0) {
-                                            $mPctG = ($a['green'] / $aTotal) * 100;
-                                            $mPctY = ($a['yellow'] / $aTotal) * 100;
-                                            $mPctGr = 100 - $mPctG - $mPctY;
-                                            $mLenG = ($mPctG / 100) * $miniCirc;
-                                            $mLenY = ($mPctY / 100) * $miniCirc;
-                                            $mLenGr = ($mPctGr / 100) * $miniCirc;
-                                            $mDisplayPct = round($mPctG);
-                                        }
-                                    @endphp
-                                    @if ($aTotal > 0)
-                                        <div class="flex items-center justify-center gap-1.5">
-                                            <div class="relative" style="width:50px;height:50px;">
-                                                <svg viewBox="0 0 40 40" class="w-full h-full -rotate-90">
-                                                    <circle cx="20" cy="20" r="{{ $miniR }}" fill="none" stroke="#374151" stroke-width="5" />
-                                                    @if ($mLenGr > 0)
-                                                        <circle cx="20" cy="20" r="{{ $miniR }}" fill="none"
-                                                            stroke="#4b5563" stroke-width="5"
-                                                            stroke-dasharray="{{ $mLenGr }} {{ $miniCirc - $mLenGr }}"
-                                                            stroke-dashoffset="{{ -($mLenG + $mLenY) }}"
-                                                            stroke-linecap="butt" />
-                                                    @endif
-                                                    @if ($mLenY > 0)
-                                                        <circle cx="20" cy="20" r="{{ $miniR }}" fill="none"
-                                                            stroke="#facc15" stroke-width="5"
-                                                            stroke-dasharray="{{ $mLenY }} {{ $miniCirc - $mLenY }}"
-                                                            stroke-dashoffset="{{ -$mLenG }}"
-                                                            stroke-linecap="butt" />
-                                                    @endif
-                                                    @if ($mLenG > 0)
-                                                        <circle cx="20" cy="20" r="{{ $miniR }}" fill="none"
-                                                            stroke="#22c55e" stroke-width="5"
-                                                            stroke-dasharray="{{ $mLenG }} {{ $miniCirc - $mLenG }}"
-                                                            stroke-dashoffset="0"
-                                                            stroke-linecap="butt" />
-                                                    @endif
-                                                </svg>
-                                                <div class="absolute inset-0 flex items-center justify-center">
-                                                    <span class="text-[10px] font-bold text-white">{{ $mDisplayPct }}%</span>
-                                                </div>
-                                            </div>
-                                            <span class="text-xs text-gray-500">{{ $a['green'] }}/{{ $aTotal }}</span>
-                                        </div>
-                                    @else
-                                        <span class="text-gray-700">—</span>
-                                    @endif
-                                </td>
-                            @endforeach
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="10" class="px-4 py-12 text-center text-gray-500 text-lg">
-                                No hay Work Orders activas
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+        {{-- Slide dots --}}
+        @if (count($slides) > 1)
+            <div class="flex items-center justify-center gap-2 mt-2 flex-shrink-0">
+                @foreach ($slides as $si => $s)
+                    <button @click="goTo({{ $si }})"
+                        :class="currentSlide === {{ $si }} ? 'bg-indigo-500 w-6' : 'bg-gray-300 w-2 hover:bg-gray-400'"
+                        class="h-2 rounded-full transition-all duration-300"></button>
+                @endforeach
+            </div>
+        @endif
     </div>
 
     @script

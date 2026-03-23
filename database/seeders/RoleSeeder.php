@@ -22,6 +22,7 @@ class RoleSeeder extends Seeder
             'Shipping',
             'Warehouse',
             'Materials',
+            'Quality',
             'employee',  // Rol para empleados (panel de empleado)
         ];
 
@@ -57,6 +58,7 @@ class RoleSeeder extends Seeder
                 case 'Shipping':
                 case 'Warehouse':
                 case 'Materials':
+                case 'Quality':
                     // Roles operativos tienen permisos básicos
                     $role->syncPermissions([
                         'view-dashboard',

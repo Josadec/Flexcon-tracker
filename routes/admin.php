@@ -161,16 +161,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     // Capacity Wizard (New 3-step wizard)
     Route::get('/capacity-wizard', \App\Livewire\Admin\CapacityWizard::class)->name('capacity.wizard');
 
-    // Gestión de Kits
-    Route::get('/kits', \App\Livewire\Admin\Kits\KitList::class)->name('kits.index');
-    Route::get('/kits/create', \App\Livewire\Admin\Kits\KitCreate::class)->name('kits.create');
-    Route::get('/kits/{kit}', \App\Livewire\Admin\Kits\KitShow::class)->name('kits.show');
-
-    // Gestión de Lotes
-    Route::get('/lots', \App\Livewire\Admin\Lots\LotList::class)->name('lots.index');
-    Route::get('/lots/create', \App\Livewire\Admin\Lots\LotCreate::class)->name('lots.create');
-    Route::get('/lots/{lot}', \App\Livewire\Admin\Lots\LotShow::class)->name('lots.show');
-    Route::get('/lots/{lot}/edit', \App\Livewire\Admin\Lots\LotEdit::class)->name('lots.edit');
+    // (Kits y Lotes movidos al grupo compartido abajo)
 
     // Gestión de Empleados
     Route::get('/employees', \App\Livewire\Admin\Employees\EmployeeList::class)->name('employees.index');
@@ -239,6 +230,20 @@ Route::middleware(['auth', 'verified', 'role:admin|Empaques'])->group(function (
     // Stream del PDF del Invoice (visualiza en el navegador, sin descarga forzada)
     Route::get('/invoices/{invoice}/pdf/stream', [InvoiceController::class, 'streamPdf'])
         ->name('invoices.pdf.stream');
+});
+
+// ===================================================================
+// PRODUCCION + MATERIALES: Kits y Lotes (solo lectura para rol compartido)
+// ===================================================================
+Route::middleware(['auth', 'verified', 'role:admin|Produccion|Materiales'])->group(function () {
+    Route::get('/kits', \App\Livewire\Admin\Kits\KitList::class)->name('kits.index');
+    Route::get('/kits/create', \App\Livewire\Admin\Kits\KitCreate::class)->name('kits.create');
+    Route::get('/kits/{kit}', \App\Livewire\Admin\Kits\KitShow::class)->name('kits.show');
+
+    Route::get('/lots', \App\Livewire\Admin\Lots\LotList::class)->name('lots.index');
+    Route::get('/lots/create', \App\Livewire\Admin\Lots\LotCreate::class)->name('lots.create');
+    Route::get('/lots/{lot}', \App\Livewire\Admin\Lots\LotShow::class)->name('lots.show');
+    Route::get('/lots/{lot}/edit', \App\Livewire\Admin\Lots\LotEdit::class)->name('lots.edit');
 });
 
 // Inspection Area Routes (requires Inspection role)

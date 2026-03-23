@@ -18,6 +18,7 @@ class SentListProductionView extends Component
     public ?int $weighingKitId = null;
     public string $weighingComments = '';
     public string $weighingAt = '';
+    public ?int $editingWeighingId = null;
 
     // Send to quality modal
     public bool $showSendModal = false;
@@ -31,22 +32,38 @@ class SentListProductionView extends Component
 
     public function openWeighingModal(int $lotId): void
     {
-        $this->weighingLotId      = $lotId;
-        $this->weighingQuantity   = 0;
-        $this->weighingKitId      = null;
-        $this->weighingComments   = '';
-        $this->weighingAt         = now()->format('Y-m-d\TH:i');
-        $this->showWeighingModal  = true;
+        $this->weighingLotId       = $lotId;
+        $this->weighingQuantity    = 0;
+        $this->weighingKitId       = null;
+        $this->weighingComments    = '';
+        $this->weighingAt          = now()->format('Y-m-d\TH:i');
+        $this->editingWeighingId   = null;
+        $this->showWeighingModal   = true;
     }
 
     public function openKitWeighingModal(int $lotId, int $kitId): void
     {
-        $this->weighingLotId     = $lotId;
-        $this->weighingQuantity  = 0;
-        $this->weighingKitId     = $kitId;
-        $this->weighingComments  = '';
-        $this->weighingAt        = now()->format('Y-m-d\TH:i');
-        $this->showWeighingModal = true;
+        $this->weighingLotId       = $lotId;
+        $this->weighingQuantity    = 0;
+        $this->weighingKitId       = $kitId;
+        $this->weighingComments    = '';
+        $this->weighingAt          = now()->format('Y-m-d\TH:i');
+        $this->editingWeighingId   = null;
+        $this->showWeighingModal   = true;
+    }
+
+    public function editWeighing(int $weighingId): void
+    {
+        $w = Weighing::with('lot')->find($weighingId);
+        if (!$w) return;
+
+        $this->weighingLotId       = $w->lot_id;
+        $this->weighingQuantity    = $w->good_pieces;
+        $this->weighingKitId       = $w->kit_id;
+        $this->weighingComments    = $w->comments ?? '';
+        $this->weighingAt          = $w->weighed_at->format('Y-m-d\TH:i');
+        $this->editingWeighingId   = $w->id;
+        $this->showWeighingModal   = true;
     }
 
     public function saveWeighing(): void
@@ -61,51 +78,56 @@ class SentListProductionView extends Component
             'weighingAt.required'       => 'La fecha/hora es obligatoria.',
         ]);
 
-        $lot            = \App\Models\Lot::findOrFail($this->weighingLotId);
-        $alreadyWeighed = $lot->weighings()->sum('quantity');
-        $remaining      = $lot->quantity - $alreadyWeighed;
+        $lot = \App\Models\Lot::findOrFail($this->weighingLotId);
 
-        if ($this->weighingQuantity > $remaining) {
-            $this->addError('weighingQuantity', "Solo quedan {$remaining} pieza(s) disponibles en este lote (meta: {$lot->quantity}, ya pesadas: {$alreadyWeighed}).");
-            return;
-        }
-
-        Weighing::create([
+        $data = [
             'lot_id'      => $this->weighingLotId,
             'kit_id'      => $this->weighingKitId ?: null,
-            'quantity'    => $this->weighingQuantity,
+            'quantity'    => $lot->quantity,
             'good_pieces' => $this->weighingQuantity,
             'bad_pieces'  => 0,
             'weighed_at'  => $this->weighingAt,
             'weighed_by'  => Auth::id(),
             'comments'    => $this->weighingComments ?: null,
-        ]);
+        ];
 
-        // Update lot status based on progress
+        if ($this->editingWeighingId) {
+            $w = Weighing::find($this->editingWeighingId);
+            if ($w) {
+                $w->update($data);
+                $message = 'Pesada actualizada correctamente.';
+            } else {
+                session()->flash('error', 'Pesada no encontrada.');
+                return;
+            }
+        } else {
+            Weighing::create($data);
+            $message = 'Pesada registrada correctamente.';
+        }
+
+        // Update lot status to in_progress if still pending
         if ($lot->status === \App\Models\Lot::STATUS_PENDING) {
             $lot->update(['status' => \App\Models\Lot::STATUS_IN_PROGRESS]);
         }
 
-        if ($alreadyWeighed + $this->weighingQuantity >= $lot->quantity) {
-            $lot->update(['status' => \App\Models\Lot::STATUS_COMPLETED]);
-        }
-
-        $this->showWeighingModal = false;
-        $this->weighingLotId     = null;
-        $this->weighingQuantity  = 0;
-        $this->weighingKitId     = null;
-        $this->weighingComments  = '';
+        $this->showWeighingModal  = false;
+        $this->weighingLotId      = null;
+        $this->weighingQuantity   = 0;
+        $this->weighingKitId      = null;
+        $this->weighingComments   = '';
+        $this->editingWeighingId  = null;
         $this->sentList->refresh();
-        session()->flash('message', 'Pesada registrada correctamente.');
+        session()->flash('message', $message);
     }
 
     public function closeWeighingModal(): void
     {
-        $this->showWeighingModal = false;
-        $this->weighingLotId     = null;
-        $this->weighingQuantity  = 0;
-        $this->weighingKitId     = null;
-        $this->weighingComments  = '';
+        $this->showWeighingModal  = false;
+        $this->weighingLotId      = null;
+        $this->weighingQuantity   = 0;
+        $this->weighingKitId      = null;
+        $this->weighingComments   = '';
+        $this->editingWeighingId  = null;
     }
 
     public function deleteWeighing(int $weighingId): void

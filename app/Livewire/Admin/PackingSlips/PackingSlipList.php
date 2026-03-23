@@ -77,7 +77,9 @@ class PackingSlipList extends Component
         $query = PackingSlip::with(['creator', 'items'])
             ->search($this->search);
 
-        if ($this->filterStatus === 'pending') {
+        if ($this->filterStatus === 'draft') {
+            $query->draft();
+        } elseif ($this->filterStatus === 'pending') {
             $query->pending();
         } elseif ($this->filterStatus === 'shipped') {
             $query->shipped();
@@ -90,6 +92,7 @@ class PackingSlipList extends Component
 
         $stats = [
             'total'     => PackingSlip::count(),
+            'draft'     => PackingSlip::draft()->count(),
             'pending'   => PackingSlip::pending()->count(),
             'shipped'   => PackingSlip::shipped()->count(),
             'cancelled' => PackingSlip::cancelled()->count(),
