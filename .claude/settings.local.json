@@ -35,7 +35,9 @@
       "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root flexcon_db -e \"SELECT id, lot_number, ready_for_shipping, closed_at FROM lots;\")",
       "mcp__playwright__browser_select_option",
       "Bash(composer show:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_console_messages"
     ],
     "deny": [],
     "ask": []

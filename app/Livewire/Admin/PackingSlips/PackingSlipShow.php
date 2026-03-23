@@ -26,6 +26,11 @@ class PackingSlipShow extends Component
         $this->notesValue     = $this->packingSlip->notes ?? '';
 
         $this->initLotSelection();
+
+        // Consumir notificaciones pendientes de un redirect previo (ej. updatePsNumber)
+        if (session()->has('notify')) {
+            $this->dispatch('notify', session()->get('notify'));
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -155,10 +160,17 @@ class PackingSlipShow extends Component
         $this->packingSlip->update(['ps_number' => $value]);
         $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
 
-        $this->dispatch('notify', [
+        // Construir la URL de redirect usando getRouteKey() que ya aplica rawurlencode(),
+        // evitando que route() haga doble-encoding en versiones de Livewire con wire:navigate.
+        // getRouteKey() retorna ej: %23000012544 para ps_number=#000012544
+        $redirectUrl = url('/admin/packing-slips/' . $this->packingSlip->getRouteKey());
+
+        session()->flash('notify', [
             'type'    => 'success',
             'message' => "Número de PS actualizado a: {$value}",
         ]);
+
+        $this->redirect($redirectUrl);
     }
 
     // -----------------------------------------------------------------------

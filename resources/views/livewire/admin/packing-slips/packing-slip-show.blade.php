@@ -154,11 +154,13 @@
                     <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Número de PS</p>
                         @if ($packingSlip->isDraft())
-                            <div x-data="{ editing: false, value: '{{ $packingSlip->ps_number }}' }" class="mt-1">
+                            <div wire:key="ps-number-editor-{{ $packingSlip->id }}"
+                                 x-data="{ editing: false, submitting: false, value: '{{ $packingSlip->ps_number }}' }"
+                                 class="mt-1">
                                 <span x-show="!editing"
                                       class="text-base font-mono text-gray-900 dark:text-white inline-flex items-center gap-1">
                                     <span x-text="value"></span>
-                                    <button type="button" @click="editing = true"
+                                    <button type="button" @click="editing = true; submitting = false"
                                             class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                                             title="Editar PS Number">
                                         <svg class="w-3.5 h-3.5 text-gray-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,13 +168,30 @@
                                         </svg>
                                     </button>
                                 </span>
-                                <input x-show="editing" x-model="value" type="text"
-                                       maxlength="30"
-                                       class="border border-blue-400 rounded px-2 py-0.5 text-sm font-mono w-40 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                                       @blur="editing = false; $wire.updatePsNumber(value)"
-                                       @keydown.enter="editing = false; $wire.updatePsNumber(value)"
-                                       @keydown.escape="editing = false; value = '{{ $packingSlip->ps_number }}'"
-                                       x-effect="if (editing) $el.focus()">
+                                <span x-show="editing" class="inline-flex items-center gap-1">
+                                    <input x-model="value" type="text"
+                                           maxlength="30"
+                                           class="border border-blue-400 rounded px-2 py-0.5 text-sm font-mono w-40 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                           @keydown.enter.prevent="if (!submitting) { submitting = true; $wire.updatePsNumber(value) }"
+                                           @keydown.escape="editing = false; submitting = false; value = '{{ $packingSlip->ps_number }}'"
+                                           x-effect="if (editing) $el.focus()">
+                                    <button type="button"
+                                            @click="if (!submitting) { submitting = true; $wire.updatePsNumber(value) }"
+                                            class="p-0.5 rounded hover:bg-green-100 dark:hover:bg-green-900 transition-colors cursor-pointer"
+                                            title="Guardar PS Number">
+                                        <svg class="w-3.5 h-3.5 text-green-500 hover:text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    </button>
+                                    <button type="button"
+                                            @click="editing = false; submitting = false; value = '{{ $packingSlip->ps_number }}'"
+                                            class="p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors cursor-pointer"
+                                            title="Cancelar">
+                                        <svg class="w-3.5 h-3.5 text-red-400 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </span>
                             </div>
                         @else
                             <p class="text-base font-mono text-gray-900 dark:text-white mt-1">{{ $packingSlip->ps_number }}</p>
