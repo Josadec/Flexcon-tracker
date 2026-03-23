@@ -187,6 +187,20 @@ span.flatpickr-weekday { color: rgb(99 102 241); font-weight: 600; font-size: 0.
 </style>
 
 <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
+
+
+<script>
+    (function () {
+        var stored = window.localStorage.getItem('flux.appearance');
+        var initialized = window.localStorage.getItem('flexcon.appearance.initialized');
+        // Only set default if user has never explicitly chosen an appearance
+        if (!stored && !initialized) {
+            window.localStorage.setItem('flux.appearance', 'light');
+            window.localStorage.setItem('flexcon.appearance.initialized', '1');
+        }
+    })();
+</script>
+
 <?php echo app('flux')->fluxAppearance(); ?>
 
 
