@@ -407,13 +407,13 @@
                 <div>S.E.I.P., Inc.</div>
                 <div>915 Armorlite Dr.</div>
                 <div>San Marcos, Ca. 92069</div>
+                <div><strong>F.O.B:</strong> Tecate, Ca.</div>
             </div>
             <div class="ship-col-right">
                 <div style="font-size:8pt; font-weight:bold; color:#ffffff; border-bottom:1px solid #1e3a5f; margin-top:1px; margin-bottom:2px; padding-bottom:1px; line-height:1.4;">&nbsp;</div>
                 <div style="font-size:12pt; font-weight:bold; color:#1e3a5f; line-height:1.3; white-space:nowrap;">
                     Packing Slip <span style="color:#1a1a1a;">{{ $packingSlip->ps_number }}</span>
                 </div>
-                <div><strong>F.O.B:</strong> Tecate, Ca.</div>
                 <div style="font-size:11pt; font-weight:bold; color:#1a1a1a; margin-top:2px;">DATE: {{ $packingSlip->document_date ? \Carbon\Carbon::parse($packingSlip->document_date)->format('F-j-Y') : '-' }}</div>
             </div>
         </div>
