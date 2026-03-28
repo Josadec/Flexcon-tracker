@@ -226,6 +226,14 @@
                 </flux:navlist.group>
             @endif
 
+            {{-- ── TUTORIAL (todos los roles) ── --}}
+            <flux:navlist.group :heading="__('Ayuda')" class="grid">
+                <flux:navlist.item icon="academic-cap" :href="route('admin.tutorial')"
+                    :current="request()->routeIs('admin.tutorial')" wire:navigate>
+                    {{ __('Tutorial / Guía') }}
+                </flux:navlist.item>
+            </flux:navlist.group>
+
         </flux:navlist>
 
         <flux:spacer />

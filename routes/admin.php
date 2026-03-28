@@ -25,6 +25,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // ===================================================================
+// SHARED: Tutorial / Guía (admin + all department roles)
+// ===================================================================
+Route::middleware(['auth', 'verified', 'role:admin|Materiales|Produccion|Calidad|Empaques'])->group(function () {
+    Route::get('/tutorial', \App\Livewire\Admin\Tutorial::class)->name('tutorial');
+});
+
+// ===================================================================
 // SHARED: Sent Lists (admin + all department roles)
 // ===================================================================
 Route::middleware(['auth', 'verified', 'role:admin|Materiales|Produccion|Calidad|Empaques'])->group(function () {
