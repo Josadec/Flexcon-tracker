@@ -260,6 +260,15 @@ span.flatpickr-weekday { color: rgb(99 102 241); font-weight: 600; font-size: 0.
             initFlatpickr(el);
             return;
         }
+        // altInput removed by Livewire DOM morph — destroy and reinitialize
+        if (el._flatpickr.altInput && !document.contains(el._flatpickr.altInput)) {
+            var savedValue = el.value;
+            try { el._flatpickr.destroy(); } catch (_) {}
+            el._flatpickr = null;
+            el.value = savedValue;
+            initFlatpickr(el);
+            return;
+        }
         // Instance alive – just sync the value that Livewire may have set
         const expected = el.value;
         const current  = el._flatpickr.latestSelectedDateObj
