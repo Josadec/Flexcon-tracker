@@ -44,6 +44,9 @@
                         :current="request()->routeIs('admin.capacity.*', 'admin.sent-lists.*')" wire:navigate>
                         {{ __('Capacidad') }}
                     </flux:navlist.item>
+                    <flux:navlist.item icon="document-check" :href="route('admin.invoices.index')"
+                        :current="request()->routeIs('admin.invoices.*')" wire:navigate>{{ __('Invoices') }}
+                    </flux:navlist.item>
                 </flux:navlist.group>
             @endif
 

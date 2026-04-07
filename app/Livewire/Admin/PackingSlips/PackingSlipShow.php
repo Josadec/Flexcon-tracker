@@ -12,6 +12,7 @@ class PackingSlipShow extends Component
 {
     public PackingSlip $packingSlip;
     public string $selectedStatus = '';
+    public string $notesValue = '';
 
     // Panel de edicion de lotes (fusionado desde PackingSlipEdit)
     public bool $editingLots = false;
@@ -20,10 +21,16 @@ class PackingSlipShow extends Component
 
     public function mount(PackingSlip $packingSlip): void
     {
-        $this->packingSlip   = $packingSlip->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part']);
+        $this->packingSlip   = $packingSlip->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
         $this->selectedStatus = $this->packingSlip->status;
+        $this->notesValue     = $this->packingSlip->notes ?? '';
 
         $this->initLotSelection();
+
+        // Consumir notificaciones pendientes de un redirect previo (ej. updatePsNumber)
+        if (session()->has('notify')) {
+            $this->dispatch('notify', session()->get('notify'));
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -65,7 +72,7 @@ class PackingSlipShow extends Component
         }
 
         $this->packingSlip->update($data);
-        $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part']);
+        $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
 
         // Si ahora está shipped, cerrar el panel de lotes si estuviera abierto
         if ($this->packingSlip->isShipped()) {
@@ -75,6 +82,116 @@ class PackingSlipShow extends Component
         $this->dispatch('notify', [
             'type'    => 'success',
             'message' => 'Estado actualizado a: ' . PackingSlip::STATUSES[$this->selectedStatus],
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Edición inline de la Fecha del Documento (document_date)
+    // -----------------------------------------------------------------------
+    public function updateDocumentDate(string $value): void
+    {
+        if ($this->packingSlip->isShipped() || $this->packingSlip->isPending() || $this->packingSlip->isCancelled()) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => 'No se puede cambiar la fecha en el estado actual del Packing Slip.',
+            ]);
+            return;
+        }
+
+        $trimmed = trim($value);
+
+        if (empty($trimmed)) {
+            $this->packingSlip->update(['document_date' => null]);
+            $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
+            $this->dispatch('notify', [
+                'type'    => 'success',
+                'message' => 'Fecha del documento eliminada.',
+            ]);
+            return;
+        }
+
+        // Validar formato de fecha
+        try {
+            $date = \Illuminate\Support\Carbon::parse($trimmed);
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => 'Formato de fecha no válido.',
+            ]);
+            return;
+        }
+
+        $this->packingSlip->update(['document_date' => $date->toDateString()]);
+        $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
+
+        $this->dispatch('notify', [
+            'type'    => 'success',
+            'message' => 'Fecha del documento actualizada: ' . $date->format('d/m/Y'),
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Edición inline del PS Number
+    // -----------------------------------------------------------------------
+    public function updatePsNumber(string $value): void
+    {
+        $value = strtoupper(trim($value));
+
+        if ($this->packingSlip->isShipped() || $this->packingSlip->isPending() || $this->packingSlip->isCancelled()) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => 'No se puede cambiar el número en el estado actual del Packing Slip.',
+            ]);
+            return;
+        }
+
+        if (empty($value) || strlen($value) > 30) {
+            return;
+        }
+
+        if (PackingSlip::where('ps_number', $value)->where('id', '!=', $this->packingSlip->id)->exists()) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => "El número '{$value}' ya está en uso por otro Packing Slip.",
+            ]);
+            return;
+        }
+
+        $this->packingSlip->update(['ps_number' => $value]);
+        $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
+
+        // Construir la URL de redirect usando getRouteKey() que ya aplica rawurlencode(),
+        // evitando que route() haga doble-encoding en versiones de Livewire con wire:navigate.
+        // getRouteKey() retorna ej: %23000012544 para ps_number=#000012544
+        $redirectUrl = url('/admin/packing-slips/' . $this->packingSlip->getRouteKey());
+
+        session()->flash('notify', [
+            'type'    => 'success',
+            'message' => "Número de PS actualizado a: {$value}",
+        ]);
+
+        $this->redirect($redirectUrl);
+    }
+
+    // -----------------------------------------------------------------------
+    // Edición inline de Notas (notes)
+    // -----------------------------------------------------------------------
+    public function updateNotes(): void
+    {
+        if ($this->packingSlip->isShipped() || $this->packingSlip->isCancelled()) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => 'No se pueden editar las notas en el estado actual del Packing Slip.',
+            ]);
+            return;
+        }
+
+        $this->packingSlip->update(['notes' => trim($this->notesValue) ?: null]);
+        $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
+
+        $this->dispatch('notify', [
+            'type'    => 'success',
+            'message' => 'Notas actualizadas correctamente.',
         ]);
     }
 
@@ -98,7 +215,7 @@ class PackingSlipShow extends Component
     // -----------------------------------------------------------------------
     public function toggleEditingLots(): void
     {
-        if ($this->packingSlip->isShipped()) {
+        if ($this->packingSlip->isShipped() || $this->packingSlip->isPending() || $this->packingSlip->isCancelled()) {
             return;
         }
 
@@ -141,10 +258,10 @@ class PackingSlipShow extends Component
 
     public function updateLots(): void
     {
-        if ($this->packingSlip->isShipped()) {
+        if ($this->packingSlip->isShipped() || $this->packingSlip->isPending() || $this->packingSlip->isCancelled()) {
             $this->dispatch('notify', [
                 'type'    => 'error',
-                'message' => 'Este Packing Slip no se puede editar porque ya fue despachado.',
+                'message' => 'Este Packing Slip no se puede editar en el estado actual.',
             ]);
             $this->editingLots = false;
             return;
@@ -201,7 +318,7 @@ class PackingSlipShow extends Component
         }
 
         // Recargar el PS con todas las relaciones
-        $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part']);
+        $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
 
         // Cerrar el panel y sincronizar la seleccion
         $this->editingLots = false;
@@ -229,7 +346,7 @@ class PackingSlipShow extends Component
         // Lotes disponibles para el panel de edicion:
         // Los que están readyForShipping + los que ya están en este PS (para mantenerlos visibles)
         $availableLots = collect();
-        if ($this->editingLots && !$this->packingSlip->isShipped()) {
+        if ($this->editingLots && $this->packingSlip->isDraft()) {
             $currentLotIds = $this->packingSlip->items()->pluck('lot_id')->toArray();
 
             $availableLots = Lot::with(['workOrder.purchaseOrder.part'])

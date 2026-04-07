@@ -73,6 +73,7 @@
                         <div class="flex items-center mt-2 space-x-3">
                             @php
                                 $badgeClasses = match($packingSlip->status) {
+                                    'draft'     => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
                                     'pending'   => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
                                     'shipped'   => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
                                     'cancelled' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
@@ -102,8 +103,8 @@
                         </button>
                     </div>
 
-                    @if (!$packingSlip->isShipped())
-                        {{-- Botón toggle para el panel de edición de lotes integrado --}}
+                    @if ($packingSlip->isDraft())
+                        {{-- Botón toggle para el panel de edición de lotes integrado (solo en Borrador) --}}
                         <button wire:click="toggleEditingLots"
                                 class="inline-flex items-center px-4 py-2 {{ $editingLots ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-600 hover:bg-gray-700' }} text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,24 +114,26 @@
                         </button>
                     @endif
 
-                    {{-- Ver PDF en nueva pestana --}}
-                    <a href="{{ route('admin.packing-slips.pdf', $packingSlip) }}"
-                       target="_blank"
-                       class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                        </svg>
-                        Ver PDF
-                    </a>
+                    @if ($packingSlip->document_date && !$packingSlip->isDraft() && !$packingSlip->isPending())
+                        {{-- Ver PDF en nueva pestana (oculto en Borrador y Pendiente) --}}
+                        <a href="{{ route('admin.packing-slips.pdf', $packingSlip) }}"
+                           target="_blank"
+                           class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            Ver PDF
+                        </a>
 
-                    {{-- Descargar PDF --}}
-                    <a href="{{ route('admin.packing-slips.pdf.download', $packingSlip) }}"
-                       class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                        </svg>
-                        Descargar PDF
-                    </a>
+                        {{-- Descargar PDF (oculto en Borrador) --}}
+                        <a href="{{ route('admin.packing-slips.pdf.download', $packingSlip) }}"
+                           class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Descargar PDF
+                        </a>
+                    @endif
 
                     <a href="{{ route('admin.packing-slips.index') }}" wire:navigate
                        class="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
@@ -150,11 +153,76 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Número de PS</p>
-                        <p class="text-base font-mono text-gray-900 dark:text-white mt-1">{{ $packingSlip->ps_number }}</p>
+                        @if ($packingSlip->isDraft())
+                            <div wire:key="ps-number-editor-{{ $packingSlip->id }}"
+                                 x-data="{ editing: false, submitting: false, value: '{{ $packingSlip->ps_number }}' }"
+                                 class="mt-1">
+                                <span x-show="!editing"
+                                      class="text-base font-mono text-gray-900 dark:text-white inline-flex items-center gap-1">
+                                    <span x-text="value"></span>
+                                    <button type="button" @click="editing = true; submitting = false"
+                                            class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                                            title="Editar PS Number">
+                                        <svg class="w-3.5 h-3.5 text-gray-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
+                                </span>
+                                <span x-show="editing" class="inline-flex items-center gap-1">
+                                    <input x-model="value" type="text"
+                                           maxlength="30"
+                                           class="border border-blue-400 rounded px-2 py-0.5 text-sm font-mono w-40 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                           @keydown.enter.prevent="if (!submitting) { submitting = true; $wire.updatePsNumber(value) }"
+                                           @keydown.escape="editing = false; submitting = false; value = '{{ $packingSlip->ps_number }}'"
+                                           x-effect="if (editing) $el.focus()">
+                                    <button type="button"
+                                            @click="if (!submitting) { submitting = true; $wire.updatePsNumber(value) }"
+                                            class="p-0.5 rounded hover:bg-green-100 dark:hover:bg-green-900 transition-colors cursor-pointer"
+                                            title="Guardar PS Number">
+                                        <svg class="w-3.5 h-3.5 text-green-500 hover:text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    </button>
+                                    <button type="button"
+                                            @click="editing = false; submitting = false; value = '{{ $packingSlip->ps_number }}'"
+                                            class="p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors cursor-pointer"
+                                            title="Cancelar">
+                                        <svg class="w-3.5 h-3.5 text-red-400 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </span>
+                            </div>
+                        @else
+                            <p class="text-base font-mono text-gray-900 dark:text-white mt-1">{{ $packingSlip->ps_number }}</p>
+                        @endif
                     </div>
                     <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Fecha del Documento</p>
-                        <p class="text-base text-gray-900 dark:text-white mt-1">{{ $packingSlip->document_date?->format('d/m/Y') ?? '-' }}</p>
+                        @if ($packingSlip->isDraft())
+                            <div x-data="{ editing: false, value: '{{ $packingSlip->document_date?->format('Y-m-d') ?? now()->format('Y-m-d') }}' }" class="mt-1">
+                                <span x-show="!editing"
+                                      class="text-base text-gray-900 dark:text-white inline-flex items-center gap-1">
+                                    <span x-text="new Date(value + 'T00:00:00').toLocaleDateString('es-MX', {day:'2-digit',month:'2-digit',year:'numeric'})"></span>
+                                    <button type="button" @click="editing = true"
+                                            class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                                            title="Editar Fecha del Documento">
+                                        <svg class="w-3.5 h-3.5 text-gray-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
+                                </span>
+                                <div x-show="editing" x-cloak style="display:none">
+                                    <input x-model="value" type="date"
+                                           class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                           @change="editing = false; $wire.updateDocumentDate(value)"
+                                           @keydown.escape="editing = false"
+                                           x-effect="if (editing) $nextTick(() => $el.focus())">
+                                </div>
+                            </div>
+                        @else
+                            <p class="text-base text-gray-900 dark:text-white mt-1">{{ $packingSlip->document_date?->format('d/m/Y') ?? '-' }}</p>
+                        @endif
                         <p class="text-xs text-gray-400 dark:text-gray-500">Campo DATE del FPL-10</p>
                     </div>
                     <div>
@@ -179,16 +247,38 @@
 
                     <div class="{{ $packingSlip->isShipped() ? '' : 'md:col-span-3' }}">
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Notas</p>
-                        <p class="text-base text-gray-900 dark:text-white mt-1">{{ $packingSlip->notes ?: '-' }}</p>
+                        @if ($packingSlip->isDraft() || $packingSlip->isPending())
+                            {{-- Editable inline en Borrador y Pendiente --}}
+                            <div class="mt-1">
+                                <textarea
+                                    wire:model="notesValue"
+                                    rows="3"
+                                    placeholder="Agregar notas..."
+                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white dark:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 resize-y"
+                                ></textarea>
+                                <div class="mt-2">
+                                    <button wire:click="updateNotes"
+                                            class="inline-flex items-center px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors cursor-pointer">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                        Guardar
+                                    </button>
+                                </div>
+                            </div>
+                        @else
+                            {{-- Solo lectura en cualquier otro estado --}}
+                            <p class="text-base text-gray-900 dark:text-white mt-1">{{ $packingSlip->notes ?: '-' }}</p>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- ================================================================ -->
-        <!-- PANEL DE EDICIÓN DE LOTES (visible solo cuando !shipped y editingLots) -->
+        <!-- PANEL DE EDICIÓN DE LOTES (visible solo cuando draft y editingLots) -->
         <!-- ================================================================ -->
-        @if (!$packingSlip->isShipped() && $editingLots)
+        @if ($packingSlip->isDraft() && $editingLots)
             <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border-2 border-amber-400 dark:border-amber-600 overflow-hidden mb-6"
                  id="lot-editing-panel">
                 <div class="px-6 py-4 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700">
@@ -361,20 +451,26 @@
                                             <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
                                                 {{ number_format($item->quantity_packed) }}
                                             </td>
-                                            {{-- Celda editable: Date (editable en todos los estados) --}}
+                                            {{-- Celda Date: editable solo en Borrador --}}
                                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400"
-                                                x-data="{ editing: false, value: '{{ $item->lot_date_code ?? '' }}' }">
-                                                <span x-show="!editing" @click="editing = true"
-                                                      class="cursor-pointer hover:text-blue-600 hover:underline min-w-[80px] inline-block"
-                                                      x-text="value || '-'"></span>
-                                                <input x-show="editing" x-model="value" type="text"
-                                                       maxlength="20"
-                                                       placeholder="ej: 250512A22"
-                                                       class="border border-blue-400 rounded px-2 py-0.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                       @blur="editing = false; $wire.updateItemDate({{ $item->id }}, value)"
-                                                       @keydown.enter="editing = false; $wire.updateItemDate({{ $item->id }}, value)"
-                                                       @keydown.escape="editing = false"
-                                                       x-effect="if (editing) $el.focus()">
+                                                @if ($packingSlip->isDraft())
+                                                x-data="{ editing: false, value: '{{ $item->lot_date_code ?? '' }}' }"
+                                                @endif>
+                                                @if (!$packingSlip->isDraft())
+                                                    <span class="min-w-[80px] inline-block">{{ $item->lot_date_code ?: '-' }}</span>
+                                                @else
+                                                    <span x-show="!editing" @click="editing = true"
+                                                          class="cursor-pointer hover:text-blue-600 hover:underline min-w-[80px] inline-block"
+                                                          x-text="value || '-'"></span>
+                                                    <input x-show="editing" x-model="value" type="text"
+                                                           maxlength="20"
+                                                           placeholder="ej: 250512A22"
+                                                           class="border border-blue-400 rounded px-2 py-0.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                           @blur="editing = false; $wire.updateItemDate({{ $item->id }}, value)"
+                                                           @keydown.enter="editing = false; $wire.updateItemDate({{ $item->id }}, value)"
+                                                           @keydown.escape="editing = false"
+                                                           x-effect="if (editing) $el.focus()">
+                                                @endif
                                             </td>
                                             {{-- Label Spec: muestra snapshot si existe, si no jala del Part.
                                                  Si ninguno tiene valor, se muestra "-" segun requerimiento del cliente. --}}
@@ -419,6 +515,75 @@
                 @endif
             </div>
         </div>
+
+        <!-- ================================================================ -->
+        <!-- PANEL INVOICE (visible solo cuando shipped) -->
+        <!-- ================================================================ -->
+        @if ($packingSlip->isShipped())
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+                <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/30 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Invoice</h2>
+                    </div>
+                </div>
+                <div class="p-6">
+                    @if (! $packingSlip->hasInvoice())
+                        {{-- Sin Invoice: indicador informativo — la creación corresponde al depto. de Ordenes --}}
+                        <div class="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                                    Listo para Invoice
+                                </p>
+                                <p class="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                                    Este Packing Slip fue despachado y está disponible para que el departamento de Ordenes genere el Invoice correspondiente.
+                                </p>
+                            </div>
+                        </div>
+                    @else
+                        {{-- Con Invoice: panel de info y enlace (solo lectura, sin botón de crear) --}}
+                        @php $inv = $packingSlip->invoice; @endphp
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1 w-full">
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Invoice #</p>
+                                    <p class="text-base font-mono font-semibold text-gray-900 dark:text-white mt-0.5">
+                                        Invoice#{{ $inv->invoice_number }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</p>
+                                    @php
+                                        $invBadge = match($inv->status) {
+                                            'draft'     => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+                                            'issued'    => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                                            'cancelled' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+                                            default     => 'bg-gray-100 text-gray-800',
+                                        };
+                                    @endphp
+                                    <span class="mt-0.5 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full {{ $invBadge }}">
+                                        {{ $inv->statusLabel }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        {{ $inv->isIssued() ? 'Fecha emisión' : 'Fecha creación' }}
+                                    </p>
+                                    <p class="text-sm text-gray-700 dark:text-gray-300 mt-0.5">
+                                        {{ ($inv->issued_at ?? $inv->created_at)?->format('d/m/Y H:i') ?? '-' }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
 
         <!-- Metadatos -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

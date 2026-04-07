@@ -28,6 +28,7 @@ yarn-error.log
 /test-results/
 /playwright-report/
 /playwright/.cache
+/.playwright-mcp/
 auth.json
 auth.setup.js
 ejemplo.spec.js
