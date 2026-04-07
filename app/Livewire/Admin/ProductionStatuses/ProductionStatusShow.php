@@ -16,6 +16,6 @@ class ProductionStatusShow extends Component
 
     public function render()
     {
-        return view('livewire.admin.production-statuses.production-status-show');
+        return view('livewire.admin.production-statuses.production-status-show-v2');
     }
 }

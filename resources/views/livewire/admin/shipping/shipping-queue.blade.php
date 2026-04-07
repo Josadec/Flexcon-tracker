@@ -1,35 +1,47 @@
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+<div class="space-y-6">
 
     {{-- Header --}}
-    <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">WO Listos para PS</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">WO Listos para PS</h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         Work Orders con lotes disponibles para crear un Packing Slip (FPL-10)
-                    </p>
-                </div>
-                @if($canCreatePs && !empty($selectedLotIds))
-                    <button
-                        wire:click="openCreatePsModal"
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-                    >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Crear Packing Slip ({{ count($selectedLotIds) }})
-                    </button>
-                @endif
-            </div>
+            </p>
+        </div>
+
+        @if($canCreatePs && !empty($selectedLotIds))
+            <button
+                wire:click="openCreatePsModal"
+                class="inline-flex items-center gap-2 self-start rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Crear Packing Slip ({{ count($selectedLotIds) }})
+            </button>
+        @endif
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="rounded-lg border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <div class="text-xs text-gray-500 dark:text-gray-400">Lotes en cola</div>
+            <div class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ $lotsInQueue->total() }}</div>
+        </div>
+        <div class="rounded-lg border-2 border-blue-200 bg-white p-4 dark:border-blue-800 dark:bg-gray-800">
+            <div class="text-xs text-gray-500 dark:text-gray-400">Seleccionados</div>
+            <div class="mt-1 text-2xl font-semibold text-blue-600 dark:text-blue-400">{{ count($selectedLotIds) }}</div>
+        </div>
+        <div class="rounded-lg border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <div class="text-xs text-gray-500 dark:text-gray-400">Pagina actual</div>
+            <div class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ $lotsInQueue->count() }}</div>
         </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div class="space-y-6">
 
         {{-- Mensajes de estado --}}
         @if($successMessage)
-            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-start gap-3">
+            <div class="rounded-lg border-2 border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20 flex items-start gap-3">
                 <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                 </svg>
@@ -38,7 +50,7 @@
         @endif
 
         @if($errorMessage)
-            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
+            <div class="rounded-lg border-2 border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20 flex items-start gap-3">
                 <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                 </svg>
@@ -47,7 +59,7 @@
         @endif
 
         {{-- Filtros --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div class="rounded-lg border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
             <div class="flex flex-col sm:flex-row gap-3">
                 {{-- Busqueda --}}
                 <div class="flex-1">
@@ -60,7 +72,7 @@
                             wire:model.live.debounce.300ms="searchTerm"
                             type="text"
                             placeholder="Buscar por lote, parte o WO externo..."
-                            class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            class="w-full rounded-md border-2 border-gray-200 bg-white py-2 pr-3 pl-9 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                         >
                     </div>
                 </div>
@@ -69,7 +81,7 @@
                 <div class="sm:w-56">
                     <select
                         wire:model.live="filterClosedByType"
-                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                        class="w-full rounded-md border-2 border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                     >
                         @foreach($closureTypes as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
@@ -81,7 +93,7 @@
                 @if(!empty($selectedLotIds))
                     <button
                         wire:click="clearSelection"
-                        class="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        class="rounded-md border-2 border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-gray-700/60"
                     >
                         Limpiar seleccion ({{ count($selectedLotIds) }})
                     </button>
@@ -90,7 +102,7 @@
         </div>
 
         {{-- Tabla de lotes en cola --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="overflow-hidden rounded-lg border-2 border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
             @if($lotsInQueue->isEmpty())
                 <div class="flex flex-col items-center justify-center py-16 text-center">
                     <svg class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,27 +117,27 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                            <tr class="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
                                 @if($canCreatePs)
                                     <th class="w-10 px-4 py-3 text-left">
                                         <span class="sr-only">Seleccionar</span>
                                     </th>
                                 @endif
-                                <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Lote</th>
-                                <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Work Order</th>
-                                <th class="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">Qty Empacada</th>
-                                <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Tipo Cierre</th>
-                                <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Fecha Cierre</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">Lote</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">Work Order</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">Qty Empacada</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">Tipo Cierre</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">Fecha Cierre</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50">
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             @foreach($lotsInQueue as $lot)
                                 @php
                                     $hasExternalWo = $lot->workOrder?->hasExternalWoNumber();
                                     $isSelected    = in_array($lot->id, $selectedLotIds);
                                 @endphp
                                 <tr
-                                    class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors {{ $isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : '' }}"
+                                    class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30 {{ $isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : '' }}"
                                     @if($canCreatePs) wire:click="toggleLot({{ $lot->id }})" style="cursor: pointer;" @endif
                                 >
                                     @if($canCreatePs)
@@ -135,7 +147,7 @@
                                                 wire:click="toggleLot({{ $lot->id }})"
                                                 @checked($isSelected)
                                                 @disabled(!$hasExternalWo)
-                                                class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 disabled:opacity-40"
+                                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-40 dark:border-gray-600"
                                             >
                                         </td>
                                     @endif
@@ -168,7 +180,7 @@
                                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                                 {{ $lot->workOrder?->purchaseOrder?->part?->number ?? '—' }}
                                             </div>
-                                            <span class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                                            <span class="mt-1 inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 dark:border-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
                                                 <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                                                 </svg>
@@ -177,7 +189,7 @@
                                             @if($canCreatePs)
                                                 <button
                                                     wire:click.stop="openReturnModal({{ $lot->id }})"
-                                                    class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-900/40 transition-colors"
+                                                    class="mt-1.5 inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40"
                                                     title="Devolver este lote a Empaque para que pueda ser re-procesado"
                                                 >
                                                     <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -207,7 +219,7 @@
                                                 default        => ['label' => '—', 'color' => 'gray'],
                                             };
                                         @endphp
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-{{ $typeLabel['color'] }}-100 text-{{ $typeLabel['color'] }}-800 dark:bg-{{ $typeLabel['color'] }}-900/30 dark:text-{{ $typeLabel['color'] }}-300">
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-{{ $typeLabel['color'] }}-100 text-{{ $typeLabel['color'] }}-800 dark:bg-{{ $typeLabel['color'] }}-900/30 dark:text-{{ $typeLabel['color'] }}-300">
                                             {{ $typeLabel['label'] }}
                                         </span>
                                     </td>
@@ -224,7 +236,7 @@
 
                 {{-- Paginacion --}}
                 @if($lotsInQueue->hasPages())
-                    <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+                    <div class="border-t border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/50">
                         {{ $lotsInQueue->links() }}
                     </div>
                 @endif
@@ -252,7 +264,7 @@
             ></div>
 
             {{-- Panel --}}
-            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div class="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-lg border-2 border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800">
 
                 {{-- Header del modal --}}
                 <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -341,14 +353,14 @@
                 <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
                     <button
                         wire:click="cancelReturnLot"
-                        class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        class="rounded-md border-2 border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-700/60"
                     >
                         Cancelar
                     </button>
                     <button
                         wire:click="confirmReturnLot"
                         wire:loading.attr="disabled"
-                        class="px-4 py-2 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                        class="flex items-center gap-2 rounded-md bg-amber-600 px-4 py-2 text-sm text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <span wire:loading.remove wire:target="confirmReturnLot">Confirmar devolucion</span>
                         <span wire:loading wire:target="confirmReturnLot">Procesando...</span>
@@ -382,7 +394,7 @@
             ></div>
 
             {{-- Panel --}}
-            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border-2 border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800">
 
                 {{-- Header del modal --}}
                 <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -408,7 +420,7 @@
                     {{-- Tabla de lotes seleccionados --}}
                     <div>
                         <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Lotes incluidos</h3>
-                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div class="overflow-hidden rounded-lg border-2 border-gray-200 dark:border-gray-700">
                             <table class="w-full text-sm">
                                 <thead class="bg-gray-50 dark:bg-gray-900/50">
                                     <tr>
@@ -477,14 +489,14 @@
                 <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
                     <button
                         wire:click="cancelCreatePs"
-                        class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        class="rounded-md border-2 border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-700/60"
                     >
                         Cancelar
                     </button>
                     <button
                         wire:click="createPackingSlip"
                         wire:loading.attr="disabled"
-                        class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                        class="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <span wire:loading.remove wire:target="createPackingSlip">Crear Packing Slip</span>
                         <span wire:loading wire:target="createPackingSlip">Creando...</span>
