@@ -1,0 +1,10 @@
+part_id,work_table_id,semi_auto_work_table_id,machine_id,units_per_hour,persons_1,persons_2,persons_3,active,is_migrated,description
+"OBLIGATORIO - ID de la parte en tabla parts","OPCIONAL - ID de mesa manual en tabla tables (dejar vacio si no aplica) - Solo uno de los tres IDs debe estar poblado","OPCIONAL - ID de mesa semi-automatica en tabla semi__automatics (nota: doble guion bajo en nombre de tabla) (dejar vacio si no aplica)","OPCIONAL - ID de maquina en tabla machines (dejar vacio si no aplica)","OBLIGATORIO - Entero >= 1 - Unidades producidas por hora","OPCIONAL - Numero de personas en configuracion 1 (ej: 1)","OPCIONAL - Numero de personas en configuracion 2 (ej: 2) - dejar vacio si no aplica","OPCIONAL - Numero de personas en configuracion 3 (ej: 3) - dejar vacio si no aplica","OPCIONAL - 1=activo 0=inactivo - Default: 1","OPCIONAL - 0=importacion masiva legacy 1=usa standard_configurations - Default: 0 para importacion masiva","OPCIONAL - Descripcion o referencia del standard"
+1,3,,,150,1,2,,1,0,Standard mesa manual STS H-CL-181-1222-90/9
+1,,2,,200,1,,,1,0,Standard semi-automatica STS H-CL-181-1222-90/9
+2,3,,,120,1,2,,1,0,Standard mesa manual STS H-CL-181-1224-90/9
+3,3,,,120,1,2,,1,0,Standard mesa manual STS H-CL-181-1226-90/9
+7,3,,,180,1,2,,1,0,Standard mesa manual STS H-C-2
+7,,,5,500,1,,,1,0,Standard maquina STS H-C-2
+8,3,,,180,1,2,,1,0,Standard mesa manual STS H-C-3
+8,,,5,480,1,,,1,0,Standard maquina STS H-C-3

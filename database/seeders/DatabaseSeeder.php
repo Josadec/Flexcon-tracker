@@ -19,34 +19,34 @@ class DatabaseSeeder extends Seeder
             // 1. Base: Permisos y Roles
             PermissionSeeder::class,
             RoleSeeder::class,
-            
+
             MaterialsRoleSeeder::class,
             AreaUsersSeeder::class,
-            
+
             // 2. Catálogos base
             StatusWOSeeder::class,
             ProductionStatusSeeder::class,   // Estados para mesas/máquinas
             DepartmentSeeder::class,         // Departamentos
             AreaSeeder::class,               // Áreas (depende de Departamentos)
-            
+
             // 3. Turnos y descansos
             ShiftSeeder::class,              // Turnos de producción
             BreakTimeSeeder::class,          // Descansos por turno
-            
+
             // 4. Estaciones de trabajo (dependen de Áreas y ProductionStatus)
             TableSeeder::class,              // Mesas de trabajo
             Semi_AutomaticSeeder::class,     // Semi-automáticos
             MachineSeeder::class,            // Máquinas
-            
+
             // 5. Precios y partes
             PriceSeeder::class,              // Precios con tiers
-            
+
             // 6. Personal
             EmployeeSeeder::class,           // Empleados por turno
-            
+
             // 7. Estándares (depende de Parts, Tables, Machines)
             StandardSeeder::class,           // Estándares para cálculo de capacidad
-            
+
             // 8. Datos de prueba
             WorkOrderTestSeeder::class,
 
@@ -58,17 +58,27 @@ class DatabaseSeeder extends Seeder
             InvoiceChargeTypeSeeder::class,
         ]);
 
-        // Create admin user AFTER roles are created
-        $adminUser = User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@test.com',
-            'account' => 'test',
-            'password' => Hash::make('password'),
-        ]);
-        
-        // Assign admin role
-        $adminUser->assignRole('admin');
-        
-        $this->command->info('Admin user created: test@test.com / password');
+        // Create admin user AFTER roles are created.
+        // firstOrCreate guarantees that if the user already exists its password
+        // and other fields are NEVER overwritten by the seeder or any MCP operation.
+        $adminUser = User::firstOrCreate(
+            ['email' => 'test@test.com'],           // search key — only used to find the record
+            [                                        // these values are only applied on INSERT (new record)
+                'name'     => 'Test User',
+                'account'  => 'test',
+                'password' => Hash::make('password'),
+            ]
+        );
+
+        // Assign admin role only if not already assigned (idempotent)
+        if (! $adminUser->hasRole('admin')) {
+            $adminUser->assignRole('admin');
+        }
+
+        if ($adminUser->wasRecentlyCreated) {
+            $this->command->info('Admin user created: test@test.com / password');
+        } else {
+            $this->command->info('Admin user already exists — password was NOT modified: test@test.com');
+        }
     }
 }

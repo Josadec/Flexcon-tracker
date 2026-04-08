@@ -1,0 +1,14 @@
+number,item_number,description,unit_of_measure,active,is_crimp,label_spec,notes
+"OBLIGATORIO - Texto unico - Numero interno Flexcon (ej: FLX-10004) - No debe existir en BD","OBLIGATORIO - Texto unico - Numero del cliente (ej: 189-10004) - No debe existir en BD","OPCIONAL - Texto libre - Nombre o descripcion del producto","OPCIONAL - Unidad de medida (EA / PCS / KIT)","OPCIONAL - 1=activo 0=inactivo - Default: 1","OPCIONAL - 1=es crimp 0=no es crimp - Default: 1","OPCIONAL - Especificacion militar/aeronautica (ej: M83519/2-8) - dejar vacio si no aplica","OPCIONAL - Notas internas - dejar vacio si no hay"
+FLX-10004,189-10004,STS H-CL-181-1222-90/9,EA,1,1,,
+FLX-10005,189-10005,STS H-CL-181-1224-90/9,EA,1,1,,
+FLX-10006,189-10006,STS H-CL-181-1226-90/9,EA,1,1,,
+FLX-10009,189-10009,STS H-CL-181-2222-90/9,EA,1,1,,
+FLX-10010,189-10010,STS H-CL-181-2222-90/9-10,EA,1,1,,
+FLX-10044,189-10044,STS H-C-1,EA,1,1,,
+FLX-10056,189-10056,STS H-C-2,EA,1,0,,
+FLX-10064,189-10064,STS H-C-3,EA,1,1,,
+FLX-10069,189-10069,STS H-C-4,EA,1,1,,
+FLX-10072,189-10072,STS H-C4-2,EA,1,1,,
+FLX-10601,189-10601,STS H-MB-1,EA,1,1,,Pendiente de precio
+FLX-10626,189-10626,STS H-ML-17-9,EA,1,1,,Pendiente de precio

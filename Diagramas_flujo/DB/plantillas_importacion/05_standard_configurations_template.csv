@@ -1,0 +1,12 @@
+standard_id,workstation_type,workstation_id,persons_required,units_per_hour,is_default,notes
+"OBLIGATORIO - ID del standard padre en tabla standards (consultar DESPUES de importar standards con: SELECT id part_id FROM standards WHERE is_migrated=1)","OBLIGATORIO - Solo valores permitidos: manual / semi_automatic / machine - NOTA: en standards usa manual (no table)","OPCIONAL - ID de la estacion especifica (mesa manual machine semi-auto) - puede estar vacio","OBLIGATORIO - Numero de personas requeridas: 1 / 2 / 3","OBLIGATORIO - Entero >= 1 - Unidades producidas por hora para esta configuracion","OPCIONAL - 1=configuracion por defecto 0=alternativa - Solo una configuracion por standard debe ser default - Default: 0","OPCIONAL - Notas adicionales de la configuracion"
+1,manual,3,1,150,1,
+1,manual,3,2,200,0,
+1,semi_automatic,2,1,300,0,
+2,manual,3,1,120,1,
+2,manual,3,2,160,0,
+3,manual,3,1,120,1,
+4,manual,3,1,180,1,
+4,machine,5,1,500,0,
+5,manual,3,1,180,1,
+5,machine,5,1,480,0,

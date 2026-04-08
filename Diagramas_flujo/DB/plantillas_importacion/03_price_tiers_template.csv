@@ -1,0 +1,27 @@
+price_id,min_quantity,max_quantity,tier_price
+"OBLIGATORIO - Numero entero - ID del precio en tabla prices (consultar DESPUES de importar prices con: SELECT id part_id workstation_type FROM prices)","OBLIGATORIO - Entero positivo - Cantidad minima del rango (tabla: 1 / machine: 1 / semi_auto: 2000)","OPCIONAL - Entero positivo o VACIO para sin limite - Cantidad maxima del rango (dejar vacio = NULL = sin limite superior)","OBLIGATORIO - Decimal 4 decimales - Precio unitario del tier (precio Excel dividido entre 100)"
+1,1,999,0.5271
+1,1000,10999,0.5008
+1,11000,99999,0.4746
+1,100000,,0.4484
+2,1,999,0.5271
+2,1000,10999,0.5227
+2,11000,99999,0.4965
+2,100000,,0.4703
+3,1,999,0.5271
+3,1000,10999,0.5008
+3,11000,99999,0.4746
+3,100000,,0.4484
+4,1,999,0.5271
+4,1000,10999,0.5008
+4,11000,99999,0.4746
+4,100000,,0.4484
+7,1,9999,0.2500
+7,10000,49999,0.1126
+7,50000,,0.1017
+8,1,999,0.2500
+8,1000,10999,0.1126
+8,11000,99999,0.1017
+8,100000,,0.1017
+9,2000,10000,0.1385
+9,11000,,0.1371
