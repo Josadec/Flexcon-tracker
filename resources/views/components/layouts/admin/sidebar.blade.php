@@ -5,14 +5,47 @@
     @include('partials.head')
 </head>
 
-<body class="min-h-screen bg-white dark:bg-zinc-800">
-    <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
-        <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
+<body
+    x-data="{
+        adminSidebarOpen: true,
+        init() {
+            const savedSidebarState = window.localStorage.getItem('flexcon.admin.sidebar.open');
 
-        <a href="{{ route('admin.dashboard') }}" class="me-5 flex items-center space-x-2 rtl:space-x-reverse"
-            wire:navigate>
-            <x-app-logo />
-        </a>
+            this.adminSidebarOpen = savedSidebarState === null ? true : savedSidebarState === 'true';
+
+            this.$watch('adminSidebarOpen', value => {
+                window.localStorage.setItem('flexcon.admin.sidebar.open', value ? 'true' : 'false');
+            });
+        }
+    }"
+    class="min-h-screen bg-white dark:bg-zinc-800"
+>
+    <flux:sidebar
+        sticky
+        stashable
+        x-bind:class="{ 'lg:hidden': !adminSidebarOpen }"
+        class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900"
+    >
+        <div class="flex items-start justify-between gap-3">
+            <a href="{{ route('admin.dashboard') }}" class="flex min-w-0 items-center space-x-2 rtl:space-x-reverse"
+                wire:navigate>
+                <x-app-logo />
+            </a>
+
+            <button
+                type="button"
+                class="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-800/5 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white lg:inline-flex"
+                @click="adminSidebarOpen = false"
+                aria-label="{{ __('Ocultar sidebar') }}"
+                title="{{ __('Ocultar sidebar') }}"
+            >
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+        </div>
+
+        <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
         @php $authUser = auth()->user(); @endphp
 
@@ -229,6 +262,14 @@
                 </flux:navlist.group>
             @endif
 
+            {{-- ── TUTORIAL (todos los roles) ── --}}
+            <flux:navlist.group :heading="__('Ayuda')" class="grid">
+                <flux:navlist.item icon="academic-cap" :href="route('admin.tutorial')"
+                    :current="request()->routeIs('admin.tutorial')" wire:navigate>
+                    {{ __('Tutorial / Guía') }}
+                </flux:navlist.item>
+            </flux:navlist.group>
+
         </flux:navlist>
 
         <flux:spacer />
@@ -275,6 +316,21 @@
             </flux:menu>
         </flux:dropdown>
     </flux:sidebar>
+
+    <button
+        x-cloak
+        x-show="!adminSidebarOpen"
+        x-transition.opacity
+        type="button"
+        class="fixed left-4 top-4 z-30 hidden h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white lg:inline-flex"
+        @click="adminSidebarOpen = true"
+        aria-label="{{ __('Mostrar sidebar') }}"
+        title="{{ __('Mostrar sidebar') }}"
+    >
+        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M3.75 5.75H16.25M3.75 10H16.25M3.75 14.25H16.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+    </button>
 
     <!-- Mobile User Menu -->
     <flux:header class="lg:hidden">

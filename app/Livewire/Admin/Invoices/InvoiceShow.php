@@ -14,25 +14,30 @@ class InvoiceShow extends Component
     public Invoice $invoice;
 
     // Edicion inline de LOT NO.
-    public bool    $editingLotNo  = false;
-    public string  $lotNoValue    = '';
+    public bool $editingLotNo = false;
+
+    public string $lotNoValue = '';
 
     // Edicion inline de cargos fijos
-    public ?int    $editingChargeId     = null;
-    public string  $editingChargeAmount = '';
+    public ?int $editingChargeId = null;
+
+    public string $editingChargeAmount = '';
 
     // Edicion inline de lot_number por item
-    public ?int    $editingLotItemId    = null;
-    public string  $editingLotItemValue = '';
+    public ?int $editingLotItemId = null;
+
+    public string $editingLotItemValue = '';
 
     // Confirmacion de acciones de estado
-    public bool $confirmingIssue  = false;
+    public bool $confirmingIssue = false;
+
     public bool $confirmingCancel = false;
+
     public bool $confirmingDelete = false;
 
     public function mount(Invoice $invoice): void
     {
-        $this->invoice   = $invoice->load([
+        $this->invoice = $invoice->load([
             'packingSlip',
             'productItems',
             'chargeItems.chargeType',
@@ -48,8 +53,8 @@ class InvoiceShow extends Component
 
     public function startEditingLotNo(): void
     {
-        $this->lotNoValue    = $this->invoice->lot_no ?? '';
-        $this->editingLotNo  = true;
+        $this->lotNoValue = $this->invoice->lot_no ?? '';
+        $this->editingLotNo = true;
     }
 
     public function cancelEditingLotNo(): void
@@ -70,7 +75,7 @@ class InvoiceShow extends Component
             'lotNoValue' => ['required', 'string', 'max:20', 'regex:/^\d{6}x\d{2}$/'],
         ], [
             'lotNoValue.required' => 'El LOT NO. es obligatorio.',
-            'lotNoValue.regex'    => 'Formato inválido. Use MMDDYY + x + 2 dígitos (ej: 030926x01).',
+            'lotNoValue.regex' => 'Formato inválido. Use MMDDYY + x + 2 dígitos (ej: 030926x01).',
         ]);
 
         $newLotNo = trim($this->lotNoValue);
@@ -113,13 +118,13 @@ class InvoiceShow extends Component
             return;
         }
 
-        $this->editingChargeId     = $itemId;
+        $this->editingChargeId = $itemId;
         $this->editingChargeAmount = (string) $item->unit_cost;
     }
 
     public function cancelEditingCharge(): void
     {
-        $this->editingChargeId     = null;
+        $this->editingChargeId = null;
         $this->editingChargeAmount = '';
         $this->resetErrorBag('editingChargeAmount');
     }
@@ -132,6 +137,7 @@ class InvoiceShow extends Component
     {
         if (! $this->invoice->canBeModified()) {
             $this->dispatch('notify', ['type' => 'error', 'message' => 'Solo se pueden editar cargos en Invoices en borrador.']);
+
             return;
         }
 
@@ -139,8 +145,8 @@ class InvoiceShow extends Component
             'editingChargeAmount' => ['required', 'numeric', 'min:0'],
         ], [
             'editingChargeAmount.required' => 'El monto es obligatorio.',
-            'editingChargeAmount.numeric'  => 'El monto debe ser un número válido.',
-            'editingChargeAmount.min'      => 'El monto no puede ser negativo.',
+            'editingChargeAmount.numeric' => 'El monto debe ser un número válido.',
+            'editingChargeAmount.min' => 'El monto no puede ser negativo.',
         ]);
 
         $item = InvoiceItem::where('invoice_id', $this->invoice->id)
@@ -150,14 +156,14 @@ class InvoiceShow extends Component
 
         $amount = (string) $this->editingChargeAmount;
 
-        $item->unit_cost  = $amount;
+        $item->unit_cost = $amount;
         $item->line_total = round((float) bcmul('1', $amount, 6), 2);
         $item->save();
 
         // Recalcular totales del Invoice
         $this->invoice->calculateTotals()->save();
 
-        $this->editingChargeId     = null;
+        $this->editingChargeId = null;
         $this->editingChargeAmount = '';
 
         $this->invoice->refresh()->load([
@@ -187,13 +193,13 @@ class InvoiceShow extends Component
             return;
         }
 
-        $this->editingLotItemId    = $itemId;
+        $this->editingLotItemId = $itemId;
         $this->editingLotItemValue = (string) ($item->lot_number ?? '');
     }
 
     public function cancelEditingLotItem(): void
     {
-        $this->editingLotItemId    = null;
+        $this->editingLotItemId = null;
         $this->editingLotItemValue = '';
         $this->resetErrorBag('editingLotItemValue');
     }
@@ -206,6 +212,7 @@ class InvoiceShow extends Component
     {
         if (! $this->invoice->isDraft()) {
             $this->dispatch('notify', ['type' => 'error', 'message' => 'Solo se puede editar el LOT NO. en Invoices en borrador.']);
+
             return;
         }
 
@@ -213,7 +220,7 @@ class InvoiceShow extends Component
             'editingLotItemValue' => ['required', 'string', 'max:50'],
         ], [
             'editingLotItemValue.required' => 'El LOT NO. es obligatorio.',
-            'editingLotItemValue.max'      => 'El LOT NO. no puede superar 50 caracteres.',
+            'editingLotItemValue.max' => 'El LOT NO. no puede superar 50 caracteres.',
         ]);
 
         InvoiceItem::where('invoice_id', $this->invoice->id)
@@ -221,7 +228,7 @@ class InvoiceShow extends Component
             ->where('is_fixed_charge', false)
             ->update(['lot_number' => trim($this->editingLotItemValue)]);
 
-        $this->editingLotItemId    = null;
+        $this->editingLotItemId = null;
         $this->editingLotItemValue = '';
 
         $this->invoice->refresh()->load([
@@ -248,9 +255,10 @@ class InvoiceShow extends Component
     {
         if (! $this->invoice->isDraft()) {
             $this->dispatch('notify', [
-                'type'    => 'error',
+                'type' => 'error',
                 'message' => 'Solo se puede editar el número en Invoices en borrador.',
             ]);
+
             return;
         }
 
@@ -258,9 +266,10 @@ class InvoiceShow extends Component
 
         if (empty($value) || strlen($value) > 10) {
             $this->dispatch('notify', [
-                'type'    => 'error',
+                'type' => 'error',
                 'message' => 'El número de Invoice no puede estar vacío ni superar 10 caracteres.',
             ]);
+
             return;
         }
 
@@ -272,9 +281,10 @@ class InvoiceShow extends Component
 
         if ($exists) {
             $this->dispatch('notify', [
-                'type'    => 'error',
+                'type' => 'error',
                 'message' => "El número '{$value}' ya está en uso por otro Invoice.",
             ]);
+
             return;
         }
 
@@ -307,6 +317,7 @@ class InvoiceShow extends Component
         if (! $this->invoice->isDraft()) {
             $this->dispatch('notify', ['type' => 'error', 'message' => 'Solo se puede emitir un Invoice en estado borrador.']);
             $this->confirmingIssue = false;
+
             return;
         }
 
@@ -314,13 +325,13 @@ class InvoiceShow extends Component
 
         if ($zeroItems > 0) {
             $this->dispatch('notify', [
-                'type'    => 'warning',
+                'type' => 'warning',
                 'message' => "Advertencia: hay {$zeroItems} item(s) sin precio definido. El Invoice se emitirá de todas formas.",
             ]);
         }
 
         $this->invoice->update([
-            'status'    => Invoice::STATUS_ISSUED,
+            'status' => Invoice::STATUS_ISSUED,
             'issued_at' => now(),
             'issued_by' => Auth::id(),
         ]);
@@ -357,6 +368,7 @@ class InvoiceShow extends Component
         if (! $this->invoice->isDraft()) {
             $this->dispatch('notify', ['type' => 'error', 'message' => 'Solo se puede cancelar un Invoice en estado borrador.']);
             $this->confirmingCancel = false;
+
             return;
         }
 
@@ -410,9 +422,10 @@ class InvoiceShow extends Component
         } catch (RuntimeException $e) {
             $this->confirmingDelete = false;
             $this->dispatch('notify', [
-                'type'    => 'error',
+                'type' => 'error',
                 'message' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -427,7 +440,7 @@ class InvoiceShow extends Component
             ->filter(fn ($i) => (float) $i->unit_cost === 0.0)
             ->count();
 
-        return view('livewire.admin.invoices.invoice-show', [
+        return view('livewire.admin.invoices.invoice-show-v2', [
             'zeroUnitCostCount' => $zeroUnitCostCount,
         ]);
     }

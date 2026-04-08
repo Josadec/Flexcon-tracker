@@ -8,9 +8,13 @@ use Livewire\Component;
 class ProductionStatusCreate extends Component
 {
     public string $name = '';
+
     public string $color = '#10b981';
+
     public string $order = '';
+
     public bool $active = true;
+
     public string $description = '';
 
     public function rules(): array
@@ -44,6 +48,6 @@ class ProductionStatusCreate extends Component
 
     public function render()
     {
-        return view('livewire.admin.production-statuses.production-status-create');
+        return view('livewire.admin.production-statuses.production-status-create-v2');
     }
 }

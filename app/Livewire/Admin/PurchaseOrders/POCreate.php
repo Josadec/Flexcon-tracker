@@ -76,6 +76,12 @@ class POCreate extends Component
         ];
     }
 
+    public function selectPart($value): void
+    {
+        $this->part_id = $value ? (int) $value : null;
+        $this->validatePrice();
+    }
+
     public function updatedPartId(): void
     {
         $this->validatePrice();

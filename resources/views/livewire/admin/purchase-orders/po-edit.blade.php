@@ -60,14 +60,28 @@
                             <label for="part_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Parte <span class="text-red-500">*</span>
                             </label>
-                            <select wire:model.live="part_id" id="part_id"
-                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
-                                required>
-                                <option value="">Seleccione una parte</option>
-                                @foreach($parts as $part)
-                                    <option value="{{ $part->id }}">{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
-                                @endforeach
-                            </select>
+                            <div wire:ignore x-data="{
+                                init() {
+                                    const sel = this.$refs.partSelect;
+                                    new TomSelect(sel, {
+                                        create: false,
+                                        allowEmptyOption: true,
+                                        placeholder: 'Seleccione una parte',
+                                        sortField: false,
+                                        maxOptions: 500,
+                                        render: { no_results: () => '<div class=\'no-results\'>Sin resultados</div>' },
+                                        onChange: (v) => { $wire.selectPart(v); }
+                                    });
+                                }
+                            }">
+                                <select x-ref="partSelect" data-no-ts id="part_id"
+                                    class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors">
+                                    <option value="">Seleccione una parte</option>
+                                    @foreach($parts as $part)
+                                        <option value="{{ $part->id }}" @selected($part_id == $part->id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             @error('part_id')
                                 <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
@@ -89,9 +103,11 @@
                             <label for="po_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Fecha de PO <span class="text-red-500">*</span>
                             </label>
-                            <input wire:model="po_date" id="po_date" type="date"
-                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
-                                required />
+                            <div wire:ignore>
+                                <input wire:model="po_date" id="po_date" type="date"
+                                    class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+                                    required />
+                            </div>
                             @error('po_date')
                                 <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
@@ -101,9 +117,11 @@
                             <label for="due_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Fecha de Entrega <span class="text-red-500">*</span>
                             </label>
-                            <input wire:model="due_date" id="due_date" type="date"
-                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
-                                required />
+                            <div wire:ignore>
+                                <input wire:model="due_date" id="due_date" type="date"
+                                    class="block w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+                                    required />
+                            </div>
                             @error('due_date')
                                 <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror

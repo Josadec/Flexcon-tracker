@@ -8,10 +8,15 @@ use Livewire\Component;
 class ProductionStatusEdit extends Component
 {
     public ProductionStatus $productionStatus;
+
     public string $name = '';
+
     public string $color = '';
+
     public string $order = '';
+
     public bool $active = true;
+
     public string $description = '';
 
     public function mount(ProductionStatus $productionStatus): void
@@ -27,7 +32,7 @@ class ProductionStatusEdit extends Component
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255|unique:production_statuses,name,' . $this->productionStatus->id,
+            'name' => 'required|string|max:255|unique:production_statuses,name,'.$this->productionStatus->id,
             'color' => 'required|string|size:7|regex:/^#[0-9A-Fa-f]{6}$/',
             'order' => 'required|integer|min:0',
             'active' => 'boolean',
@@ -55,6 +60,6 @@ class ProductionStatusEdit extends Component
 
     public function render()
     {
-        return view('livewire.admin.production-statuses.production-status-edit');
+        return view('livewire.admin.production-statuses.production-status-edit-v2');
     }
 }

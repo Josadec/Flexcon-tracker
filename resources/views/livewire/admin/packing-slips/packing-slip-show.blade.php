@@ -1,4 +1,14 @@
-<div class="py-12">
+@php
+    $statusCardClasses = match($packingSlip->status) {
+        'draft' => 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+        'pending' => 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+        'shipped' => 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300',
+        'cancelled' => 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300',
+        default => 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300',
+    };
+@endphp
+
+<div class="space-y-6">
 
     {{-- Toast de notificaciones (fixed, no afecta el layout) --}}
     <div
@@ -60,35 +70,34 @@
         </template>
     </div>
 
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="space-y-6">
 
         <!-- Header -->
-        <div class="mb-8">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div class="flex items-center space-x-3">
+        <div>
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div class="space-y-3">
+                    <a href="{{ route('admin.packing-slips.index') }}" wire:navigate
+                       class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Volver a packing slips
+                    </a>
+                    <div class="flex items-center space-x-3">
                     <div>
-                        <h1 class="text-3xl font-bold text-gray-900 dark:text-white font-mono">
+                        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white font-mono">
                             {{ $packingSlip->ps_number }}
                         </h1>
                         <div class="flex items-center mt-2 space-x-3">
-                            @php
-                                $badgeClasses = match($packingSlip->status) {
-                                    'draft'     => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-                                    'pending'   => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-                                    'shipped'   => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-                                    'cancelled' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-                                    default     => 'bg-gray-100 text-gray-800',
-                                };
-                            @endphp
-                            <span class="px-3 py-1 text-sm font-semibold rounded-full {{ $badgeClasses }}">
+                            <span class="inline-flex rounded-full border-2 px-3 py-1 text-xs font-medium {{ $statusCardClasses }}">
                                 {{ $packingSlip->statusLabel }}
                             </span>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Packing Slip</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Detalle operativo del Packing Slip</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-4 sm:mt-0 flex flex-wrap gap-2 items-center">
+                <div class="flex flex-wrap gap-2 items-center xl:max-w-2xl xl:justify-end">
                     {{-- Selector de estado universal: permite cambiar a cualquier estado libremente --}}
                     <div class="flex items-center gap-2">
                         <select wire:model="selectedStatus"
@@ -136,7 +145,7 @@
                     @endif
 
                     <a href="{{ route('admin.packing-slips.index') }}" wire:navigate
-                       class="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
+                       class="inline-flex items-center px-4 py-2 border-2 border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700/60 text-sm font-medium rounded-md transition-colors duration-200">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>
@@ -146,8 +155,39 @@
             </div>
         </div>
 
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-lg border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                <div class="text-xs text-gray-500 dark:text-gray-400">Estado</div>
+                <div class="mt-2 inline-flex rounded-full border-2 px-3 py-1 text-xs font-medium {{ $statusCardClasses }}">
+                    {{ $packingSlip->statusLabel }}
+                </div>
+            </div>
+            <div class="rounded-lg border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                <div class="text-xs text-gray-500 dark:text-gray-400">Items</div>
+                <div class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ $packingSlip->items->count() }}</div>
+            </div>
+            <div class="rounded-lg border-2 border-blue-200 bg-white p-4 dark:border-blue-800 dark:bg-gray-800">
+                <div class="text-xs text-gray-500 dark:text-gray-400">Piezas</div>
+                <div class="mt-1 text-2xl font-semibold text-blue-600 dark:text-blue-400">{{ number_format($packingSlip->items->sum('quantity_packed')) }}</div>
+            </div>
+            <div class="rounded-lg border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                <div class="text-xs text-gray-500 dark:text-gray-400">Invoice</div>
+                <div class="mt-3">
+                    @if ($packingSlip->hasInvoice())
+                        <span class="inline-flex rounded-full border-2 border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300">
+                            Generado
+                        </span>
+                    @else
+                        <span class="inline-flex rounded-full border-2 border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-300">
+                            Pendiente
+                        </span>
+                    @endif
+                </div>
+            </div>
+        </div>
+
         <!-- Info General -->
-        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-6">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información General</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -279,7 +319,7 @@
         <!-- PANEL DE EDICIÓN DE LOTES (visible solo cuando draft y editingLots) -->
         <!-- ================================================================ -->
         @if ($packingSlip->isDraft() && $editingLots)
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border-2 border-amber-400 dark:border-amber-600 overflow-hidden mb-6"
+            <div class="bg-white dark:bg-gray-800 rounded-lg border-2 border-amber-400 dark:border-amber-600 overflow-hidden"
                  id="lot-editing-panel">
                 <div class="px-6 py-4 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700">
                     <div class="flex items-center justify-between">
@@ -407,7 +447,7 @@
         @endif
 
         <!-- Tabla de Items -->
-        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -520,7 +560,7 @@
         <!-- PANEL INVOICE (visible solo cuando shipped) -->
         <!-- ================================================================ -->
         @if ($packingSlip->isShipped())
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/30 border-b border-gray-200 dark:border-gray-700">
                     <div class="flex items-center gap-3">
                         <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -587,7 +627,7 @@
 
         <!-- Metadatos -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -600,7 +640,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
