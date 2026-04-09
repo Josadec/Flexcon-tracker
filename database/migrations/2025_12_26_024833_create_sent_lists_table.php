@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('sent_lists', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('po_id')->constrained('purchase_orders')->onDelete('cascade');
+            $table->foreignId('po_id')->nullable()->constrained('purchase_orders')->onDelete('cascade');
             $table->json('shift_ids');
             $table->integer('num_persons');
             $table->date('start_date');
@@ -22,6 +22,19 @@ return new class extends Migration
             $table->decimal('used_hours', 10, 2);
             $table->decimal('remaining_hours', 10, 2);
             $table->enum('status', ['pending', 'confirmed', 'canceled'])->default('pending');
+            $table->string('current_department')->default('materiales')->comment('Current department: materiales, inspeccion, produccion, calidad, envios');
+            $table->json('department_history')->nullable()->comment('Department transition history');
+            $table->timestamp('materials_approved_at')->nullable();
+            $table->foreignId('materials_approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('inspection_approved_at')->nullable();
+            $table->foreignId('inspection_approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('production_approved_at')->nullable();
+            $table->foreignId('production_approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('quality_approved_at')->nullable();
+            $table->foreignId('quality_approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('shipping_approved_at')->nullable();
+            $table->foreignId('shipping_approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

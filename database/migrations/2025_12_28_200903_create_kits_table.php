@@ -15,15 +15,23 @@ return new class extends Migration
             $table->id();
             $table->foreignId('work_order_id')->constrained()->onDelete('cascade');
             $table->string('kit_number')->unique();
+            $table->unsignedInteger('quantity')->nullable();
             $table->string('status')->default('preparing'); // preparing, ready, released, in_assembly
             $table->boolean('validated')->default(false);
             $table->text('validation_notes')->nullable();
             $table->foreignId('prepared_by')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignId('released_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->timestamp('submitted_to_inspection_at')->nullable();
+            $table->timestamp('approved_at')->nullable();
+            $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->integer('current_approval_cycle')->default(1);
             $table->timestamps();
 
             $table->index(['work_order_id', 'status']);
             $table->index('status');
+            $table->index('submitted_to_inspection_at');
+            $table->index('approved_at');
+            $table->index('approved_by');
         });
     }
 

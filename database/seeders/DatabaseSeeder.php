@@ -19,51 +19,17 @@ class DatabaseSeeder extends Seeder
             // 1. Base: Permisos y Roles
             PermissionSeeder::class,
             RoleSeeder::class,
-            
-            MaterialsRoleSeeder::class,
-            AreaUsersSeeder::class,
-            
-            // 2. Catálogos base
-            StatusWOSeeder::class,
-            ProductionStatusSeeder::class,   // Estados para mesas/máquinas
-            DepartmentSeeder::class,         // Departamentos
-            AreaSeeder::class,               // Áreas (depende de Departamentos)
-            
-            // 3. Turnos y descansos
-            ShiftSeeder::class,              // Turnos de producción
-            BreakTimeSeeder::class,          // Descansos por turno
-            
-            // 4. Estaciones de trabajo (dependen de Áreas y ProductionStatus)
-            TableSeeder::class,              // Mesas de trabajo
-            Semi_AutomaticSeeder::class,     // Semi-automáticos
-            MachineSeeder::class,            // Máquinas
-            
-            // 5. Precios y partes
-            PriceSeeder::class,              // Precios con tiers
-            
-            // 6. Personal
-            EmployeeSeeder::class,           // Empleados por turno
-            
-            // 7. Estándares (depende de Parts, Tables, Machines)
-            StandardSeeder::class,           // Estándares para cálculo de capacidad
-            
-            // 8. Datos de prueba
-            WorkOrderTestSeeder::class,
 
-            // 9. Catalogo de tipos de cargo del Invoice FPL-12 (Fase 5)
-            // Requiere que la migracion 2026_03_18_100000_create_invoice_charge_types_table
-            // haya sido ejecutada previamente.
-            // Carga: Machine Maintenance ($1,200), Administration Fee ($250), SHIPPING COST ($450).
-            // Decision P-12-02 / D-12-22: montos editables por Admin desde /admin/invoice-charge-types.
-            InvoiceChargeTypeSeeder::class,
+            // 2. Días festivos
+            HolidaySeeder::class,
         ]);
 
         // Create admin user AFTER roles are created
         $adminUser = User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@test.com',
+            'name' => 'Jonathan',
+            'email' => 'JJimenez@ensamblesformula.com',
             'account' => 'test',
-            'password' => Hash::make('password'),
+            'password' => Hash::make('Flexcon2026'),
         ]);
         
         // Assign admin role

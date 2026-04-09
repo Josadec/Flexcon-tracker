@@ -26,8 +26,9 @@ return new class extends Migration
 
             // NO puedes eliminar un área si tiene máquinas (RESTRICT)
             $table->foreignId('area_id')->constrained('areas');
-
+            $table->foreignId('production_status_id')->nullable()->constrained('production_statuses')->nullOnDelete();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
