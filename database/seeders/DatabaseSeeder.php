@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             // 1. Base: Permisos y Roles
             PermissionSeeder::class,
             RoleSeeder::class,
+<<<<<<< HEAD
 
             MaterialsRoleSeeder::class,
             AreaUsersSeeder::class,
@@ -49,15 +50,14 @@ class DatabaseSeeder extends Seeder
 
             // 8. Datos de prueba
             WorkOrderTestSeeder::class,
+=======
+>>>>>>> 7e91c1f2f1237c79138a724b3793ab76c5091623
 
-            // 9. Catalogo de tipos de cargo del Invoice FPL-12 (Fase 5)
-            // Requiere que la migracion 2026_03_18_100000_create_invoice_charge_types_table
-            // haya sido ejecutada previamente.
-            // Carga: Machine Maintenance ($1,200), Administration Fee ($250), SHIPPING COST ($450).
-            // Decision P-12-02 / D-12-22: montos editables por Admin desde /admin/invoice-charge-types.
-            InvoiceChargeTypeSeeder::class,
+            // 2. Días festivos
+            HolidaySeeder::class,
         ]);
 
+<<<<<<< HEAD
         // Create admin user AFTER roles are created.
         // firstOrCreate guarantees that if the user already exists its password
         // and other fields are NEVER overwritten by the seeder or any MCP operation.
@@ -80,5 +80,19 @@ class DatabaseSeeder extends Seeder
         } else {
             $this->command->info('Admin user already exists — password was NOT modified: test@test.com');
         }
+=======
+        // Create admin user AFTER roles are created
+        $adminUser = User::factory()->create([
+            'name' => 'Jonathan',
+            'email' => 'JJimenez@ensamblesformula.com',
+            'account' => 'test',
+            'password' => Hash::make('Flexcon2026'),
+        ]);
+        
+        // Assign admin role
+        $adminUser->assignRole('admin');
+        
+        $this->command->info('Admin user created: test@test.com / password');
+>>>>>>> 7e91c1f2f1237c79138a724b3793ab76c5091623
     }
 }

@@ -14,7 +14,8 @@ return new class extends Migration
      * La relacion con Invoice FPL-12 es 1:1 (un PS genera un Invoice).
      *
      * Ciclo de vida del PS:
-     *   draft -> confirmed -> shipped
+     *   draft -> pending -> shipped
+     *   cancelado como salida lateral
      *
      * Solo Admin y Shipping pueden crear/confirmar/despachar.
      * Empaque tiene acceso de solo lectura (D-06-04).
@@ -35,9 +36,13 @@ return new class extends Migration
                   ->comment('Usuario que creo el Packing Slip');
 
             // Estado del ciclo de vida del PS
-            $table->enum('status', ['draft', 'confirmed', 'shipped'])
+            $table->enum('status', ['draft', 'pending', 'shipped', 'cancelled'])
                   ->default('draft')
-                  ->comment('Estado del PS: draft|confirmed|shipped');
+                  ->comment('Estado del PS: draft|pending|shipped|cancelled');
+
+            $table->date('document_date')
+                  ->nullable()
+                  ->comment('Fecha del documento FPL-10');
 
             // Timestamp de cuando el PS fue despachado (status = shipped)
             $table->timestamp('shipped_at')
@@ -51,6 +56,10 @@ return new class extends Migration
                   ->onDelete('set null')
                   ->comment('Usuario que marco el PS como shipped');
 
+            $table->unsignedBigInteger('invoice_id')
+                  ->nullable()
+                  ->comment('Invoice generado para este PS');
+
             // Notas adicionales para el PS
             $table->text('notes')
                   ->nullable()
@@ -63,6 +72,7 @@ return new class extends Migration
             $table->index('status', 'idx_packing_slips_status');
             $table->index('shipped_at', 'idx_packing_slips_shipped_at');
             $table->index('created_by', 'idx_packing_slips_created_by');
+            $table->index('invoice_id', 'idx_ps_invoice_id');
         });
     }
 

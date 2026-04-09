@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('standards', function (Blueprint $table) {
             $table->id();
             $table->foreignId('part_id')->constrained()->onDelete('cascade');
+            $table->integer('units_per_hour')->default(1)->comment('Units produced per hour at this workstation');
             $table->foreignId('work_table_id')->nullable()->constrained('tables')->onDelete('set null');
             $table->foreignId('semi_auto_work_table_id')->nullable()->constrained('semi__automatics')->onDelete('set null');
             $table->foreignId('machine_id')->nullable()->constrained()->onDelete('set null');
@@ -21,8 +22,8 @@ return new class extends Migration
             $table->integer('persons_1')->nullable();
             $table->integer('persons_2')->nullable();
             $table->integer('persons_3')->nullable();
-            $table->date('effective_date')->nullable();
             $table->boolean('active')->default(true);
+            $table->boolean('is_migrated')->default(false)->comment('Whether this standard was migrated to standard_configurations');
             $table->text('description')->nullable();
 
             $table->softDeletes();
@@ -30,10 +31,11 @@ return new class extends Migration
 
             $table->index(['work_table_id', 'active'], 'standards_search_index');
             $table->index(['semi_auto_work_table_id', 'active'], 'standards_semi_auto_active_index');
-            $table->index('effective_date', 'standards_effective_date_index');
             $table->index('active', 'standards_active_index');
             $table->index('machine_id', 'standards_machine_index');
             $table->index('part_id', 'standards_part_index');
+            $table->index(['part_id', 'active', 'units_per_hour'], 'standards_part_performance_index');
+            $table->index('is_migrated', 'idx_standards_migrated');
         });
     }
 

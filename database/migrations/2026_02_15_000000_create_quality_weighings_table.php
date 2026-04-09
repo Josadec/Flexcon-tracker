@@ -18,7 +18,7 @@ return new class extends Migration
             $table->integer('production_good_pieces')->comment('Total de piezas buenas de produccion (referencia)');
             $table->integer('good_pieces')->default(0)->comment('Piezas aprobadas por calidad');
             $table->integer('bad_pieces')->default(0)->comment('Piezas rechazadas por calidad');
-            $table->string('disposition')->default('rework')->comment('rework o scrap');
+            $table->string('disposition')->nullable()->default(null)->comment('rework o scrap');
             $table->string('rework_status')->nullable()->comment('pending_rework, in_rework, rework_complete');
             $table->timestamp('weighed_at')->comment('Fecha y hora de la pesada de calidad');
             $table->foreignId('weighed_by')->nullable()->constrained('users')->onDelete('set null');

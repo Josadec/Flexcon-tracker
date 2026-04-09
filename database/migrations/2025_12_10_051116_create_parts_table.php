@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('item_number')->unique();
             $table->string('unit_of_measure')->nullable();
             $table->tinyInteger('active')->default(1);
+            $table->boolean('is_crimp')->default(true);
+            $table->string('label_spec', 150)->nullable()->comment('Military or aerospace label specification');
             $table->text('description')->nullable();
             $table->string('notes')->nullable();
 

@@ -39,20 +39,20 @@ class RoleSeeder extends Seeder
                 case 'HR':
                     // HR puede gestionar usuarios y ver reportes
                     $role->syncPermissions([
-                        'view-dashboard',
-                        'view-users',
-                        'create-users',
-                        'edit-users',
-                        'delete-users',
-                        'view-roles',
-                        'view-departments',
-                        'view-areas',
-                        'view-reports',
-                        'create-reports',
-                        'export-reports',
+                        'admin.view-dashboard',
+                        'admin.view-reports',
+                        'admin.create-reports',
+                        'admin.export-reports',
+                        'usuarios.view-users',
+                        'usuarios.create-users',
+                        'usuarios.edit-users',
+                        'usuarios.delete-users',
+                        'usuarios.view-roles',
+                        'catalogos.view-departments',
+                        'catalogos.view-areas',
                     ]);
                     break;
-                    
+
                 case 'Maintenance':
                 case 'Production':
                 case 'Shipping':
@@ -61,16 +61,16 @@ class RoleSeeder extends Seeder
                 case 'Quality':
                     // Roles operativos tienen permisos básicos
                     $role->syncPermissions([
-                        'view-dashboard',
-                        'view-users',
-                        'view-reports',
+                        'admin.view-dashboard',
+                        'usuarios.view-users',
+                        'admin.view-reports',
                     ]);
                     break;
-                    
+
                 case 'employee':
                     // Empleados solo pueden ver su dashboard
                     $role->syncPermissions([
-                        'view-dashboard',
+                        'admin.view-dashboard',
                     ]);
                     break;
             }

@@ -25,10 +25,6 @@ return new class extends Migration
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
         });
-
-        Schema::table('lots', function (Blueprint $table) {
-            $table->unsignedInteger('completion_count')->default(0)->after('packaging_status');
-        });
     }
 
     /**
@@ -36,10 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('lots', function (Blueprint $table) {
-            $table->dropColumn('completion_count');
-        });
-
         Schema::dropIfExists('lot_completion_logs');
     }
 };

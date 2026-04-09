@@ -14,7 +14,8 @@ return new class extends Migration
      * Se genera directamente desde un Packing Slip en estado 'shipped'.
      *
      * Ciclo de vida del Invoice:
-     *   draft -> issued -> paid (fase futura)
+     *   draft -> issued
+     *   draft -> cancelled
      *
      * Decision D-12-01: tabla separada de packing_slips; el Invoice tiene ciclo de vida,
      * estados y datos financieros propios.
@@ -24,9 +25,8 @@ return new class extends Migration
      * Los totales (subtotal_items, subtotal_charges, grand_total) son valores calculados
      * y persistidos por Invoice::calculateTotals().
      *
-     * Decision D-12-04: el campo invoice_id en packing_slips se agrega en una migracion
-     * separada (add_invoice_id_to_packing_slips_table) para evitar la referencia circular
-     * en el orden de ejecucion de migraciones.
+     * El campo invoice_id en packing_slips ahora queda consolidado en su migracion
+     * create correspondiente para mantener el historial mas compacto.
      *
      * Orden de dependencias:
      *   Requiere: packing_slips (2026_03_08_100002), invoice_charge_types (2026_03_18_100000)
@@ -67,12 +67,12 @@ return new class extends Migration
             // =========================================================
 
             // Estado del ciclo de vida del Invoice.
-            //   draft:  en edicion, precios y cargos editables por el Admin.
+            //   draft: en edicion, precios y cargos editables por el Admin.
             //   issued: emitido, PDF generado, datos financieros bloqueados.
-            //   paid:   pagado (flujo de UI en fase futura).
-            $table->enum('status', ['draft', 'issued', 'paid'])
+            //   cancelled: cancelado por el usuario.
+            $table->enum('status', ['draft', 'issued', 'cancelled'])
                   ->default('draft')
-                  ->comment('Estado del ciclo de vida: draft|issued|paid.');
+                  ->comment('Estado del ciclo de vida: draft|issued|cancelled.');
 
             // Tipo de Invoice.
             //   product:    generado desde un Packing Slip (relacion 1:1 con PS).
