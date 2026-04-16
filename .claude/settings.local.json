@@ -37,7 +37,10 @@
       "Bash(composer show:*)",
       "Bash(npm run:*)",
       "mcp__playwright__browser_network_requests",
-      "mcp__playwright__browser_console_messages"
+      "mcp__playwright__browser_console_messages",
+      "Bash(/c/xampp/mysql/bin/mysql -u root -e \"SELECT email, password FROM flexcon_traker.users WHERE email=''test@test.com'';\")",
+      "Bash(/c/xampp/mysql/bin/mysql -u root -e \"UPDATE flexcon_db.users SET password='\\\\$2y\\\\$12\\\\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi' WHERE email='test@test.com';\")",
+      "Bash(/c/xampp/mysql/bin/mysql -u root -e \"UPDATE flexcon_db.users SET password=''$2y$10$WZp6DiBQv4TwNKr.GYr1/uuCE9IV/MXG4hMDHngVD3.rLO0ShSboi'' WHERE email=''test@test.com'';\")"
     ],
     "deny": [],
     "ask": []

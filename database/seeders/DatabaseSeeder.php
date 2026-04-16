@@ -31,10 +31,10 @@ class DatabaseSeeder extends Seeder
             'account' => 'test',
             'password' => Hash::make('Flexcon2026'),
         ]);
-        
+
         // Assign admin role
         $adminUser->assignRole('admin');
-        
+
         $this->command->info('Admin user created: test@test.com / password');
     }
 }
