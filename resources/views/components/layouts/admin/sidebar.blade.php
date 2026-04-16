@@ -262,6 +262,16 @@
                 </flux:navlist.group>
             @endif
 
+            {{-- ── REPORTES (solo admin) ── --}}
+            @if ($authUser->hasRole('admin'))
+                <flux:navlist.group :heading="__('Reportes')" class="grid">
+                    <flux:navlist.item icon="document-chart-bar" :href="route('admin.reports.index')"
+                        :current="request()->routeIs('admin.reports.*')" wire:navigate>
+                        {{ __('Generar Reportes') }}
+                    </flux:navlist.item>
+                </flux:navlist.group>
+            @endif
+
             {{-- ── TUTORIAL (todos los roles) ── --}}
             <flux:navlist.group :heading="__('Ayuda')" class="grid">
                 <flux:navlist.item icon="academic-cap" :href="route('admin.tutorial')"
