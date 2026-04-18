@@ -1,0 +1,7 @@
+number,employees,active,area_id,production_status_id,comments
+"OBLIGATORIO - Numero unico de la estacion semi-automatica (ej: SA-001). No puede repetirse.","OBLIGATORIO - Numero entero de empleados asignados (ej: 1)","OBLIGATORIO - 1=activo  0=inactivo","OBLIGATORIO - ID del area. Ver lista: 1=Linea 1 | 2=Linea 2 | 3=Linea 3 | 4=Area de Maquinas | 5=Area Semi-Automatica | 6=Inspeccion","OPCIONAL - ID del estado inicial. Ver lista: 1=Disponible | 2=En Uso | 3=Mantenimiento | 4=Fuera de Servicio | 5=En Espera. Dejar vacio para sin estado.","OPCIONAL - Descripcion o comentario de la estacion. Puede dejarse vacio."
+SA-001,1,1,5,1,Estacion de soldadura semi-automatica
+SA-002,2,1,5,1,Estacion de ensamble asistido
+SA-003,1,1,5,1,Estacion de pruebas funcionales
+SA-004,1,1,5,1,Estacion de etiquetado
+SA-005,2,1,5,1,Estacion de verificacion

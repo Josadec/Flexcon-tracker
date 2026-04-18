@@ -13,6 +13,9 @@
 | `01_parts_template.csv` | `parts` | Ninguna - importar primero |
 | `02_prices_template.csv` | `prices` | Requiere: `parts` |
 | `03_price_tiers_template.csv` | `price_tiers` | Requiere: `prices` |
+| `06_tables_template.csv` | `tables` | Requiere: `areas` (seeder) |
+| `07_semi_automatics_template.csv` | `semi__automatics` | Requiere: `areas` (seeder) |
+| `08_machines_template.csv` | `machines` | Requiere: `areas` (seeder) |
 | `04_standards_template.csv` | `standards` | Requiere: `parts`, `tables`, `semi__automatics`, `machines` |
 | `05_standard_configurations_template.csv` | `standard_configurations` | Requiere: `standards` |
 
