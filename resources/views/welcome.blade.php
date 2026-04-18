@@ -761,6 +761,13 @@
             margin-bottom: 36px;
         }
 
+        .cta__actions {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
         /* ===== FOOTER ===== */
         .footer {
             background-color: #080f1e;
@@ -950,6 +957,13 @@
                                 Acceder al Sistema
                             </a>
                         @endauth
+
+                        <a href="{{ route('tv.display') }}" class="btn btn--outline-dark btn--lg" aria-label="Abrir monitor TV con métricas de producción">
+                            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="19" x2="12" y2="21"/>
+                            </svg>
+                            Ver Monitor TV
+                        </a>
 
                         <a href="#modulos" class="btn btn--outline-dark btn--lg" aria-label="Ver los módulos disponibles">
                             Ver Módulos
@@ -1339,21 +1353,30 @@
                         Accede al sistema y toma el control total de tu planta manufacturera. Trazabilidad completa desde la primera PO hasta el ultimo envio.
                     </p>
 
-                    @auth
-                        <a href="{{ url('/dashboard') }}" class="btn btn--primary btn--xl" aria-label="Ingresar al panel de control del sistema">
+                    <div class="cta__actions">
+                        @auth
+                            <a href="{{ url('/dashboard') }}" class="btn btn--primary btn--xl" aria-label="Ingresar al panel de control del sistema">
+                                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                                </svg>
+                                Ingresar al Sistema
+                            </a>
+                        @else
+                            <a href="{{ route('login') }}" class="btn btn--primary btn--xl" aria-label="Iniciar sesion en FlexCon Tracker">
+                                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+                                </svg>
+                                Ingresar al Sistema
+                            </a>
+                        @endauth
+
+                        <a href="{{ route('tv.display') }}" class="btn btn--outline-dark btn--xl" aria-label="Ir a la pantalla TV con metricas">
                             <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                                <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="19" x2="12" y2="21"/>
                             </svg>
-                            Ingresar al Sistema
+                            Abrir Monitor TV
                         </a>
-                    @else
-                        <a href="{{ route('login') }}" class="btn btn--primary btn--xl" aria-label="Iniciar sesion en FlexCon Tracker">
-                            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
-                            </svg>
-                            Ingresar al Sistema
-                        </a>
-                    @endauth
+                    </div>
                 </div>
             </div>
         </section>

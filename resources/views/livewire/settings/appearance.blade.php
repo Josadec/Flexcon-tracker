@@ -21,14 +21,7 @@ new #[Layout('components.layouts.employee')] class extends Component {
                 Selecciona el tema de tu preferencia. El tema del sistema se ajustará automáticamente según la configuración de tu dispositivo.
             </p>
 
-            <flux:radio.group x-data="{ theme: localStorage.getItem('theme') || 'system' }" x-init="$watch('theme', val => {
-                localStorage.setItem('theme', val);
-                if (val === 'dark' || (val === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
-            })" x-model="theme" variant="segmented" class="w-full max-w-md">
+            <flux:radio.group x-data variant="segmented" x-model="$flux.appearance" class="w-full max-w-md">
                 <flux:radio value="light" icon="sun">Claro</flux:radio>
                 <flux:radio value="dark" icon="moon">Oscuro</flux:radio>
                 <flux:radio value="system" icon="computer-desktop">Sistema</flux:radio>
