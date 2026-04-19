@@ -1,0 +1,8 @@
+name,brand,model,sn,asset_number,employees,setup_time,maintenance_time,active,area_id,production_status_id,comments
+"OBLIGATORIO - Nombre descriptivo de la maquina (ej: CNC Fresadora 1). No tiene restriccion de unicidad.","OPCIONAL - Marca de la maquina (ej: Haas). Puede dejarse vacio.","OPCIONAL - Modelo de la maquina (ej: VF-2). Puede dejarse vacio.","OPCIONAL - Numero de serie (ej: SN-0001). Puede dejarse vacio.","OPCIONAL - Numero de activo interno (ej: AST-MCH-001). Si se llena debe ser unico. Si no aplica dejar vacio.","OBLIGATORIO - Numero entero de empleados que opera la maquina (ej: 1)","OBLIGATORIO - Tiempo de preparacion en minutos. Usar punto decimal (ej: 30.00)","OBLIGATORIO - Tiempo de mantenimiento en minutos. Usar punto decimal (ej: 60.00)","OBLIGATORIO - 1=activo  0=inactivo","OBLIGATORIO - ID del area. Ver lista: 1=Linea 1 | 2=Linea 2 | 3=Linea 3 | 4=Area de Maquinas | 5=Area Semi-Automatica | 6=Inspeccion","OPCIONAL - ID del estado inicial. Ver lista: 1=Disponible | 2=En Uso | 3=Mantenimiento | 4=Fuera de Servicio | 5=En Espera. Dejar vacio para sin estado.","OPCIONAL - Descripcion o comentario. Puede dejarse vacio."
+CNC Fresadora 1,Haas,VF-2,SN-0001,AST-MCH-001,1,30.00,60.00,1,4,1,
+CNC Fresadora 2,Haas,VF-4,SN-0002,AST-MCH-002,1,45.00,60.00,1,4,1,
+CNC Torno 1,Mazak,QT-200,SN-0003,AST-MCH-003,1,25.00,45.00,1,4,1,
+Prensa Hidraulica 1,Schuler,PH-50,SN-0004,AST-MCH-004,2,15.00,30.00,1,4,1,
+Prensa Hidraulica 2,Schuler,PH-100,SN-0005,AST-MCH-005,2,20.00,45.00,1,4,1,
+Inyectora 1,Engel,Victory 80,SN-0006,AST-MCH-006,1,60.00,90.00,1,4,1,

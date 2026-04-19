@@ -1,0 +1,10 @@
+number,employees,active,area_id,production_status_id,comments
+"OBLIGATORIO - Numero unico de la mesa (ej: MT-001). No puede repetirse.","OBLIGATORIO - Numero entero de empleados asignados a la mesa (ej: 2)","OBLIGATORIO - 1=activo  0=inactivo","OBLIGATORIO - ID del area. Ver lista: 1=Linea 1 | 2=Linea 2 | 3=Linea 3 | 4=Area de Maquinas | 5=Area Semi-Automatica | 6=Inspeccion","OPCIONAL - ID del estado inicial. Ver lista: 1=Disponible | 2=En Uso | 3=Mantenimiento | 4=Fuera de Servicio | 5=En Espera. Dejar vacio para sin estado.","OPCIONAL - Descripcion o comentario de la mesa. Puede dejarse vacio."
+MT-001,4,1,1,1,Mesa de ensamble principal linea 1
+MT-002,3,1,1,1,Mesa secundaria linea 1
+MT-003,4,1,2,1,Mesa principal linea 2
+MT-004,3,1,2,1,Mesa secundaria linea 2
+MT-005,2,1,6,1,Mesa para inspeccion visual
+MT-006,2,1,2,1,Mesa para empaque final
+MT-007,2,1,2,1,Mesa para retrabajo
+MT-008,3,1,1,1,Mesa auxiliar multiuso
