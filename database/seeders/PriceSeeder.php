@@ -128,9 +128,10 @@ class PriceSeeder extends Seeder
         foreach ($tierConfigs[$type] as $tier) {
             $tierPrice = round($basePrice * (1 - $tier['discount']), 4);
 
+            // Unicidad por (price_id, tier_price) según nuevo constraint
             $price->tiers()->firstOrCreate(
-                ['min_quantity' => $tier['min'], 'max_quantity' => $tier['max']],
-                ['tier_price' => $tierPrice]
+                ['tier_price' => $tierPrice],
+                ['min_quantity' => $tier['min'], 'max_quantity' => $tier['max']]
             );
         }
     }
