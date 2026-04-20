@@ -9,27 +9,30 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Validar que no existan tier_price duplicados por price_id antes de migrar
+        // Validar que no existan filas exactamente idénticas (price_id + min + max + tier_price)
         $duplicates = DB::select("
-            SELECT price_id, tier_price, COUNT(*) AS total
+            SELECT price_id, min_quantity, max_quantity, tier_price, COUNT(*) AS total
             FROM price_tiers
-            GROUP BY price_id, tier_price
+            GROUP BY price_id, min_quantity, max_quantity, tier_price
             HAVING COUNT(*) > 1
         ");
 
         if (!empty($duplicates)) {
             $detail = collect($duplicates)
-                ->map(fn ($r) => "price_id={$r->price_id}, tier_price={$r->tier_price} ({$r->total} filas)")
+                ->map(fn ($r) => "price_id={$r->price_id}, {$r->min_quantity}-{$r->max_quantity}, tier_price={$r->tier_price} ({$r->total} filas)")
                 ->implode(' | ');
 
             throw new \RuntimeException(
-                "No se puede aplicar el nuevo constraint: existen tier_price duplicados por price_id. Resuélvalos manualmente antes de migrar. Detalle: {$detail}"
+                "No se puede aplicar el nuevo constraint: existen filas exactamente duplicadas. Resuélvalas manualmente antes de migrar. Detalle: {$detail}"
             );
         }
 
         Schema::table('price_tiers', function (Blueprint $table) {
+            // Elimina el constraint viejo UNIQUE(price_id, min_quantity, max_quantity)
             $table->dropUnique('price_tier_unique');
-            $table->unique(['price_id', 'tier_price'], 'price_tier_unique');
+            // Nuevo constraint: previene filas idénticas en las 4 columnas
+            // Permite: mismo rango con distinto precio ✓ | distinto rango con mismo precio ✓
+            $table->unique(['price_id', 'min_quantity', 'max_quantity', 'tier_price'], 'price_tier_unique');
         });
     }
 
