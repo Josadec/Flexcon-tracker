@@ -25,16 +25,36 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Create admin user AFTER roles are created
-        $adminUser = User::factory()->create([
-            'name' => 'Jonathan',
-            'email' => 'JJimenez@ensamblesformula.com',
-            'account' => 'test',
-            'password' => Hash::make('Flexcon2026'),
-        ]);
-
-        // Assign admin role
+        $adminUser = User::firstOrCreate(
+            ['email' => 'JJimenez@ensamblesformula.com'],
+            [
+                'name'     => 'Jonathan',
+                'account'  => 'test',
+                'password' => Hash::make('Flexcon2026'),
+            ]
+        );
         $adminUser->assignRole('admin');
 
-        $this->command->info('Admin user created: test@test.com / password');
+        $mauricio = User::firstOrCreate(
+            ['email' => 'maubr170295@gmail.com'],
+            [
+                'name'     => 'Mauricio Belmonte',
+                'account'  => 'maubr170295',
+                'password' => Hash::make('admin2026'),
+            ]
+        );
+        $mauricio->assignRole('admin');
+
+        $josadec = User::firstOrCreate(
+            ['email' => 'josadec@gmail.com'],
+            [
+                'name'     => 'Josadec Pedraza',
+                'account'  => 'josadec',
+                'password' => Hash::make('admin2026'),
+            ]
+        );
+        $josadec->assignRole('admin');
+
+        $this->command->info('Usuarios admin creados: Jonathan, Mauricio, Josadec');
     }
 }
