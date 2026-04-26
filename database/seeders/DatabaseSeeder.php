@@ -63,14 +63,14 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ────────────────────────────────────────────────────────────
-        // 7. Catálogo de partes y precios
-        // (PartSeeder espera datos importados por CSV. Si la tabla
-        // está vacía, PriceSeeder crea partes de ejemplo automáticamente)
+        // 7. Catálogo de partes y precios — DESHABILITADO
+        // El cliente importa partes, precios y tiers via CSV directamente
+        // a la BD. Habilitar solo si se necesitan datos demo locales.
         // ────────────────────────────────────────────────────────────
-        $this->call([
-            PriceSeeder::class,
-            StandardSeeder::class,
-        ]);
+        // $this->call([
+        //     PriceSeeder::class,
+        //     StandardSeeder::class,
+        // ]);
 
         // ────────────────────────────────────────────────────────────
         // 8. Estados de Work Orders y tipos de cargo de Invoice
@@ -81,21 +81,25 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ────────────────────────────────────────────────────────────
-        // 9. Flujo operacional de prueba (POs → WOs)
+        // 9. Flujo operacional de prueba (POs → WOs) — DESHABILITADO
+        // Depende de partes con estándares activos. Reactivar después de
+        // importar el CSV y correr StandardSeeder manualmente si se quiere
+        // generar POs/WOs de demostración.
         // ────────────────────────────────────────────────────────────
-        $this->call([
-            WorkOrderTestSeeder::class,
-        ]);
+        // $this->call([
+        //     WorkOrderTestSeeder::class,
+        // ]);
 
         $this->command->info('');
         $this->command->info('════════════════════════════════════════════════════════');
         $this->command->info('  Seed completo. Resumen:');
         $this->command->info('════════════════════════════════════════════════════════');
-        $this->command->info('  • Admins:    Jonathan, Mauricio, Josadec');
+        $this->command->info('  • Admins:     Jonathan, Mauricio, Josadec');
         $this->command->info('  • Estructura: Departamentos, áreas, turnos');
-        $this->command->info('  • Recursos:  Mesas, máquinas, semi-automáticos');
-        $this->command->info('  • Catálogo:  Partes, precios, estándares');
-        $this->command->info('  • Flujo:     POs y WOs de prueba (5 escenarios)');
+        $this->command->info('  • Recursos:   Mesas, máquinas, semi-automáticos');
+        $this->command->info('  • Workflow:   Estados WO, tipos de cargo Invoice');
+        $this->command->info('');
+        $this->command->info('  Partes, precios y POs deshabilitados — importa por CSV');
         $this->command->info('════════════════════════════════════════════════════════');
     }
 
