@@ -18,8 +18,8 @@ class PriceTier extends Model
     ];
 
     protected $casts = [
-        'min_quantity' => 'integer',
-        'max_quantity' => 'integer',
+        'min_quantity' => 'decimal:4',
+        'max_quantity' => 'decimal:4',
         'tier_price' => 'decimal:4',
     ];
 

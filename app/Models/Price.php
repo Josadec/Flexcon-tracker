@@ -148,15 +148,13 @@ class Price extends Model
             return null;
         }
 
-        // Buscar el tier que coincida con la cantidad.
-        // Si hay rangos solapados, se aplica el de menor tier_price (Opción A — favorable al cliente).
+        // Buscar el tier que coincida con la cantidad
         $tier = $this->tiers()
             ->where('min_quantity', '<=', $quantity)
             ->where(function ($query) use ($quantity) {
                 $query->whereNull('max_quantity')
                       ->orWhere('max_quantity', '>=', $quantity);
             })
-            ->orderBy('tier_price', 'asc')
             ->first();
 
         if ($tier) {
@@ -226,11 +224,6 @@ class Price extends Model
 
     /**
      * Get tiers as an indexed array for form binding.
-     *
-     * LIMITACIÓN: cuando existen varios tiers con el mismo min_quantity pero distinto
-     * tier_price (rangos duplicados), este método solo muestra el de menor tier_price
-     * (consistent con la regla de desempate de getPriceForQuantity). Los demás tiers
-     * duplicados no se exponen en el formulario de edición.
      */
     public function getTiersArrayAttribute(): array
     {
@@ -238,11 +231,8 @@ class Price extends Model
         $result = [];
 
         foreach ($config as $index => $tierConfig) {
-            // Si hay duplicados de min_quantity, se toma el de menor tier_price (Opción A)
             $tier = $this->tiers
-                ->filter(fn ($t) => $t->min_quantity == $tierConfig['min'])
-                ->sortBy('tier_price')
-                ->first();
+                ->first(fn ($t) => $t->min_quantity == $tierConfig['min']);
 
             $result[$index] = $tier ? (string) $tier->tier_price : '';
         }
