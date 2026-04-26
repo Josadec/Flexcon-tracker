@@ -111,12 +111,7 @@
                                         <thead class="bg-gray-50 dark:bg-gray-800">
                                             <tr>
                                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Precio Muestra</th>
-                                                @php
-                                                    $tierConfig = \App\Models\Price::getTierConfigForType($type);
-                                                @endphp
-                                                @foreach($tierConfig as $tier)
-                                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">{{ $tier['label'] }}</th>
-                                                @endforeach
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Niveles de precio</th>
                                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Fecha Efectiva</th>
                                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Estado</th>
                                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Acciones</th>
@@ -124,25 +119,35 @@
                                         </thead>
                                         <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
                                             @foreach($data['prices'] as $price)
-                                                @php
-                                                    $tiersArray = $price->tiers_array;
-                                                @endphp
                                                 <tr>
-                                                    <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${{ number_format($price->sample_price, 4) }}</td>
-                                                    @foreach($tierConfig as $index => $tier)
-                                                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                                            {{ isset($tiersArray[$index]) && $tiersArray[$index] !== '' ? '$' . number_format($tiersArray[$index], 4) : '-' }}
-                                                        </td>
-                                                    @endforeach
-                                                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $price->effective_date->format('n/j/Y') }}</td>
-                                                    <td class="px-4 py-3">
+                                                    <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white align-top">${{ number_format($price->sample_price, 4) }}</td>
+                                                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 align-top">
+                                                        @php $tiers = $price->tiers->sortBy('min_quantity'); @endphp
+                                                        @if($tiers->isEmpty())
+                                                            <span class="text-gray-400">Sin tiers</span>
+                                                        @else
+                                                            <div class="space-y-1">
+                                                                @foreach($tiers as $tier)
+                                                                    <div class="text-xs">
+                                                                        <span class="text-gray-700 dark:text-gray-300">
+                                                                            {{ number_format(0 + $tier->min_quantity, 0) }} -
+                                                                            {{ $tier->max_quantity !== null ? number_format(0 + $tier->max_quantity, 0) : '∞' }}
+                                                                        </span>
+                                                                        <span class="ml-2 font-medium text-gray-900 dark:text-white">${{ number_format($tier->tier_price, 4) }}</span>
+                                                                    </div>
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
+                                                    </td>
+                                                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 align-top">{{ $price->effective_date->format('n/j/Y') }}</td>
+                                                    <td class="px-4 py-3 align-top">
                                                         @if ($price->active)
                                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Activo</span>
                                                         @else
                                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Inactivo</span>
                                                         @endif
                                                     </td>
-                                                    <td class="px-4 py-3">
+                                                    <td class="px-4 py-3 align-top">
                                                         @if (Route::has('admin.prices.edit'))
                                                             <a href="{{ route('admin.prices.edit', $price) }}" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-2 border-transparent hover:border-blue-300 rounded-md transition-colors" title="Editar">
                                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>

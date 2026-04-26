@@ -198,46 +198,55 @@ class Price extends Model
     }
 
     /**
-     * Sync tiers from an array of prices.
-     * @param array $tierPrices Array of tier prices indexed by tier index
+     * Sync tiers desde un array dinámico.
+     *
+     * Cada elemento debe ser un array con las llaves: min_quantity, max_quantity, tier_price.
+     * max_quantity puede ser null (significa "sin límite").
+     * Filas con tier_price vacío se ignoran.
+     *
+     * @param array<int, array{min_quantity: mixed, max_quantity: mixed, tier_price: mixed}> $tiers
      */
-    public function syncTiers(array $tierPrices): void
+    public function syncTiers(array $tiers): void
     {
-        $config = $this->tier_config;
-        
-        // Eliminar tiers existentes
         $this->tiers()->delete();
-        
-        // Crear nuevos tiers
-        foreach ($config as $index => $tierConfig) {
-            $price = $tierPrices[$index] ?? null;
-            
-            if ($price !== null && $price !== '') {
-                $this->tiers()->create([
-                    'min_quantity' => $tierConfig['min'],
-                    'max_quantity' => $tierConfig['max'],
-                    'tier_price' => $price,
-                ]);
+
+        foreach ($tiers as $tier) {
+            $price = $tier['tier_price'] ?? null;
+            $min   = $tier['min_quantity'] ?? null;
+
+            if ($price === null || $price === '' || $min === null || $min === '') {
+                continue;
             }
+
+            $max = $tier['max_quantity'] ?? null;
+            if ($max === '') {
+                $max = null;
+            }
+
+            $this->tiers()->create([
+                'min_quantity' => $min,
+                'max_quantity' => $max,
+                'tier_price'   => $price,
+            ]);
         }
     }
 
     /**
-     * Get tiers as an indexed array for form binding.
+     * Devuelve los tiers reales de la BD como array indexado para form binding.
+     * Cada elemento expone min_quantity, max_quantity y tier_price tal cual están en BD.
      */
     public function getTiersArrayAttribute(): array
     {
-        $config = $this->tier_config;
-        $result = [];
-
-        foreach ($config as $index => $tierConfig) {
-            $tier = $this->tiers
-                ->first(fn ($t) => $t->min_quantity == $tierConfig['min']);
-
-            $result[$index] = $tier ? (string) $tier->tier_price : '';
-        }
-
-        return $result;
+        return $this->tiers
+            ->sortBy('min_quantity')
+            ->values()
+            ->map(fn ($t) => [
+                'id'           => $t->id,
+                'min_quantity' => $t->min_quantity !== null ? (string) (0 + $t->min_quantity) : '',
+                'max_quantity' => $t->max_quantity !== null ? (string) (0 + $t->max_quantity) : '',
+                'tier_price'   => (string) $t->tier_price,
+            ])
+            ->toArray();
     }
 
     /**
