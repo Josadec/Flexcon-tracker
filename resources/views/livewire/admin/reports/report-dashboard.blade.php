@@ -13,7 +13,14 @@
                 <h1 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 sm:text-2xl">Generador de reportes</h1>
                 <p class="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">Flexcon Tracker — Exporta en PDF o Excel por departamento</p>
             </div>
-            <div class="flex items-start sm:items-center">
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('admin.reports.parts.index') }}"
+                   class="inline-flex items-center gap-2 rounded-md border border-blue-700 bg-blue-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-800">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    </svg>
+                    Reportes de Partes
+                </a>
                 <div class="inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200">
                     <span class="h-2 w-2 rounded-full bg-emerald-600"></span>
                     Administrador

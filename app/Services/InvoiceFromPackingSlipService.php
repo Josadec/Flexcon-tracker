@@ -130,16 +130,13 @@ class InvoiceFromPackingSlipService
                     if ($unitCostFloat !== null) {
                         $unitCost = (string) $unitCostFloat;
 
-                        // Determinar la fuente del precio y el tier aplicado.
-                        // Usa el mismo orderBy que getPriceForQuantity() para garantizar
-                        // que price_tier_id registrado corresponde al precio realmente cobrado.
+                        // Determinar la fuente del precio y el tier aplicado
                         $tier = $price->tiers()
                             ->where('min_quantity', '<=', $qty)
                             ->where(function ($q) use ($qty) {
                                 $q->whereNull('max_quantity')
                                   ->orWhere('max_quantity', '>=', $qty);
                             })
-                            ->orderBy('tier_price', 'asc')
                             ->first();
 
                         if ($tier) {
