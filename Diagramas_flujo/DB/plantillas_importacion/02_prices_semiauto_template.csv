@@ -1,0 +1,4 @@
+part_id,sample_price,workstation_type,effective_date,active,comments,created_at,updated_at
+"OBLIGATORIO - ID Pero Puedes poner el numero de parte Ejem:(198-100001)","FIJO - Precio de muestra. Siempre 0.5 (no modificar)","FIJO - Tipo de estacion. Siempre semi_automatic (no modificar)","OBLIGATORIO - Fecha de vigencia del precio (formato YYYY-MM-DD)","OPCIONAL - 1=activo 0=inactivo. Default: 1","OPCIONAL - Comentarios o referencias del precio","FIJO - Fecha de creacion (no modificar)","DEJAR VACIO"
+1,0.5,semi_automatic,"2026-04-25",1,,"2026-04-25 20:05",""
+2,0.5,semi_automatic,"2026-04-25",1,,"2026-04-25 20:05",""

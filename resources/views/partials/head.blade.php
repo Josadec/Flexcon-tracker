@@ -190,14 +190,27 @@ span.flatpickr-weekday { color: rgb(99 102 241); font-weight: 600; font-size: 0.
 
 {{-- Default to light mode for first-time visitors (don't override explicit user preference) --}}
 <script>
-    (function () {
+    (function applyAppearance() {
         var stored = window.localStorage.getItem('flux.appearance');
-        var initialized = window.localStorage.getItem('flexcon.appearance.initialized');
-        // Only set default if user has never explicitly chosen an appearance
-        if (!stored && !initialized) {
+
+        // First visit ever: default to light
+        if (!stored) {
+            stored = 'light';
             window.localStorage.setItem('flux.appearance', 'light');
             window.localStorage.setItem('flexcon.appearance.initialized', '1');
         }
+
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var isDark = stored === 'dark' || (stored === 'system' && prefersDark);
+
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
+        // Re-apply on every wire:navigate to avoid flash between pages
+        document.addEventListener('livewire:navigated', applyAppearance, { once: false });
     })();
 </script>
 
@@ -365,9 +378,19 @@ span.flatpickr-weekday { color: rgb(99 102 241); font-weight: 600; font-size: 0.
     // After each Livewire commit (server round-trip), resync pickers
     document.addEventListener('livewire:initialized', function () {
         Livewire.hook('commit', function (params) {
-            // params.succeed is called after DOM morph is finished
+            // BEFORE DOM morph: destroy all TomSelect instances so Livewire
+            // can update the original <select> elements freely without leaving
+            // stale wrappers or losing the .tomselected class check.
+            params.respond(function () {
+                document.querySelectorAll('select.tomselected').forEach(function (el) {
+                    if (el.tomselect) {
+                        try { el.tomselect.destroy(); } catch (_) {}
+                        el.tomselect = null;
+                    }
+                });
+            });
+            // AFTER DOM morph: reinitialize everything
             params.succeed(function () {
-                // Short delay to let Alpine.js finish any pending DOM work
                 setTimeout(function () { initAll(); }, 20);
             });
         });

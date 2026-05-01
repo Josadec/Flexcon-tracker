@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Admin\Prices;
 
-use App\Models\Price;
 use App\Models\Part;
+use App\Models\Price;
 use Livewire\Component;
 
 class PriceCreate extends Component
@@ -11,44 +11,39 @@ class PriceCreate extends Component
     public string $part_id = '';
     public string $sample_price = '';
     public string $workstation_type = 'table';
-    public array $tier_prices = [];
     public string $effective_date = '';
     public bool $active = true;
     public string $comments = '';
-    
+
+    /**
+     * Tiers dinámicos. Cada item: ['min_quantity' => '', 'max_quantity' => '', 'tier_price' => '']
+     */
+    public array $tiers = [];
+
     // Validación en tiempo real
     public string $validation_message = '';
     public bool $has_conflict = false;
     public string $info_message = '';
     public bool $has_existing_prices = false;
-    
-    // Almacenamiento temporal de valores por tipo de estación
-    protected array $savedTierValues = [
-        'table' => [],
-        'machine' => [],
-        'semi_automatic' => [],
-    ];
-    
-    // Guardar el tipo anterior para detectar cambios
-    protected string $previousWorkstationType = 'table';
 
     public function mount(): void
     {
         $this->effective_date = now()->format('Y-m-d');
-        $this->previousWorkstationType = $this->workstation_type;
-        $this->initializeTierPrices();
-        
+
         if (request()->has('part_id')) {
             $this->part_id = request('part_id');
             $this->checkForConflicts();
         }
-        
+
         if (request()->has('workstation_type')) {
             $this->workstation_type = request('workstation_type');
-            $this->previousWorkstationType = $this->workstation_type;
-            $this->initializeTierPrices();
             $this->checkForConflicts();
         }
+
+        // Inicializar con un tier vacío para que el usuario tenga por dónde empezar
+        $this->tiers = [
+            ['id' => null, 'min_quantity' => '', 'max_quantity' => '', 'tier_price' => ''],
+        ];
     }
 
     public function updatedPartId(): void
@@ -56,49 +51,45 @@ class PriceCreate extends Component
         $this->checkForConflicts();
     }
 
-    public function updatedWorkstationType($value): void
-    {
-        // Guardar los valores del tipo anterior
-        if (!empty($this->tier_prices) && $this->previousWorkstationType) {
-            $this->savedTierValues[$this->previousWorkstationType] = $this->tier_prices;
-        }
-        
-        // Actualizar el tipo anterior
-        $this->previousWorkstationType = $value;
-        
-        // Cargar los valores guardados del nuevo tipo, o inicializar vacío
-        if (!empty($this->savedTierValues[$value])) {
-            $this->tier_prices = $this->savedTierValues[$value];
-        } else {
-            $this->initializeTierPrices();
-        }
-        
-        // Verificar conflictos con el nuevo tipo
-        $this->checkForConflicts();
-    }
-    
     public function updatedActive(): void
     {
         $this->checkForConflicts();
     }
-    
+
+    public function addTier(): void
+    {
+        $this->tiers[] = [
+            'id'           => null,
+            'min_quantity' => '',
+            'max_quantity' => '',
+            'tier_price'   => '',
+        ];
+    }
+
+    public function removeTier(int $index): void
+    {
+        if (isset($this->tiers[$index])) {
+            unset($this->tiers[$index]);
+            $this->tiers = array_values($this->tiers);
+        }
+    }
+
     protected function checkForConflicts(): void
     {
         $this->validation_message = '';
         $this->has_conflict = false;
         $this->info_message = '';
         $this->has_existing_prices = false;
-        
+
         if (empty($this->part_id)) {
             return;
         }
-        
-        // Verificar si la parte tiene algún precio activo (de cualquier tipo)
+
         if ($this->active) {
             $existingActivePrice = Price::where('part_id', $this->part_id)
                 ->where('active', true)
                 ->first();
-            
+
             if ($existingActivePrice) {
                 $this->has_conflict = true;
                 $typeLabel = Price::WORKSTATION_TYPES[$existingActivePrice->workstation_type] ?? $existingActivePrice->workstation_type;
@@ -106,98 +97,97 @@ class PriceCreate extends Component
                 return;
             }
         }
-        
-        // Mostrar información de precios existentes (activos o inactivos)
+
         $allPrices = Price::where('part_id', $this->part_id)->get();
-        
+
         if ($allPrices->isNotEmpty()) {
             $this->has_existing_prices = true;
             $activePrices = $allPrices->where('active', true);
             $inactivePrices = $allPrices->where('active', false);
-            
+
             $info = [];
             if ($activePrices->isNotEmpty()) {
-                $types = $activePrices->pluck('workstation_type')->map(function($type) {
+                $types = $activePrices->pluck('workstation_type')->map(function ($type) {
                     return Price::WORKSTATION_TYPES[$type] ?? $type;
                 })->join(', ');
                 $info[] = "Activos: {$types}";
             }
             if ($inactivePrices->isNotEmpty()) {
-                $types = $inactivePrices->pluck('workstation_type')->map(function($type) {
+                $types = $inactivePrices->pluck('workstation_type')->map(function ($type) {
                     return Price::WORKSTATION_TYPES[$type] ?? $type;
                 })->join(', ');
                 $info[] = "Inactivos: {$types}";
             }
-            
+
             $this->info_message = "Esta parte tiene precios registrados - " . implode(' | ', $info);
         }
-    }
-    
-    public function updatedTierPrices(): void
-    {
-        // Guardar automáticamente cuando se actualiza un tier
-        $this->savedTierValues[$this->workstation_type] = $this->tier_prices;
-    }
-
-    protected function initializeTierPrices(): void
-    {
-        $config = Price::getTierConfigForType($this->workstation_type);
-        $this->tier_prices = array_fill(0, count($config), '');
     }
 
     protected function rules(): array
     {
-        $rules = [
-            'part_id' => 'required|exists:parts,id',
-            'sample_price' => 'required|numeric|min:0',
-            'workstation_type' => 'required|in:table,machine,semi_automatic',
-            'effective_date' => 'required|date',
-            'active' => 'boolean',
-            'comments' => 'nullable|string',
-            'tier_prices' => 'array',
-            'tier_prices.*' => 'nullable|numeric|min:0',
+        return [
+            'part_id'                 => 'required|exists:parts,id',
+            'sample_price'            => 'required|numeric|min:0',
+            'workstation_type'        => 'required|in:table,machine,semi_automatic',
+            'effective_date'          => 'required|date',
+            'active'                  => 'boolean',
+            'comments'                => 'nullable|string',
+            'tiers'                   => 'array',
+            'tiers.*.min_quantity'    => 'nullable|numeric|min:0',
+            'tiers.*.max_quantity'    => 'nullable|numeric|min:0',
+            'tiers.*.tier_price'      => 'nullable|numeric|min:0',
         ];
-
-        return $rules;
     }
 
     protected function messages(): array
     {
         return [
-            'part_id.required' => 'Debe seleccionar una parte.',
-            'part_id.exists' => 'La parte seleccionada no es válida.',
-            'sample_price.required' => 'El precio de muestra es obligatorio.',
-            'sample_price.numeric' => 'El precio de muestra debe ser un número.',
-            'sample_price.min' => 'El precio de muestra debe ser mayor o igual a 0.',
-            'workstation_type.required' => 'Debe seleccionar un tipo de estación de trabajo.',
-            'workstation_type.in' => 'El tipo de estación de trabajo no es válido.',
-            'effective_date.required' => 'La fecha efectiva es obligatoria.',
-            'effective_date.date' => 'La fecha efectiva debe ser una fecha válida.',
+            'part_id.required'             => 'Debe seleccionar una parte.',
+            'part_id.exists'               => 'La parte seleccionada no es válida.',
+            'sample_price.required'        => 'El precio de muestra es obligatorio.',
+            'sample_price.numeric'         => 'El precio de muestra debe ser un número.',
+            'sample_price.min'             => 'El precio de muestra debe ser mayor o igual a 0.',
+            'workstation_type.required'    => 'Debe seleccionar un tipo de estación de trabajo.',
+            'workstation_type.in'          => 'El tipo de estación de trabajo no es válido.',
+            'effective_date.required'      => 'La fecha efectiva es obligatoria.',
+            'effective_date.date'          => 'La fecha efectiva debe ser una fecha válida.',
+            'tiers.*.min_quantity.numeric' => 'La cantidad mínima debe ser un número.',
+            'tiers.*.max_quantity.numeric' => 'La cantidad máxima debe ser un número.',
+            'tiers.*.tier_price.numeric'   => 'El precio del tier debe ser un número.',
         ];
     }
 
     public function savePrice(): void
     {
-        // Validar primero si hay conflictos
         if ($this->has_conflict && $this->active) {
             $this->addError('part_id', $this->validation_message);
             return;
         }
-        
+
         $this->validate();
+
+        // Validación adicional: si un tier tiene precio, debe tener min_quantity
+        foreach ($this->tiers as $i => $tier) {
+            $hasPrice = !empty($tier['tier_price']);
+            $hasMin = !empty($tier['min_quantity']);
+
+            if ($hasPrice && !$hasMin) {
+                $this->addError("tiers.{$i}.min_quantity", "El tier #" . ($i + 1) . " tiene precio pero no tiene cantidad mínima.");
+                return;
+            }
+        }
 
         try {
             $price = Price::create([
-                'part_id' => $this->part_id,
-                'sample_price' => $this->sample_price,
+                'part_id'          => $this->part_id,
+                'sample_price'     => $this->sample_price,
                 'workstation_type' => $this->workstation_type,
-                'effective_date' => $this->effective_date,
-                'active' => $this->active,
-                'comments' => $this->comments,
+                'effective_date'   => $this->effective_date,
+                'active'           => $this->active,
+                'comments'         => $this->comments,
             ]);
 
-            // Sincronizar los tiers
-            $price->syncTiers($this->tier_prices);
+            $price->syncTiers($this->tiers);
 
             session()->flash('flash.banner', 'Precio creado correctamente.');
             session()->flash('flash.bannerStyle', 'success');
@@ -211,9 +201,8 @@ class PriceCreate extends Component
     public function render()
     {
         return view('livewire.admin.prices.price-create', [
-            'parts' => Part::active()->orderBy('number')->get(),
+            'parts'            => Part::active()->orderBy('number')->get(),
             'workstationTypes' => Price::WORKSTATION_TYPES,
-            'tierConfig' => Price::getTierConfigForType($this->workstation_type),
         ]);
     }
 }

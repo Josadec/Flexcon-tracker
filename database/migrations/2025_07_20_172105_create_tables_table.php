@@ -20,7 +20,12 @@ return new class extends Migration
 
             // NO puedes eliminar un área si tiene mesas (RESTRICT)
             $table->foreignId('area_id')->constrained('areas');
+            $table->foreignId('production_status_id')->nullable()->constrained('production_statuses')->nullOnDelete();
+            $table->unsignedBigInteger('standard_id')->nullable();
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('standard_id');
         });
     }
 

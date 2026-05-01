@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -30,7 +31,6 @@ return new class extends Migration
             $table->index(['workstation_type']);
         });
 
-        // Tabla pivote para los niveles de precio por volumen
         Schema::create('price_tiers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('price_id')->constrained()->onDelete('cascade');
@@ -42,6 +42,45 @@ return new class extends Migration
             $table->index(['price_id', 'min_quantity']);
             $table->unique(['price_id', 'min_quantity', 'max_quantity'], 'price_tier_unique');
         });
+
+        DB::unprepared("
+            CREATE TRIGGER check_unique_active_price_before_insert
+            BEFORE INSERT ON prices
+            FOR EACH ROW
+            BEGIN
+                IF NEW.active = 1 THEN
+                    IF EXISTS (
+                        SELECT 1 FROM prices
+                        WHERE part_id = NEW.part_id
+                          AND workstation_type = NEW.workstation_type
+                          AND active = 1
+                    ) THEN
+                        SIGNAL SQLSTATE '45000'
+                        SET MESSAGE_TEXT = 'An active price already exists for this workstation type';
+                    END IF;
+                END IF;
+            END
+        ");
+
+        DB::unprepared("
+            CREATE TRIGGER check_unique_active_price_before_update
+            BEFORE UPDATE ON prices
+            FOR EACH ROW
+            BEGIN
+                IF NEW.active = 1 THEN
+                    IF EXISTS (
+                        SELECT 1 FROM prices
+                        WHERE part_id = NEW.part_id
+                          AND workstation_type = NEW.workstation_type
+                          AND active = 1
+                          AND id != NEW.id
+                    ) THEN
+                        SIGNAL SQLSTATE '45000'
+                        SET MESSAGE_TEXT = 'An active price already exists for this workstation type';
+                    END IF;
+                END IF;
+            END
+        ");
     }
 
     /**
@@ -49,6 +88,8 @@ return new class extends Migration
      */
     public function down(): void
     {
+        DB::unprepared('DROP TRIGGER IF EXISTS check_unique_active_price_before_insert');
+        DB::unprepared('DROP TRIGGER IF EXISTS check_unique_active_price_before_update');
         Schema::dropIfExists('price_tiers');
         Schema::dropIfExists('prices');
     }

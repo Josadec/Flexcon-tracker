@@ -11,11 +11,17 @@ class PackingSlipList extends Component
     use WithPagination;
 
     public string $search = '';
+
     public string $filterStatus = 'all';
+
     public string $sortField = 'created_at';
+
     public string $sortDirection = 'desc';
+
     public int $perPage = 10;
+
     public ?int $deleteId = null;
+
     public bool $confirmingDeletion = false;
 
     public function updatingSearch(): void
@@ -91,16 +97,16 @@ class PackingSlipList extends Component
             ->paginate($this->perPage);
 
         $stats = [
-            'total'     => PackingSlip::count(),
-            'draft'     => PackingSlip::draft()->count(),
-            'pending'   => PackingSlip::pending()->count(),
-            'shipped'   => PackingSlip::shipped()->count(),
+            'total' => PackingSlip::count(),
+            'draft' => PackingSlip::draft()->count(),
+            'pending' => PackingSlip::pending()->count(),
+            'shipped' => PackingSlip::shipped()->count(),
             'cancelled' => PackingSlip::cancelled()->count(),
         ];
 
-        return view('livewire.admin.packing-slips.packing-slip-list', [
+        return view('livewire.admin.packing-slips.packing-slip-list-v2', [
             'packingSlips' => $packingSlips,
-            'stats'        => $stats,
+            'stats' => $stats,
         ]);
     }
 }

@@ -14,11 +14,15 @@ class InvoiceList extends Component
 {
     use WithPagination;
 
-    public string $search        = '';
-    public string $filterStatus  = 'all';
-    public string $sortField     = 'created_at';
+    public string $search = '';
+
+    public string $filterStatus = 'all';
+
+    public string $sortField = 'created_at';
+
     public string $sortDirection = 'desc';
-    public int    $perPage       = 15;
+
+    public int $perPage = 15;
 
     public function updatingSearch(): void
     {
@@ -78,9 +82,10 @@ class InvoiceList extends Component
 
         } catch (RuntimeException $e) {
             $this->dispatch('notify', [
-                'type'    => 'error',
+                'type' => 'error',
                 'message' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -102,13 +107,13 @@ class InvoiceList extends Component
             $service->delete($invoice);
 
             $this->dispatch('notify', [
-                'type'    => 'success',
+                'type' => 'success',
                 'message' => "Invoice #{$invoice->invoice_number} eliminado correctamente.",
             ]);
 
         } catch (RuntimeException $e) {
             $this->dispatch('notify', [
-                'type'    => 'error',
+                'type' => 'error',
                 'message' => $e->getMessage(),
             ]);
         }
@@ -133,15 +138,15 @@ class InvoiceList extends Component
             ->paginate($this->perPage);
 
         $stats = [
-            'total'  => Invoice::count(),
-            'draft'  => Invoice::draft()->count(),
+            'total' => Invoice::count(),
+            'draft' => Invoice::draft()->count(),
             'issued' => Invoice::issued()->count(),
         ];
 
-        return view('livewire.admin.invoices.invoice-list', [
-            'invoices'              => $invoices,
-            'stats'                 => $stats,
-            'pendingPackingSlips'   => $this->pendingPackingSlips(),
+        return view('livewire.admin.invoices.invoice-list-v2', [
+            'invoices' => $invoices,
+            'stats' => $stats,
+            'pendingPackingSlips' => $this->pendingPackingSlips(),
         ]);
     }
 }

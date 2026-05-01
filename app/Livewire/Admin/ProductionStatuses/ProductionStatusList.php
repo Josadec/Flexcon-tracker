@@ -11,10 +11,15 @@ class ProductionStatusList extends Component
     use WithPagination;
 
     public string $search = '';
+
     public string $sortBy = 'order';
+
     public string $sortDirection = 'asc';
+
     public string $filterStatus = '';
+
     public bool $showDeleteModal = false;
+
     public ?int $statusToDelete = null;
 
     public function updatingSearch(): void
@@ -42,9 +47,10 @@ class ProductionStatusList extends Component
     {
         $status = ProductionStatus::find($statusId);
 
-        if ($status && !$status->canBeDeleted()) {
+        if ($status && ! $status->canBeDeleted()) {
             session()->flash('flash.banner', 'No se puede eliminar este estado porque está siendo utilizado.');
             session()->flash('flash.bannerStyle', 'danger');
+
             return;
         }
 
@@ -73,8 +79,8 @@ class ProductionStatusList extends Component
     {
         $query = ProductionStatus::query()
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhere('description', 'like', '%' . $this->search . '%');
+                $query->where('name', 'like', '%'.$this->search.'%')
+                    ->orWhere('description', 'like', '%'.$this->search.'%');
             })
             ->when($this->filterStatus !== '', function ($query) {
                 if ($this->filterStatus === '1') {
@@ -93,6 +99,6 @@ class ProductionStatusList extends Component
             'inactive' => ProductionStatus::where('active', false)->count(),
         ];
 
-        return view('livewire.admin.production-statuses.production-status-list', compact('productionStatuses', 'stats'));
+        return view('livewire.admin.production-statuses.production-status-list-v2', compact('productionStatuses', 'stats'));
     }
 }

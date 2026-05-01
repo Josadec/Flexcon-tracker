@@ -3,72 +3,139 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // Call the seeders in order (dependencies first!)
+        // ────────────────────────────────────────────────────────────
+        // 1. Base — permisos, roles y días festivos
+        // ────────────────────────────────────────────────────────────
         $this->call([
-            // 1. Base: Permisos y Roles
             PermissionSeeder::class,
             RoleSeeder::class,
-            
-            MaterialsRoleSeeder::class,
-            AreaUsersSeeder::class,
-            
-            // 2. Catálogos base
-            StatusWOSeeder::class,
-            ProductionStatusSeeder::class,   // Estados para mesas/máquinas
-            DepartmentSeeder::class,         // Departamentos
-            AreaSeeder::class,               // Áreas (depende de Departamentos)
-            
-            // 3. Turnos y descansos
-            ShiftSeeder::class,              // Turnos de producción
-            BreakTimeSeeder::class,          // Descansos por turno
-            
-            // 4. Estaciones de trabajo (dependen de Áreas y ProductionStatus)
-            TableSeeder::class,              // Mesas de trabajo
-            Semi_AutomaticSeeder::class,     // Semi-automáticos
-            MachineSeeder::class,            // Máquinas
-            
-            // 5. Precios y partes
-            PriceSeeder::class,              // Precios con tiers
-            
-            // 6. Personal
-            EmployeeSeeder::class,           // Empleados por turno
-            
-            // 7. Estándares (depende de Parts, Tables, Machines)
-            StandardSeeder::class,           // Estándares para cálculo de capacidad
-            
-            // 8. Datos de prueba
-            WorkOrderTestSeeder::class,
+            HolidaySeeder::class,
+        ]);
 
-            // 9. Catalogo de tipos de cargo del Invoice FPL-12 (Fase 5)
-            // Requiere que la migracion 2026_03_18_100000_create_invoice_charge_types_table
-            // haya sido ejecutada previamente.
-            // Carga: Machine Maintenance ($1,200), Administration Fee ($250), SHIPPING COST ($450).
-            // Decision P-12-02 / D-12-22: montos editables por Admin desde /admin/invoice-charge-types.
+        // ────────────────────────────────────────────────────────────
+        // 2. Usuarios admin
+        // ────────────────────────────────────────────────────────────
+        $this->createAdminUsers();
+
+        // ────────────────────────────────────────────────────────────
+        // 3. Estructura organizacional — departamentos y áreas
+        // ────────────────────────────────────────────────────────────
+        $this->call([
+            DepartmentSeeder::class,
+            AreaSeeder::class,
+            DepartmentUsersSeeder::class,
+            AreaUsersSeeder::class,
+        ]);
+
+        // ────────────────────────────────────────────────────────────
+        // 4. Catálogos base — turnos, descansos, tiempo extra
+        // ────────────────────────────────────────────────────────────
+        $this->call([
+            ShiftSeeder::class,
+            BreakTimeSeeder::class,
+            OverTimeSeeder::class,
+        ]);
+
+        // ────────────────────────────────────────────────────────────
+        // 5. Estados de producción y workstations
+        // ────────────────────────────────────────────────────────────
+        $this->call([
+            ProductionStatusSeeder::class,
+            TableSeeder::class,
+            MachineSeeder::class,
+            Semi_AutomaticSeeder::class,
+        ]);
+
+        // ────────────────────────────────────────────────────────────
+        // 6. Empleados (necesitan turnos y áreas)
+        // ────────────────────────────────────────────────────────────
+        $this->call([
+            EmployeeRoleSeeder::class,
+            MaterialsRoleSeeder::class,
+            EmployeeSeeder::class,
+        ]);
+
+        // ────────────────────────────────────────────────────────────
+        // 7. Catálogo de partes y precios — DESHABILITADO
+        // El cliente importa partes, precios y tiers via CSV directamente
+        // a la BD. Habilitar solo si se necesitan datos demo locales.
+        // ────────────────────────────────────────────────────────────
+        // $this->call([
+        //     PriceSeeder::class,
+        //     StandardSeeder::class,
+        // ]);
+
+        // ────────────────────────────────────────────────────────────
+        // 8. Estados de Work Orders y tipos de cargo de Invoice
+        // ────────────────────────────────────────────────────────────
+        $this->call([
+            StatusWOSeeder::class,
             InvoiceChargeTypeSeeder::class,
         ]);
 
-        // Create admin user AFTER roles are created
-        $adminUser = User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@test.com',
-            'account' => 'test',
-            'password' => Hash::make('password'),
-        ]);
-        
-        // Assign admin role
-        $adminUser->assignRole('admin');
-        
-        $this->command->info('Admin user created: test@test.com / password');
+        // ────────────────────────────────────────────────────────────
+        // 9. Flujo operacional de prueba (POs → WOs) — DESHABILITADO
+        // Depende de partes con estándares activos. Reactivar después de
+        // importar el CSV y correr StandardSeeder manualmente si se quiere
+        // generar POs/WOs de demostración.
+        // ────────────────────────────────────────────────────────────
+        // $this->call([
+        //     WorkOrderTestSeeder::class,
+        // ]);
+
+        $this->command->info('');
+        $this->command->info('════════════════════════════════════════════════════════');
+        $this->command->info('  Seed completo. Resumen:');
+        $this->command->info('════════════════════════════════════════════════════════');
+        $this->command->info('  • Admins:     Jonathan, Mauricio, Josadec');
+        $this->command->info('  • Estructura: Departamentos, áreas, turnos');
+        $this->command->info('  • Recursos:   Mesas, máquinas, semi-automáticos');
+        $this->command->info('  • Workflow:   Estados WO, tipos de cargo Invoice');
+        $this->command->info('');
+        $this->command->info('  Partes, precios y POs deshabilitados — importa por CSV');
+        $this->command->info('════════════════════════════════════════════════════════');
+    }
+
+    private function createAdminUsers(): void
+    {
+        $admins = [
+            [
+                'email'    => 'JJimenez@ensamblesformula.com',
+                'name'     => 'Jonathan',
+                'account'  => 'test',
+                'password' => 'Flexcon2026',
+            ],
+            [
+                'email'    => 'maubr170295@gmail.com',
+                'name'     => 'Mauricio Belmonte',
+                'account'  => 'maubr170295',
+                'password' => 'admin2026',
+            ],
+            [
+                'email'    => 'josadec@gmail.com',
+                'name'     => 'Josadec Pedraza',
+                'account'  => 'josadec',
+                'password' => 'admin2026',
+            ],
+        ];
+
+        foreach ($admins as $data) {
+            $user = User::firstOrCreate(
+                ['email' => $data['email']],
+                [
+                    'name'     => $data['name'],
+                    'account'  => $data['account'],
+                    'password' => Hash::make($data['password']),
+                ]
+            );
+            $user->assignRole('admin');
+        }
     }
 }

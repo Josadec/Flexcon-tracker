@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PackingSlipPdfController;
+use App\Http\Controllers\PartsReportController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -178,6 +180,28 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
 
     // Redirect legacy inspection route
     Route::redirect('/inspection', '/admin/quality/inspection');
+
+    // ── Reportes ──────────────────────────────────────────────────
+    Route::get('/reports', \App\Livewire\Admin\Reports\ReportDashboard::class)->name('reports.index');
+    // Producción
+    Route::get('/reports/produccion/pdf',   [ReportController::class, 'produccionPdf'])->name('reports.produccion.pdf');
+    Route::get('/reports/produccion/excel', [ReportController::class, 'produccionExcel'])->name('reports.produccion.excel');
+    // Materiales
+    Route::get('/reports/materiales/pdf',   [ReportController::class, 'materialesPdf'])->name('reports.materiales.pdf');
+    Route::get('/reports/materiales/excel', [ReportController::class, 'materialesExcel'])->name('reports.materiales.excel');
+    // Calidad
+    Route::get('/reports/calidad/pdf',      [ReportController::class, 'calidadPdf'])->name('reports.calidad.pdf');
+    Route::get('/reports/calidad/excel',    [ReportController::class, 'calidadExcel'])->name('reports.calidad.excel');
+    // Empaques
+    Route::get('/reports/empaques/pdf',     [ReportController::class, 'empaquesPdf'])->name('reports.empaques.pdf');
+    Route::get('/reports/empaques/excel',   [ReportController::class, 'empaquesExcel'])->name('reports.empaques.excel');
+    // General
+    Route::get('/reports/general/pdf',      [ReportController::class, 'generalPdf'])->name('reports.general.pdf');
+    Route::get('/reports/general/excel',    [ReportController::class, 'generalExcel'])->name('reports.general.excel');
+    // Partes
+    Route::get('/reports/parts',            \App\Livewire\Admin\Reports\PartsReport::class)->name('reports.parts.index');
+    Route::get('/reports/parts/pdf',        [PartsReportController::class, 'pdf'])->name('reports.parts.pdf');
+    Route::get('/reports/parts/excel',      [PartsReportController::class, 'excel'])->name('reports.parts.excel');
 });
 
 // ===================================================================

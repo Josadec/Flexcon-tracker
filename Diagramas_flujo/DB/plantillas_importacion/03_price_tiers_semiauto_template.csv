@@ -1,0 +1,6 @@
+id,price_id,min_quantity,max_quantity,tier_price,created_at,updated_at
+"OBLIGATORIO - ID del precio en tabla prices. Ejecutar despues de importar prices: SELECT id FROM prices WHERE workstation_type=semi_automatic ORDER BY id","FIJO - Cantidad minima del rango (no modificar)","FIJO - Cantidad maxima del rango (no modificar)","OBLIGATORIO - Precio por unidad para este rango.","OPCIONAL - Comentarios o referencias (ej: numero de aplicacion)","OPCIONAL - Escribir OK cuando el tier este verificado","DEJAR VACIO"
+,"2,000","10,999",,,
+,"11,000","200,000",,,
+,"2,000","10,999",,,
+,"11,000","200,000",,,
