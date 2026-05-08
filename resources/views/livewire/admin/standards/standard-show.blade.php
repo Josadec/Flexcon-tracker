@@ -83,11 +83,11 @@
                             <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Creado</dt>
-                                    <dd class="mt-1 text-xs text-gray-600 dark:text-gray-400">{{ $standard->created_at->format('d/m/Y H:i') }}</dd>
+                                    <dd class="mt-1 text-xs text-gray-600 dark:text-gray-400">{{ $standard->created_at?->format('d/m/Y H:i') ?? '—' }}</dd>
                                 </div>
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Ultima Actualizacion</dt>
-                                    <dd class="mt-1 text-xs text-gray-600 dark:text-gray-400">{{ $standard->updated_at->format('d/m/Y H:i') }}</dd>
+                                    <dd class="mt-1 text-xs text-gray-600 dark:text-gray-400">{{ $standard->updated_at?->format('d/m/Y H:i') ?? '—' }}</dd>
                                 </div>
                             </dl>
                         </div>

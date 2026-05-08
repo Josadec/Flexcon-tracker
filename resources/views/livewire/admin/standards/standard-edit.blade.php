@@ -17,21 +17,6 @@
         @endif
     </div>
 
-    @if(!$useNewConfigSystem)
-        <div class="p-4 rounded-lg border-2 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
-            <div class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                <div>
-                    <h3 class="text-sm font-medium text-amber-800 dark:text-amber-200">Estándar con formato antiguo</h3>
-                    <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">Este estándar usa el sistema legacy. Puede migrarlo al nuevo sistema de configuraciones múltiples.</p>
-                    <button type="button" wire:click="migrateToNewSystem" class="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-md transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        Migrar al nuevo sistema
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
 
     <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-200 dark:divide-gray-700">
         <form wire:submit="updateStandard" class="p-6 space-y-6">
@@ -217,115 +202,6 @@
                                 </div>
                             @endif
                         </div>
-                    @else
-                        <!-- Legacy System Fields -->
-                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Configuracion Legacy</h3>
-
-                            <!-- Units Per Hour -->
-                            <div class="mb-6">
-                                <label for="units_per_hour" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Unidades por Hora <span class="text-red-500">*</span>
-                                </label>
-                                <input wire:model="units_per_hour" id="units_per_hour" type="number" min="1"
-                                    placeholder="Ej: 50"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-                                    required />
-                                @error('units_per_hour')
-                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            <!-- Work Stations -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                                <div>
-                                    <label for="work_table_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Mesa de Trabajo
-                                    </label>
-                                    <select wire:model="work_table_id" id="work_table_id"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                                        <option value="">Seleccione una mesa</option>
-                                        @foreach($workTables as $table)
-                                            <option value="{{ $table->id }}">{{ $table->number }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('work_table_id')
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label for="semi_auto_work_table_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Mesa Semi-Automatica
-                                    </label>
-                                    <select wire:model="semi_auto_work_table_id" id="semi_auto_work_table_id"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                                        <option value="">Seleccione una mesa semi-auto</option>
-                                        @foreach($semiAutoWorkTables as $semiAuto)
-                                            <option value="{{ $semiAuto->id }}">{{ $semiAuto->number }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('semi_auto_work_table_id')
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label for="machine_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Maquina
-                                    </label>
-                                    <select wire:model="machine_id" id="machine_id"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                                        <option value="">Seleccione una maquina</option>
-                                        @foreach($machines as $machine)
-                                            <option value="{{ $machine->id }}">{{ $machine->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('machine_id')
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            <!-- Persons 1, 2, 3 -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div>
-                                    <label for="persons_1" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Personas 1
-                                    </label>
-                                    <input wire:model="persons_1" id="persons_1" type="number" min="1"
-                                        placeholder="0"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" />
-                                    @error('persons_1')
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label for="persons_2" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Personas 2
-                                    </label>
-                                    <input wire:model="persons_2" id="persons_2" type="number" min="1"
-                                        placeholder="0"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" />
-                                    @error('persons_2')
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label for="persons_3" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Personas 3
-                                    </label>
-                                    <input wire:model="persons_3" id="persons_3" type="number" min="1"
-                                        placeholder="0"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" />
-                                    @error('persons_3')
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
                     @endif
 
                     <!-- Active Status -->
@@ -359,7 +235,7 @@
                     <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <a href="{{ route('admin.standards.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-md transition-colors">Cancelar</a>
-                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors">Actualizar estándar</button>
+                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer">Actualizar estándar</button>
             </div>
         </form>
     </div>
