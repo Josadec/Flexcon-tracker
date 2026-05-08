@@ -166,11 +166,11 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <p class="text-xs text-gray-500 dark:text-gray-400">Creado</p>
-            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $price->created_at->format('d/m/Y H:i') }}</p>
+            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $price->created_at?->format('d/m/Y H:i') ?? '—' }}</p>
         </div>
         <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <p class="text-xs text-gray-500 dark:text-gray-400">Última actualización</p>
-            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $price->updated_at->format('d/m/Y H:i') }}</p>
+            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $price->updated_at?->format('d/m/Y H:i') ?? '—' }}</p>
         </div>
     </div>
 </div>
