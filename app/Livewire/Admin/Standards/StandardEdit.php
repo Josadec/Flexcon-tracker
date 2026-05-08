@@ -54,8 +54,8 @@ class StandardEdit extends Component
         $this->persons_2 = $standard->persons_2 ? (string) $standard->persons_2 : '';
         $this->persons_3 = $standard->persons_3 ? (string) $standard->persons_3 : '';
 
-        // Determinar si usa el nuevo sistema de configuraciones
-        $this->useNewConfigSystem = $standard->is_migrated || $standard->configurations()->exists();
+        // Todos los standards usan el nuevo sistema de configuraciones multiples
+        $this->useNewConfigSystem = true;
 
         // Cargar configuraciones existentes
         $this->loadConfigurations();
