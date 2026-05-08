@@ -20,9 +20,7 @@ class PriceCreate extends Component
      */
     public array $tiers = [];
 
-    // Validación en tiempo real
-    public string $validation_message = '';
-    public bool $has_conflict = false;
+    // Mensaje informativo en tiempo real
     public string $info_message = '';
     public bool $has_existing_prices = false;
 
@@ -51,11 +49,6 @@ class PriceCreate extends Component
         $this->checkForConflicts();
     }
 
-    public function updatedActive(): void
-    {
-        $this->checkForConflicts();
-    }
-
     public function addTier(): void
     {
         $this->tiers[] = [
@@ -76,26 +69,11 @@ class PriceCreate extends Component
 
     protected function checkForConflicts(): void
     {
-        $this->validation_message = '';
-        $this->has_conflict = false;
         $this->info_message = '';
         $this->has_existing_prices = false;
 
         if (empty($this->part_id)) {
             return;
-        }
-
-        if ($this->active) {
-            $existingActivePrice = Price::where('part_id', $this->part_id)
-                ->where('active', true)
-                ->first();
-
-            if ($existingActivePrice) {
-                $this->has_conflict = true;
-                $typeLabel = Price::WORKSTATION_TYPES[$existingActivePrice->workstation_type] ?? $existingActivePrice->workstation_type;
-                $this->validation_message = "Esta parte ya tiene un precio activo (Tipo: {$typeLabel}). Solo puede haber un precio activo por parte. Debes desactivar el precio existente primero o crear este precio como inactivo.";
-                return;
-            }
         }
 
         $allPrices = Price::where('part_id', $this->part_id)->get();
@@ -159,11 +137,6 @@ class PriceCreate extends Component
 
     public function savePrice(): void
     {
-        if ($this->has_conflict && $this->active) {
-            $this->addError('part_id', $this->validation_message);
-            return;
-        }
-
         $this->validate();
 
         // Validación adicional: si un tier tiene precio, debe tener min_quantity
