@@ -5,7 +5,7 @@
         </a>
         <div>
             <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Editar estándar</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Modificar información del estándar de la parte {{ $standard->part->number }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Modificar información del estándar de la parte {{ $standard->part?->number ?? 'N/A' }}</p>
         </div>
     </div>
 
@@ -30,7 +30,7 @@
                             required>
                             <option value="">Seleccione una parte</option>
                             @foreach($parts as $part)
-                                <option value="{{ $part->id }}">{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
+                                <option value="{{ $part->id }}" @selected($part->id == $part_id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
                             @endforeach
                         </select>
                         @error('part_id')
