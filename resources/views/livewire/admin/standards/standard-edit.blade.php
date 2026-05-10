@@ -119,7 +119,7 @@
                                                 <select wire:model.live="configurations.{{ $index }}.workstation_type"
                                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
                                                     @foreach($workstationTypes as $value => $label)
-                                                        <option value="{{ $value }}">{{ $label }}</option>
+                                                        <option value="{{ $value }}" @selected($value == $config['workstation_type'])>{{ $label }}</option>
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.workstation_type")
@@ -134,12 +134,12 @@
                                                 </label>
                                                 <select wire:model="configurations.{{ $index }}.workstation_id"
                                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
-                                                    <option value="">Sin asignar</option>
+                                                    <option value="" @selected(empty($config['workstation_id']))>Sin asignar</option>
                                                     @php
                                                         $workstations = $this->getWorkstationsForType($config['workstation_type']);
                                                     @endphp
                                                     @foreach($workstations as $ws)
-                                                        <option value="{{ $ws['id'] }}">{{ $ws['name'] }}</option>
+                                                        <option value="{{ $ws['id'] }}" @selected((string)$ws['id'] == (string)$config['workstation_id'])>{{ $ws['name'] }}</option>
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.workstation_id")

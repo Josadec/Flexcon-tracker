@@ -76,7 +76,7 @@ class StandardEdit extends Component
                 $this->configurations[] = [
                     'id' => $config->id,
                     'workstation_type' => $config->workstation_type,
-                    'workstation_id' => $config->workstation_id,
+                    'workstation_id' => $config->workstation_id !== null ? (string) $config->workstation_id : null,
                     'persons_required' => $config->persons_required,
                     'units_per_hour' => (string) $config->units_per_hour,
                     'is_default' => $config->is_default,
