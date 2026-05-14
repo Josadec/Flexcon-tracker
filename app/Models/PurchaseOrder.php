@@ -25,6 +25,7 @@ class PurchaseOrder extends Model
         'status',
         'comments',
         'pdf_path',
+        'signed_document_path',
     ];
 
     protected $casts = [
