@@ -44,7 +44,9 @@
       "Bash(cmd:*)",
       "Bash(C:/xampp/mysql/bin/mysql.exe:*)",
       "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root flexcon_db --execute=\"SELECT id, item_number, description FROM parts WHERE deleted_at IS NULL ORDER BY id LIMIT 20;\")",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(Remove-Item -Path 'C:\\\\xampp\\\\htdocs\\\\flexcon-tracker\\\\public\\\\templates\\\\01_departamentos.csv', 'C:\\\\xampp\\\\htdocs\\\\flexcon-tracker\\\\public\\\\templates\\\\02_areas.csv', 'C:\\\\xampp\\\\htdocs\\\\flexcon-tracker\\\\public\\\\templates\\\\03_usuarios.csv', 'C:\\\\xampp\\\\htdocs\\\\flexcon-tracker\\\\public\\\\templates\\\\04_empleados.csv', 'C:\\\\xampp\\\\htdocs\\\\flexcon-tracker\\\\public\\\\templates\\\\INSTRUCCIONES.txt' -Force)",
+      "Bash(Remove-Item -Path 'C:\\\\xampp\\\\htdocs\\\\flexcon-tracker\\\\public\\\\templates' -Force)"
     ],
     "deny": [],
     "ask": []
