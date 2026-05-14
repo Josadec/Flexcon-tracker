@@ -398,6 +398,7 @@
     {{ $slot }}
 
     @fluxScripts
+    @include('partials.sidebar-current-sync')
 </body>
 
 </html>
