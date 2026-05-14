@@ -9,11 +9,20 @@ use App\Models\Weighing;
 use App\Models\WorkOrder;
 use App\Services\PurchaseOrderService;
 use App\Services\SignatureService;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class WOShow extends Component
 {
+    use WithFileUploads;
+
     public WorkOrder $workOrder;
+
+    // ===============================================
+    // SIGNED DOCUMENT UPLOAD
+    // ===============================================
+    public $signedDocument = null;
 
     protected PurchaseOrderService $purchaseOrderService;
     protected SignatureService $signatureService;
@@ -116,6 +125,45 @@ class WOShow extends Component
     {
         if ($this->workOrder->purchaseOrder) {
             $this->dispatch('openSignatureModal', purchaseOrderId: $this->workOrder->purchaseOrder->id);
+        }
+    }
+
+    public function uploadSignedDocument(): void
+    {
+        $this->validate([
+            'signedDocument' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ], [
+            'signedDocument.required' => 'Debe seleccionar un archivo.',
+            'signedDocument.mimes' => 'El archivo debe ser PDF, JPG o PNG.',
+            'signedDocument.max' => 'El archivo no debe superar los 10MB.',
+        ]);
+
+        $purchaseOrder = $this->workOrder->purchaseOrder;
+        if (!$purchaseOrder) {
+            session()->flash('error', 'Esta Work Order no tiene Purchase Order asociada.');
+            return;
+        }
+
+        if ($purchaseOrder->signed_document_path) {
+            Storage::disk('public')->delete($purchaseOrder->signed_document_path);
+        }
+
+        $path = $this->signedDocument->store('signed-documents', 'public');
+        $purchaseOrder->update(['signed_document_path' => $path]);
+
+        $this->signedDocument = null;
+        session()->flash('success', 'Documento firmado cargado correctamente.');
+        $this->refreshWorkOrder();
+    }
+
+    public function deleteSignedDocument(): void
+    {
+        $purchaseOrder = $this->workOrder->purchaseOrder;
+        if ($purchaseOrder && $purchaseOrder->signed_document_path) {
+            Storage::disk('public')->delete($purchaseOrder->signed_document_path);
+            $purchaseOrder->update(['signed_document_path' => null]);
+            session()->flash('success', 'Documento firmado eliminado correctamente.');
+            $this->refreshWorkOrder();
         }
     }
 

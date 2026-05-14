@@ -224,7 +224,8 @@
             </div>
         </div>
 
-        {{-- Signatures --}}
+        {{-- Signatures - DESHABILITADO TEMPORALMENTE --}}
+        {{--
         @if($workOrder->purchaseOrder?->pdf_path)
         <div class="mt-6 bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex items-center justify-between mb-4">
@@ -250,6 +251,63 @@
             @else
                 <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Este documento aún no ha sido firmado.</p>
             @endif
+        </div>
+        @endif
+        --}}
+
+        {{-- Documento Firmado (Upload) --}}
+        @if($workOrder->purchaseOrder)
+        <div class="mt-6 bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Documento Firmado</h2>
+            </div>
+
+            @if($workOrder->purchaseOrder->signed_document_path)
+                <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <svg class="w-8 h-8 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                        </svg>
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{{ basename($workOrder->purchaseOrder->signed_document_path) }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Documento firmado cargado</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ Storage::url($workOrder->purchaseOrder->signed_document_path) }}" target="_blank"
+                            class="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-sm font-medium rounded-lg transition-colors">
+                            Ver
+                        </a>
+                        <a href="{{ Storage::url($workOrder->purchaseOrder->signed_document_path) }}" download
+                            class="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-300 text-sm font-medium rounded-lg transition-colors">
+                            Descargar
+                        </a>
+                        <button type="button" wire:click="deleteSignedDocument" wire:confirm="¿Eliminar el documento firmado?"
+                            class="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 text-sm font-medium rounded-lg transition-colors">
+                            Eliminar
+                        </button>
+                    </div>
+                </div>
+            @endif
+
+            <div>
+                <label for="signedDocument" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ $workOrder->purchaseOrder->signed_document_path ? 'Reemplazar documento firmado' : 'Subir documento firmado' }}
+                </label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input wire:model="signedDocument" id="signedDocument" type="file" accept=".pdf,.jpg,.jpeg,.png"
+                        class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" />
+                    <button type="button" wire:click="uploadSignedDocument"
+                        wire:loading.attr="disabled"
+                        wire:target="signedDocument,uploadSignedDocument"
+                        class="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
+                        <span wire:loading.remove wire:target="signedDocument,uploadSignedDocument">Subir</span>
+                        <span wire:loading wire:target="signedDocument,uploadSignedDocument">Subiendo...</span>
+                    </button>
+                </div>
+                @error('signedDocument') <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Máximo 10MB. Formatos: PDF, JPG, PNG.</p>
+            </div>
         </div>
         @endif
         @endif
@@ -746,6 +804,6 @@
     </div>
     @endif
 
-    {{-- Signature Modal Component --}}
-    <livewire:admin.signature-modal @signature-completed="refreshWorkOrder" />
+    {{-- Signature Modal Component - DESHABILITADO TEMPORALMENTE --}}
+    {{-- <livewire:admin.signature-modal @signature-completed="refreshWorkOrder" /> --}}
 </div>

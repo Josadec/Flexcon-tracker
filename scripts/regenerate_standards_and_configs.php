@@ -125,25 +125,29 @@ foreach ($pricesByPart as $partId => $wsList) {
         );
         if (empty($configsForPart)) continue;
 
-        // Encontrar el menor persons_required (sera is_default=1)
-        $minPersons = null;
+        // Deduplicar por persons_required (legacy puede tener filas duplicadas
+        // con misma persons_X). Si hay distinto u/h, gana el mayor.
+        $byPersons = [];
         foreach ($configsForPart as $c) {
             if ($c['persons_required'] === null) continue;
-            if ($minPersons === null || $c['persons_required'] < $minPersons) {
-                $minPersons = $c['persons_required'];
+            $p = $c['persons_required'];
+            if (!isset($byPersons[$p]) || $c['units_per_hour'] > $byPersons[$p]['units_per_hour']) {
+                $byPersons[$p] = $c;
             }
         }
+        if (empty($byPersons)) continue;
 
-        foreach ($configsForPart as $c) {
-            if ($c['persons_required'] === null) continue;
+        $minPersons = min(array_keys($byPersons));
+
+        foreach ($byPersons as $p => $c) {
             $configs[] = [
                 'id'                => $nextConfigId++,
                 'standard_id'       => $stdId,
                 'workstation_type'  => $wsStd,
                 'workstation_id'    => null,
-                'persons_required'  => $c['persons_required'],
+                'persons_required'  => $p,
                 'units_per_hour'    => $c['units_per_hour'],
-                'is_default'        => $c['persons_required'] === $minPersons ? 1 : 0,
+                'is_default'        => $p === $minPersons ? 1 : 0,
                 'notes'             => null,
             ];
         }

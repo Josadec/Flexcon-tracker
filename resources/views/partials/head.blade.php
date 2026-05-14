@@ -273,6 +273,10 @@ span.flatpickr-weekday { color: rgb(99 102 241); font-weight: 600; font-size: 0.
             initFlatpickr(el);
             return;
         }
+        // If the user is currently interacting with the calendar, do NOT touch it.
+        // Re-initing or setDate() while open closes/resets the month navigation.
+        if (el._flatpickr.isOpen) return;
+
         // altInput removed by Livewire DOM morph — destroy and reinitialize
         if (el._flatpickr.altInput && !document.contains(el._flatpickr.altInput)) {
             var savedValue = el.value;
@@ -352,11 +356,16 @@ span.flatpickr-weekday { color: rgb(99 102 241); font-weight: 600; font-size: 0.
             } catch (e) { /* skip broken inputs silently */ }
         });
 
-        // Selects — exclude: multiple, data-no-ts, flux components, and the
-        // hidden original <select> that TomSelect manages (.tomselected)
+        // Selects — exclude: multiple, data-no-ts, flux components, the
+        // hidden original <select> that TomSelect manages (.tomselected),
+        // and Flatpickr's internal month dropdown (which is a real <select>
+        // and would otherwise get wrapped by TomSelect, breaking month
+        // navigation inside the calendar).
         root.querySelectorAll(
-            'select:not([data-no-ts]):not([multiple]):not([data-flux-select]):not(.tomselected)'
+            'select:not([data-no-ts]):not([multiple]):not([data-flux-select]):not(.tomselected):not(.flatpickr-monthDropdown-months)'
         ).forEach(function (el) {
+            // Defensive: skip any <select> rendered inside an open Flatpickr calendar.
+            if (el.closest && el.closest('.flatpickr-calendar')) return;
             try {
                 initTomSelect(el);
             } catch (e) { /* skip */ }
@@ -378,11 +387,17 @@ span.flatpickr-weekday { color: rgb(99 102 241); font-weight: 600; font-size: 0.
     // After each Livewire commit (server round-trip), resync pickers
     document.addEventListener('livewire:initialized', function () {
         Livewire.hook('commit', function (params) {
-            // BEFORE DOM morph: destroy all TomSelect instances so Livewire
-            // can update the original <select> elements freely without leaving
-            // stale wrappers or losing the .tomselected class check.
+            // BEFORE DOM morph: destroy TomSelect instances so Livewire can
+            // update the original <select> elements freely without leaving
+            // stale wrappers. IMPORTANT: skip selects that are manually managed
+            // ([data-no-ts]) or live inside a wire:ignore subtree — Livewire
+            // won't morph those, and destroying them here orphans the wrapper
+            // without ever re-initializing (initAll skips data-no-ts), which
+            // makes the search field freeze on subsequent interactions.
             params.respond(function () {
                 document.querySelectorAll('select.tomselected').forEach(function (el) {
+                    if (el.hasAttribute('data-no-ts')) return;
+                    if (el.closest && el.closest('[wire\\:ignore], [wire\\:ignore\\.self]')) return;
                     if (el.tomselect) {
                         try { el.tomselect.destroy(); } catch (_) {}
                         el.tomselect = null;

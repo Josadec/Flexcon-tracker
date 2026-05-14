@@ -1,6 +1,6 @@
 -- Standard configurations (1 fila por persons_required de cada standard)
 -- Importar DESPUES de standards (depende de standard_id auto-incrementado)
--- Generado: 2026-05-07 23:50:31
+-- Generado: 2026-05-08 00:18:39
 
 INSERT INTO `standard_configurations` (`id`,`standard_id`,`workstation_type`,`workstation_id`,`persons_required`,`units_per_hour`,`is_default`,`notes`,`created_at`,`updated_at`) VALUES
 (NULL,1,'manual',NULL,2,53,1,NULL,'2026-04-09 20:05:00',NULL),
@@ -89,7 +89,6 @@ INSERT INTO `standard_configurations` (`id`,`standard_id`,`workstation_type`,`wo
 (NULL,54,'manual',NULL,3,124,0,NULL,'2026-04-09 20:05:00',NULL),
 (NULL,59,'manual',NULL,1,174,1,NULL,'2026-04-09 20:05:00',NULL),
 (NULL,59,'manual',NULL,2,174,0,NULL,'2026-04-09 20:05:00',NULL),
-(NULL,60,'manual',NULL,2,245,1,NULL,'2026-04-09 20:05:00',NULL),
 (NULL,60,'manual',NULL,2,245,1,NULL,'2026-04-09 20:05:00',NULL),
 (NULL,61,'manual',NULL,2,228,1,NULL,'2026-04-09 20:05:00',NULL),
 (NULL,62,'manual',NULL,2,224,1,NULL,'2026-04-09 20:05:00',NULL),
