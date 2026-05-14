@@ -1,0 +1,4 @@
+"id","name","description","comments","user_id","department_id","created_at","updated_at"
+"","Ensamble A","Linea de ensamble manual componentes tipo A","Capacidad 20 operadores","","1","2026-01-01 08:00:00",""
+"","Ensamble B","Linea de ensamble manual componentes tipo B","Capacidad 15 operadores","","1","2026-01-01 08:00:00",""
+"","Inspeccion Final","Area de inspeccion y pruebas finales","Equipo de medicion calibrado","","3","2026-01-01 08:00:00",""

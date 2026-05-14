@@ -1,0 +1,4 @@
+"id","name","last_name","account","employee_number","position","birth_date","entry_date","comments","active","area_id","shift_id","email","email_verified_at","password","remember_token","created_at","updated_at","deleted_at"
+"","Juan","Garcia Lopez","jgarcia","","Supervisor de Linea","1990-05-15","2024-01-10","Supervisor con experiencia en manufactura","1","","","jgarcia@empresa.com","","$2y$12$examplehashedpassword001","","2026-01-01 08:00:00","",""
+"","Maria","Hernandez Ruiz","mhernandez","","Coordinadora de Calidad","1988-03-22","2023-06-01","Certificada en ISO 9001","1","","","mhernandez@empresa.com","","$2y$12$examplehashedpassword002","","2026-01-01 08:00:00","",""
+"","Carlos","Reyes Torres","creyes","","Inspector de Calidad","1985-12-10","2022-09-15","","1","3","","creyes@empresa.com","","$2y$12$examplehashedpassword003","","2026-01-01 08:00:00","",""

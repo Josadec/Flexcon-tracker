@@ -1,0 +1,4 @@
+"id","name","last_name","account","employee_number","position","birth_date","entry_date","comments","active","area_id","shift_id","email","email_verified_at","password","remember_token","created_at","updated_at","deleted_at"
+"","Luis","Morales Vega","lmorales","EMP260001","Operador de Produccion","1992-07-18","2024-02-01","Operador con experiencia en linea de ensamble","1","1","1","lmorales@empresa.com","","$2y$12$examplehashedpassword101","","2026-01-01 08:00:00","",""
+"","Ana","Perez Gutierrez","aperez","EMP260002","Operador de Produccion","1995-11-05","2024-03-15","","1","2","2","aperez@empresa.com","","$2y$12$examplehashedpassword102","","2026-01-01 08:00:00","",""
+"","Roberto","Sanchez Diaz","rsanchez","EMP260003","Operador de Produccion","1990-04-30","2023-11-20","Turno especial autorizado","1","1","1","rsanchez@empresa.com","","$2y$12$examplehashedpassword103","","2026-01-01 08:00:00","",""

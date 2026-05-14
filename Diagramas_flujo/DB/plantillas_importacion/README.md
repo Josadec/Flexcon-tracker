@@ -18,6 +18,10 @@
 | `08_machines_template.csv` | `machines` | Requiere: `areas` (seeder) |
 | `04_standards_template.csv` | `standards` | Requiere: `parts`, `tables`, `semi__automatics`, `machines` |
 | `05_standard_configurations_template.csv` | `standard_configurations` | Requiere: `standards` |
+| `09_departamentos_template.csv` | `departments` | Ninguna - importar primero |
+| `10_areas_template.csv` | `areas` | Requiere: `departments` |
+| `11_usuarios_template.csv` | `users` + roles | Requiere: `areas`, turnos activos |
+| `12_empleados_template.csv` | `users` (rol employee) | Requiere: `areas`, turnos activos |
 
 ---
 
@@ -32,6 +36,20 @@ PASO 3 --> 03_price_tiers_template.csv     (tabla: price_tiers)
 PASO 4 --> 04_standards_template.csv       (tabla: standards)
 PASO 5 --> 05_standard_configurations_template.csv  (tabla: standard_configurations)
 ```
+
+**Orden para usuarios y empleados (catalogos del cliente):**
+
+```
+PASO 1 --> 09_departamentos_template.csv   (tabla: departments)
+PASO 2 --> 10_areas_template.csv           (tabla: areas)
+PASO 3 --> 11_usuarios_template.csv        (tabla: users - personal administrativo/operativo)
+        y/o 12_empleados_template.csv      (tabla: users - operadores con rol employee)
+```
+
+> **Nota**: `11_usuarios_template.csv` y `12_empleados_template.csv` se diferencian por el rol asignado.
+> Los empleados de produccion (rol `employee`) usan `12`; el resto del personal usa `11`.
+> Ambos se almacenan en la tabla `users` con Spatie Permissions.
+> El campo `*` en los encabezados indica campo requerido. Ver seccion de convencion de campos.
 
 **Nota entre pasos**: Los archivos `03_price_tiers_template.csv` y `05_standard_configurations_template.csv` usan IDs autogenerados por MySQL. Antes de preparar esos archivos con datos reales, ejecutar las consultas de recuperacion de IDs descritas en cada plantilla (fila de instrucciones, columna `price_id` / `standard_id`).
 
@@ -71,6 +89,53 @@ Cada archivo tiene exactamente 3 secciones:
 - **Fila 1**: Nombres exactos de columnas tal como estan en la base de datos.
 - **Fila 2**: Descripcion de cada columna (tipo de dato, si es obligatorio, valores permitidos). Esta fila DEBE ELIMINARSE antes de importar a phpMyAdmin.
 - **Filas 3 en adelante**: Datos de ejemplo reales tomados del Excel del cliente.
+
+---
+
+## Notas especificas para templates 09-12 (departamentos, areas, usuarios, empleados)
+
+### Campo `id`: dejar siempre vacio
+
+Todos los archivos CSV incluyen la columna `id` como primera columna pero su valor debe dejarse en blanco (`""`). MySQL tiene definido `AUTO_INCREMENT` en esa columna y generara el ID automaticamente al insertar cada fila. Si se ingresa un valor numerico, MySQL lo usara tal cual y podria entrar en conflicto con IDs existentes o generar gaps en la secuencia.
+
+### Tabla `employees` eliminada: todo va a `users`
+
+La tabla `employees` fue eliminada en la migracion `2026_01_04_000002_drop_employees_table.php`. Tanto el template `11_usuarios_template.csv` (personal administrativo/operativo) como el `12_empleados_template.csv` (operadores de produccion) importan registros a la tabla **`users`**. La diferencia entre ambos perfiles es unicamente el rol de Spatie que se asigna despues de la importacion.
+
+### Roles de Spatie NO estan en la tabla `users`
+
+Los roles (`admin`, `employee`, `quality`, etc.) son gestionados por el paquete **Spatie Permissions** y se almacenan en la tabla intermedia `model_has_roles`, no en ninguna columna de `users`. Por lo tanto:
+
+- El CSV de `users` NO incluye ninguna columna `rol` ni `role_id`.
+- Despues de importar los registros a la tabla `users`, los roles deben asignarse por separado con una consulta SQL:
+
+```sql
+-- Obtener el ID del rol deseado
+SELECT id, name FROM roles;
+
+-- Asignar rol a un usuario (ejemplo: rol con id=2 al usuario con id=5)
+INSERT INTO model_has_roles (role_id, model_type, model_id)
+VALUES (2, 'App\\Models\\User', 5);
+
+-- Asignar rol a todos los usuarios importados en un rango de IDs
+INSERT INTO model_has_roles (role_id, model_type, model_id)
+SELECT 2, 'App\\Models\\User', id
+FROM users
+WHERE id BETWEEN 10 AND 30;
+```
+
+> El valor de `model_type` debe ser siempre `App\Models\User` (con barra invertida simple en SQL, doble en PHP).
+
+### Campo `password`: usar hash bcrypt
+
+La columna `password` en la tabla `users` debe contener el hash bcrypt de la contrasena, NO el texto plano. Para generar un hash compatible con Laravel desde phpMyAdmin o linea de comandos:
+
+```bash
+# Desde la consola de Laravel (php artisan tinker)
+echo bcrypt('Temporal2024!');
+```
+
+El resultado sera una cadena como `$2y$12$...` que es la que debe ir en el CSV. Los valores de ejemplo en los templates usan hashes ficticios — sustituirlos por hashes reales antes de importar.
 
 ---
 
