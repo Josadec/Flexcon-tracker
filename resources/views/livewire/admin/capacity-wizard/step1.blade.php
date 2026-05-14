@@ -41,15 +41,19 @@
 
             {{-- Date range --}}
             <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-4" wire:ignore>
                     <div>
                         <label for="startDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fecha inicio</label>
-                        <input wire:model.live="startDate" id="startDate" type="date"
+                        <input id="startDate" type="date"
+                            value="{{ $startDate }}"
+                            onchange="$wire.set('startDate', this.value, false)"
                             class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     </div>
                     <div>
                         <label for="endDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fecha fin</label>
-                        <input wire:model.live="endDate" id="endDate" type="date"
+                        <input id="endDate" type="date"
+                            value="{{ $endDate }}"
+                            onchange="$wire.set('endDate', this.value, false)"
                             class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     </div>
                 </div>

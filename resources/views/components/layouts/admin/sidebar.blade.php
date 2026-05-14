@@ -74,7 +74,7 @@
                         :current="request()->routeIs('admin.statuses-wo.*')" wire:navigate>{{ __('Estados') }}
                     </flux:navlist.item>
                     <flux:navlist.item icon="calculator" :href="route('admin.capacity.wizard')"
-                        :current="request()->routeIs('admin.capacity.*', 'admin.sent-lists.*')" wire:navigate>
+                        :current="request()->routeIs('admin.capacity.*')" wire:navigate>
                         {{ __('Capacidad') }}
                     </flux:navlist.item>
                     <flux:navlist.item icon="document-check" :href="route('admin.invoices.index')"
@@ -155,6 +155,7 @@
                     <flux:navlist.item icon="archive-box" :href="route('admin.materials.manage')"
                         :current="request()->routeIs('admin.materials.manage')" wire:navigate>{{ __('Gestión') }}
                     </flux:navlist.item>
+                    @unless ($authUser->hasRole('admin'))
                     <flux:navlist.item icon="truck" :href="route('admin.sent-lists.display')"
                         :current="request()->routeIs('admin.sent-lists.display')" wire:navigate>
                         {{ __('Lista de Envío') }}
@@ -167,6 +168,7 @@
                         :current="request()->routeIs('admin.sent-lists.tv')" wire:navigate>
                         {{ __('Monitor TV') }}
                     </flux:navlist.item>
+                    @endunless
                 </flux:navlist.group>
             @endif
 
@@ -185,6 +187,7 @@
                     <flux:navlist.item icon="truck" :href="route('admin.shipping.queue')"
                         :current="request()->routeIs('admin.shipping.queue')" wire:navigate>{{ __('WO Listos para PS') }}
                     </flux:navlist.item>
+                    @unless ($authUser->hasRole('admin'))
                     <flux:navlist.item icon="queue-list" :href="route('admin.sent-lists.display')"
                         :current="request()->routeIs('admin.sent-lists.display')" wire:navigate>
                         {{ __('Lista de Envío') }}
@@ -197,6 +200,7 @@
                         :current="request()->routeIs('admin.sent-lists.tv')" wire:navigate>
                         {{ __('Monitor TV') }}
                     </flux:navlist.item>
+                    @endunless
                 </flux:navlist.group>
             @endif
 
@@ -213,6 +217,7 @@
                         :current="request()->routeIs('admin.quality.weighings')" wire:navigate>
                         {{ __('Pesadas Calidad') }}
                     </flux:navlist.item>
+                    @unless ($authUser->hasRole('admin'))
                     <flux:navlist.item icon="queue-list" :href="route('admin.sent-lists.display')"
                         :current="request()->routeIs('admin.sent-lists.display')" wire:navigate>
                         {{ __('Lista de Envío') }}
@@ -225,6 +230,7 @@
                         :current="request()->routeIs('admin.sent-lists.tv')" wire:navigate>
                         {{ __('Monitor TV') }}
                     </flux:navlist.item>
+                    @endunless
                 </flux:navlist.group>
             @endif
 

@@ -32,7 +32,7 @@
                     :current="request()->routeIs('admin.statuses-wo.*')" wire:navigate>{{ __('Estados') }}
                 </flux:navlist.item>
                 <flux:navlist.item icon="calculator" :href="route('admin.capacity.wizard')"
-                    :current="request()->routeIs('admin.capacity.*', 'admin.sent-lists.*')" wire:navigate>
+                    :current="request()->routeIs('admin.capacity.*')" wire:navigate>
                     {{ __('Capacidad') }}
                 </flux:navlist.item>
             </flux:navlist.group>
