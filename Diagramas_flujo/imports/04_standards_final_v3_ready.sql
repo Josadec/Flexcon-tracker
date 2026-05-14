@@ -1,5 +1,5 @@
 -- Standards (modelo nuevo: 1 fila por part_id × workstation_type, is_migrated=1)
--- Generado: 2026-05-07 23:50:31
+-- Generado: 2026-05-08 00:18:39
 
 INSERT INTO `standards` (`id`,`part_id`,`units_per_hour`,`work_table_id`,`semi_auto_work_table_id`,`machine_id`,`persons_1`,`persons_2`,`persons_3`,`active`,`is_migrated`,`description`,`deleted_at`,`created_at`,`updated_at`) VALUES
 (NULL,1,1,NULL,NULL,NULL,NULL,NULL,NULL,1,1,'STS H-CL-181-1222-90/9',NULL,'2026-04-09 20:05:00',NULL),

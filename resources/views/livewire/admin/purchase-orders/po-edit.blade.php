@@ -195,7 +195,8 @@
                     @endif
                 </div>
 
-                <!-- Archivo PDF -->
+                {{-- Archivo PDF - DESHABILITADO TEMPORALMENTE --}}
+                {{--
                 <div class="p-4 sm:p-6 lg:p-8">
                     <div class="mb-6">
                         <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
@@ -270,6 +271,7 @@
                         <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Máximo 10MB, solo archivos PDF</p>
                     </div>
                 </div>
+                --}}
 
                 <!-- Comentarios -->
                 <div class="p-4 sm:p-6 lg:p-8">

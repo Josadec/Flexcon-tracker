@@ -52,7 +52,7 @@ class POCreate extends Component
             'quantity' => 'required|integer|min:1',
             'unit_price' => 'required|numeric|min:0',
             'comments' => 'nullable|string',
-            'pdf_file' => 'required|file|mimes:pdf|max:10240',
+            'pdf_file' => 'nullable|file|mimes:pdf|max:10240',
         ];
     }
 

@@ -48,6 +48,58 @@
     ::file-selector-button {
         border-color: var(--color-gray-200, currentColor);
     }
+
+    :where(
+        button,
+        input[type='button'],
+        input[type='submit'],
+        input[type='reset'],
+        a[href],
+        [role='button'],
+        [wire\:click],
+        [x-on\:click],
+        [\@click],
+        [onclick],
+        summary,
+        label[for]
+    ) {
+        cursor: pointer;
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    @media (hover: hover) {
+        :where(
+            button,
+            input[type='button'],
+            input[type='submit'],
+            input[type='reset'],
+            a[href].btn,
+            a[href].page-link,
+            a[href][class*='inline-flex'],
+            a[href][class*='rounded'],
+            [role='button'],
+            [wire\:click],
+            [x-on\:click],
+            [\@click],
+            [onclick],
+            summary,
+            label[for]
+        ):where(:hover):not(:disabled):not([aria-disabled='true']):not(.cursor-default):not(.cursor-not-allowed) {
+            filter: brightness(0.97);
+        }
+    }
+
+    button:disabled,
+    input[type='button']:disabled,
+    input[type='submit']:disabled,
+    input[type='reset']:disabled,
+    [aria-disabled='true'],
+    .disabled {
+        cursor: not-allowed !important;
+        filter: none;
+    }
 }
 
 [data-flux-field]:not(ui-radio, ui-checkbox) {
