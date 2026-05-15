@@ -119,6 +119,7 @@
     {{-- @livewire('components.toast-notification') --}}
 
     @fluxScripts
+    @include('partials.sidebar-current-sync')
 </body>
 
 </html>
