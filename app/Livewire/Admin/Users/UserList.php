@@ -93,8 +93,14 @@ class UserList extends Component
             return;
         }
 
+        // Liberar áreas supervisadas
         $user->areas()->update(['user_id' => null]);
-        $user->delete();
+
+        // Quitar roles asignados (Spatie) para no dejar filas huérfanas en model_has_roles
+        $user->syncRoles([]);
+
+        // Hard delete: borrar realmente de la BD (no soft delete)
+        $user->forceDelete();
 
         session()->flash('flash.banner', 'Usuario eliminado correctamente.');
         session()->flash('flash.bannerStyle', 'success');
