@@ -61,7 +61,7 @@
                         >
                             <option value="">Selecciona un área</option>
                             @foreach($areas as $area)
-                                <option value="{{ $area->id }}">{{ $area->name }}</option>
+                                <option value="{{ $area->id }}" @selected((int) $area_id === (int) $area->id)>{{ $area->name }}</option>
                             @endforeach
                         </select>
                         @error('area_id')
@@ -80,7 +80,7 @@
                         >
                             <option value="">Selecciona un estado</option>
                             @foreach($productionStatuses as $status)
-                                <option value="{{ $status->id }}">{{ $status->name }}</option>
+                                <option value="{{ $status->id }}" @selected((int) $production_status_id === (int) $status->id)>{{ $status->name }}</option>
                             @endforeach
                         </select>
                         @error('production_status_id')

@@ -30,7 +30,11 @@
                             required>
                             <option value="">Seleccione una parte</option>
                             @foreach($parts as $part)
+<<<<<<< HEAD
                                 <option value="{{ $part->id }}" @selected($part->id == $part_id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
+=======
+                                <option value="{{ $part->id }}" @selected((int) $part_id === (int) $part->id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
+>>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
                             @endforeach
                         </select>
                         @error('part_id')
@@ -119,7 +123,11 @@
                                                 <select wire:model.live="configurations.{{ $index }}.workstation_type"
                                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
                                                     @foreach($workstationTypes as $value => $label)
+<<<<<<< HEAD
                                                         <option value="{{ $value }}" @selected($value == $config['workstation_type'])>{{ $label }}</option>
+=======
+                                                        <option value="{{ $value }}" @selected(($config['workstation_type'] ?? null) == $value)>{{ $label }}</option>
+>>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.workstation_type")
@@ -139,7 +147,11 @@
                                                         $workstations = $this->getWorkstationsForType($config['workstation_type']);
                                                     @endphp
                                                     @foreach($workstations as $ws)
+<<<<<<< HEAD
                                                         <option value="{{ $ws['id'] }}" @selected((string)$ws['id'] == (string)$config['workstation_id'])>{{ $ws['name'] }}</option>
+=======
+                                                        <option value="{{ $ws['id'] }}" @selected((int) ($config['workstation_id'] ?? 0) === (int) $ws['id'])>{{ $ws['name'] }}</option>
+>>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.workstation_id")
@@ -155,7 +167,7 @@
                                                 <select wire:model="configurations.{{ $index }}.persons_required"
                                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
                                                     @foreach($personsOptions as $value => $label)
-                                                        <option value="{{ $value }}">{{ $label }}</option>
+                                                        <option value="{{ $value }}" @selected((int) ($config['persons_required'] ?? 0) === (int) $value)>{{ $label }}</option>
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.persons_required")
@@ -202,6 +214,118 @@
                                 </div>
                             @endif
                         </div>
+<<<<<<< HEAD
+=======
+                    @else
+                        <!-- Legacy System Fields -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Configuracion Legacy</h3>
+
+                            <!-- Units Per Hour -->
+                            <div class="mb-6">
+                                <label for="units_per_hour" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Unidades por Hora <span class="text-red-500">*</span>
+                                </label>
+                                <input wire:model="units_per_hour" id="units_per_hour" type="number" min="1"
+                                    placeholder="Ej: 50"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                                    required />
+                                @error('units_per_hour')
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <!-- Work Stations -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                <div>
+                                    <label for="work_table_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Mesa de Trabajo
+                                    </label>
+                                    <select wire:model="work_table_id" id="work_table_id"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                                        <option value="">Seleccione una mesa</option>
+                                        @foreach($workTables as $table)
+                                            <option value="{{ $table->id }}" @selected((int) $work_table_id === (int) $table->id)>{{ $table->number }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('work_table_id')
+                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="semi_auto_work_table_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Mesa Semi-Automatica
+                                    </label>
+                                    <select wire:model="semi_auto_work_table_id" id="semi_auto_work_table_id"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                                        <option value="">Seleccione una mesa semi-auto</option>
+                                        @foreach($semiAutoWorkTables as $semiAuto)
+                                            <option value="{{ $semiAuto->id }}" @selected((int) $semi_auto_work_table_id === (int) $semiAuto->id)>{{ $semiAuto->number }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('semi_auto_work_table_id')
+                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="machine_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Maquina
+                                    </label>
+                                    <select wire:model="machine_id" id="machine_id"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                                        <option value="">Seleccione una maquina</option>
+                                        @foreach($machines as $machine)
+                                            <option value="{{ $machine->id }}" @selected((int) $machine_id === (int) $machine->id)>{{ $machine->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('machine_id')
+                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <!-- Persons 1, 2, 3 -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <label for="persons_1" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Personas 1
+                                    </label>
+                                    <input wire:model="persons_1" id="persons_1" type="number" min="1"
+                                        placeholder="0"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" />
+                                    @error('persons_1')
+                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="persons_2" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Personas 2
+                                    </label>
+                                    <input wire:model="persons_2" id="persons_2" type="number" min="1"
+                                        placeholder="0"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" />
+                                    @error('persons_2')
+                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="persons_3" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Personas 3
+                                    </label>
+                                    <input wire:model="persons_3" id="persons_3" type="number" min="1"
+                                        placeholder="0"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" />
+                                    @error('persons_3')
+                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+>>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
                     @endif
 
                     <!-- Active Status -->

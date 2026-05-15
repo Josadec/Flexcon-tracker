@@ -43,7 +43,7 @@
                         >
                             <option value="">Seleccionar</option>
                             @foreach($departments as $department)
-                                <option value="{{ $department->id }}">{{ $department->name }}</option>
+                                <option value="{{ $department->id }}" @selected((int) $department_id === (int) $department->id)>{{ $department->name }}</option>
                             @endforeach
                         </select>
                         @error('department_id') 
@@ -58,7 +58,7 @@
                         >
                             <option value="">Sin supervisor</option>
                             @foreach($users as $user)
-                                <option value="{{ $user->id }}">{{ $user->full_name }}</option>
+                                <option value="{{ $user->id }}" @selected((int) $user_id === (int) $user->id)>{{ $user->full_name }}</option>
                             @endforeach
                         </select>
                         @error('user_id') 
