@@ -53,13 +53,6 @@ class User extends Authenticatable
     protected static function boot()
     {
         parent::boot();
-
-        static::creating(function ($user) {
-            // Solo generar número de empleado si tiene rol employee y no tiene número
-            if (empty($user->employee_number) && $user->area_id) {
-                $user->employee_number = self::generateEmployeeNumber();
-            }
-        });
     }
 
     /**
