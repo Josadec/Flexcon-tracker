@@ -55,7 +55,7 @@
                         class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     >
                         @foreach($statuses as $status)
-                            <option value="{{ $status->id }}">{{ $status->name }}</option>
+                            <option value="{{ $status->id }}" @selected((int) $status_id === (int) $status->id)>{{ $status->name }}</option>
                         @endforeach
                     </select>
                     @error('status_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror

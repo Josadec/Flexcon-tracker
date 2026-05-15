@@ -45,7 +45,7 @@
                             required>
                             <option value="">Seleccione una parte</option>
                             @foreach($parts as $part)
-                                <option value="{{ $part->id }}">{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
+                                <option value="{{ $part->id }}" @selected((int) $part_id === (int) $part->id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
                             @endforeach
                         </select>
                         @error('part_id')
@@ -134,7 +134,7 @@
                                                 <select wire:model.live="configurations.{{ $index }}.workstation_type"
                                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
                                                     @foreach($workstationTypes as $value => $label)
-                                                        <option value="{{ $value }}">{{ $label }}</option>
+                                                        <option value="{{ $value }}" @selected(($config['workstation_type'] ?? null) == $value)>{{ $label }}</option>
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.workstation_type")
@@ -154,7 +154,7 @@
                                                         $workstations = $this->getWorkstationsForType($config['workstation_type']);
                                                     @endphp
                                                     @foreach($workstations as $ws)
-                                                        <option value="{{ $ws['id'] }}">{{ $ws['name'] }}</option>
+                                                        <option value="{{ $ws['id'] }}" @selected((int) ($config['workstation_id'] ?? 0) === (int) $ws['id'])>{{ $ws['name'] }}</option>
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.workstation_id")
@@ -170,7 +170,7 @@
                                                 <select wire:model="configurations.{{ $index }}.persons_required"
                                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
                                                     @foreach($personsOptions as $value => $label)
-                                                        <option value="{{ $value }}">{{ $label }}</option>
+                                                        <option value="{{ $value }}" @selected((int) ($config['persons_required'] ?? 0) === (int) $value)>{{ $label }}</option>
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.persons_required")
@@ -246,7 +246,7 @@
                                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
                                         <option value="">Seleccione una mesa</option>
                                         @foreach($workTables as $table)
-                                            <option value="{{ $table->id }}">{{ $table->number }}</option>
+                                            <option value="{{ $table->id }}" @selected((int) $work_table_id === (int) $table->id)>{{ $table->number }}</option>
                                         @endforeach
                                     </select>
                                     @error('work_table_id')
@@ -262,7 +262,7 @@
                                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
                                         <option value="">Seleccione una mesa semi-auto</option>
                                         @foreach($semiAutoWorkTables as $semiAuto)
-                                            <option value="{{ $semiAuto->id }}">{{ $semiAuto->number }}</option>
+                                            <option value="{{ $semiAuto->id }}" @selected((int) $semi_auto_work_table_id === (int) $semiAuto->id)>{{ $semiAuto->number }}</option>
                                         @endforeach
                                     </select>
                                     @error('semi_auto_work_table_id')
@@ -278,7 +278,7 @@
                                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
                                         <option value="">Seleccione una maquina</option>
                                         @foreach($machines as $machine)
-                                            <option value="{{ $machine->id }}">{{ $machine->name }}</option>
+                                            <option value="{{ $machine->id }}" @selected((int) $machine_id === (int) $machine->id)>{{ $machine->name }}</option>
                                         @endforeach
                                     </select>
                                     @error('machine_id')
