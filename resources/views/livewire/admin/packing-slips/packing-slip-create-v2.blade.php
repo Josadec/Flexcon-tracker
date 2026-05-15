@@ -115,9 +115,7 @@
                                         @foreach ($availableLots as $lot)
                                             @php
                                                 $isSelected = in_array($lot->id, $selectedLotIds);
-                                                $woPreview = $lot->workOrder?->external_wo_number
-                                                    ? 'W0' . $lot->workOrder->external_wo_number . str_pad($lot->lot_number, 3, '0', STR_PAD_LEFT)
-                                                    : null;
+                                                $woPreview = $lot->workOrder?->buildWoCode((int) $lot->lot_number);
                                             @endphp
                                             <tr class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30 {{ $isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : '' }}">
                                                 <td class="px-4 py-3">

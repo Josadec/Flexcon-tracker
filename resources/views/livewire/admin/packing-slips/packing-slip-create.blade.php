@@ -111,9 +111,7 @@
                                             {{-- Work Order --}}
                                             <td class="px-4 py-3 text-sm font-mono text-gray-900 dark:text-white">
                                                 @php
-                                                    $woPreview = $lot->workOrder?->external_wo_number
-                                                        ? 'W0' . $lot->workOrder->external_wo_number . str_pad($lot->lot_number, 3, '0', STR_PAD_LEFT)
-                                                        : null;
+                                                    $woPreview = $lot->workOrder?->buildWoCode((int) $lot->lot_number);
                                                 @endphp
                                                 @if ($woPreview)
                                                     {{ $woPreview }}
