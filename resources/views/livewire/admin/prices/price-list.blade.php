@@ -65,7 +65,12 @@
                         <div class="rounded-md border p-3 text-sm
                             {{ ($importResults['failed'] ?? 0) > 0 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200' }}">
                             <p class="font-medium">Resultado:</p>
-                            <p>Creados: {{ $importResults['created'] ?? 0 }} — Fallaron: {{ $importResults['failed'] ?? 0 }}</p>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                                <div><span class="font-semibold">{{ $importResults['created'] ?? 0 }}</span> creados</div>
+                                <div><span class="font-semibold">{{ $importResults['updated'] ?? 0 }}</span> actualizados</div>
+                                <div><span class="font-semibold">{{ $importResults['skipped'] ?? 0 }}</span> sin cambios</div>
+                                <div><span class="font-semibold">{{ $importResults['failed'] ?? 0 }}</span> fallaron</div>
+                            </div>
                             @if(!empty($importResults['errors']))
                                 <details class="mt-2">
                                     <summary class="cursor-pointer text-xs font-medium">Ver errores ({{ count($importResults['errors']) }})</summary>

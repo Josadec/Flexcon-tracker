@@ -230,11 +230,10 @@ class UserList extends Component
         $path = $this->importFile->getRealPath();
         $handle = fopen($path, 'r');
         if (!$handle) {
-            $this->importResults = ['errors' => ['No se pudo abrir el archivo.'], 'created' => 0, 'failed' => 0];
+            $this->importResults = ['errors' => ['No se pudo abrir el archivo.'], 'created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0];
             return;
         }
 
-        // BOM strip
         $bom = fread($handle, 3);
         if ($bom !== "\xEF\xBB\xBF") {
             rewind($handle);
@@ -243,7 +242,7 @@ class UserList extends Component
         $header = fgetcsv($handle);
         if (!$header) {
             fclose($handle);
-            $this->importResults = ['errors' => ['El archivo está vacío.'], 'created' => 0, 'failed' => 0];
+            $this->importResults = ['errors' => ['El archivo está vacío.'], 'created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0];
             return;
         }
 
@@ -255,8 +254,7 @@ class UserList extends Component
             fclose($handle);
             $this->importResults = [
                 'errors' => ['Faltan columnas en el CSV: ' . implode(', ', $missing)],
-                'created' => 0,
-                'failed' => 0,
+                'created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0,
             ];
             return;
         }
@@ -265,6 +263,8 @@ class UserList extends Component
         $areasByName = Area::pluck('id', 'name');
 
         $created = 0;
+        $updated = 0;
+        $skipped = 0;
         $failed = 0;
         $errors = [];
         $rowNum = 1;
@@ -283,33 +283,15 @@ class UserList extends Component
                 $roleName = trim((string) ($row['role_name'] ?? ''));
                 $areaName = trim((string) ($row['area_name'] ?? ''));
 
-                if ($name === '' || $email === '' || $password === '' || $roleName === '') {
+                if ($name === '' || $email === '' || $roleName === '') {
                     $failed++;
-                    $errors[] = "Fila {$rowNum}: faltan campos obligatorios (name, email, password, role_name).";
+                    $errors[] = "Fila {$rowNum}: faltan campos obligatorios (name, email, role_name).";
                     continue;
                 }
 
                 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $failed++;
                     $errors[] = "Fila {$rowNum}: email inválido ({$email}).";
-                    continue;
-                }
-
-                if (strlen($password) < 8) {
-                    $failed++;
-                    $errors[] = "Fila {$rowNum}: la contraseña debe tener al menos 8 caracteres.";
-                    continue;
-                }
-
-                if (User::where('email', $email)->exists()) {
-                    $failed++;
-                    $errors[] = "Fila {$rowNum}: el email '{$email}' ya está registrado.";
-                    continue;
-                }
-
-                if ($account !== '' && User::where('account', $account)->exists()) {
-                    $failed++;
-                    $errors[] = "Fila {$rowNum}: la cuenta '{$account}' ya existe.";
                     continue;
                 }
 
@@ -329,26 +311,118 @@ class UserList extends Component
                     }
                 }
 
-                try {
-                    $user = User::create([
-                        'name' => $name,
-                        'last_name' => $lastName ?: null,
-                        'account' => $account ?: null,
-                        'email' => $email,
-                        'password' => Hash::make($password),
-                    ]);
+                $basePayload = [
+                    'name' => $name,
+                    'last_name' => $lastName ?: null,
+                    'account' => $account ?: null,
+                ];
 
-                    $user->assignRole($roleName);
+                $existing = User::where('email', $email)->first();
 
-                    // Si es Supervisor y se proporcionó area, asignarla
-                    if ($areaId && $roleName === 'Supervisor') {
-                        Area::where('id', $areaId)->update(['user_id' => $user->id]);
+                if ($existing) {
+                    // Validar conflicto de account con otro user
+                    if ($account !== '' && $account !== $existing->account) {
+                        $conflict = User::where('account', $account)->where('id', '!=', $existing->id)->exists();
+                        if ($conflict) {
+                            $failed++;
+                            $errors[] = "Fila {$rowNum}: la cuenta '{$account}' ya está usada por otro usuario.";
+                            continue;
+                        }
                     }
 
-                    $created++;
-                } catch (\Throwable $e) {
-                    $failed++;
-                    $errors[] = "Fila {$rowNum}: error al crear ({$e->getMessage()}).";
+                    // Detectar cambios
+                    $changed = false;
+                    foreach ($basePayload as $key => $val) {
+                        if ((string) $existing->{$key} !== (string) $val) {
+                            $changed = true;
+                            break;
+                        }
+                    }
+
+                    // Rol actual
+                    $currentRole = $existing->roles->first()?->name;
+                    if ($currentRole !== $roleName) {
+                        $changed = true;
+                    }
+
+                    // Área actual (la primera supervisada, si aplica)
+                    $currentAreaId = $existing->areas()->first()?->id;
+                    if ($roleName === 'Supervisor' && $areaId && $currentAreaId !== $areaId) {
+                        $changed = true;
+                    }
+
+                    // Password si trae una nueva
+                    $updatePassword = false;
+                    if ($password !== '') {
+                        if (strlen($password) < 8) {
+                            $failed++;
+                            $errors[] = "Fila {$rowNum}: la contraseña debe tener al menos 8 caracteres.";
+                            continue;
+                        }
+                        if (!\Illuminate\Support\Facades\Hash::check($password, $existing->password)) {
+                            $updatePassword = true;
+                            $changed = true;
+                        }
+                    }
+
+                    if (!$changed) {
+                        $skipped++;
+                        continue;
+                    }
+
+                    try {
+                        if ($updatePassword) {
+                            $basePayload['password'] = Hash::make($password);
+                        }
+                        $existing->update($basePayload);
+                        $existing->syncRoles([$roleName]);
+
+                        if ($roleName === 'Supervisor' && $areaId) {
+                            // Liberar áreas previas y asignar la nueva
+                            $existing->areas()->update(['user_id' => null]);
+                            Area::where('id', $areaId)->update(['user_id' => $existing->id]);
+                        }
+
+                        $updated++;
+                    } catch (\Throwable $e) {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: error al actualizar ({$e->getMessage()}).";
+                    }
+                } else {
+                    // INSERT
+                    if ($password === '') {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: la contraseña es obligatoria para crear un usuario nuevo.";
+                        continue;
+                    }
+                    if (strlen($password) < 8) {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: la contraseña debe tener al menos 8 caracteres.";
+                        continue;
+                    }
+                    if ($account !== '' && User::where('account', $account)->exists()) {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: la cuenta '{$account}' ya existe.";
+                        continue;
+                    }
+
+                    try {
+                        $user = User::create(array_merge($basePayload, [
+                            'email' => $email,
+                            'password' => Hash::make($password),
+                        ]));
+
+                        $user->assignRole($roleName);
+
+                        if ($areaId && $roleName === 'Supervisor') {
+                            Area::where('id', $areaId)->update(['user_id' => $user->id]);
+                        }
+
+                        $created++;
+                    } catch (\Throwable $e) {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: error al crear ({$e->getMessage()}).";
+                    }
                 }
             }
             DB::commit();
@@ -359,14 +433,15 @@ class UserList extends Component
             fclose($handle);
         }
 
-        $this->importResults = [
-            'created' => $created,
-            'failed' => $failed,
-            'errors' => $errors,
-        ];
+        $this->importResults = compact('created', 'updated', 'skipped', 'failed', 'errors');
 
-        if ($created > 0) {
-            session()->flash('flash.banner', "Importados {$created} usuarios." . ($failed > 0 ? " {$failed} fila(s) fallaron." : ''));
+        if ($created > 0 || $updated > 0) {
+            $parts = [];
+            if ($created > 0) $parts[] = "{$created} creados";
+            if ($updated > 0) $parts[] = "{$updated} actualizados";
+            if ($skipped > 0) $parts[] = "{$skipped} sin cambios";
+            if ($failed > 0)  $parts[] = "{$failed} fallaron";
+            session()->flash('flash.banner', 'Import usuarios: ' . implode(', ', $parts) . '.');
             session()->flash('flash.bannerStyle', $failed > 0 ? 'warning' : 'success');
         }
     }

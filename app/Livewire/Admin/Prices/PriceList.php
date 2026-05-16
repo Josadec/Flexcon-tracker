@@ -292,6 +292,8 @@ class PriceList extends Component
         $partsByNumber = Part::pluck('id', 'number');
 
         $created = 0;
+        $updated = 0;
+        $skipped = 0;
         $failed = 0;
         $errors = $rowErrors;
 
@@ -320,30 +322,101 @@ class PriceList extends Component
                     continue;
                 }
 
-                try {
-                    $price = Price::create([
-                        'part_id' => $partId,
-                        'workstation_type' => $g['workstation_type'],
-                        'effective_date' => $date,
-                        'sample_price' => $samplePrice,
-                        'active' => $g['active'],
-                        'comments' => $g['comments'],
-                    ]);
+                $payload = [
+                    'part_id' => $partId,
+                    'workstation_type' => $g['workstation_type'],
+                    'effective_date' => $date,
+                    'sample_price' => $samplePrice,
+                    'active' => $g['active'],
+                    'comments' => $g['comments'],
+                ];
 
-                    // Si active=true, desactivar otros precios conflictivos
-                    if ($g['active']) {
-                        $price->deactivateConflictingPrices();
+                // Buscar precio existente por clave compuesta (part_id + workstation_type + effective_date)
+                $existing = Price::where('part_id', $partId)
+                    ->where('workstation_type', $g['workstation_type'])
+                    ->whereDate('effective_date', $date)
+                    ->with('tiers')
+                    ->first();
+
+                if ($existing) {
+                    // Detectar cambios en campos del precio
+                    $changed = false;
+                    foreach ($payload as $key2 => $val) {
+                        $current = $existing->{$key2};
+                        if ($current instanceof \Carbon\CarbonInterface) {
+                            $current = $current->toDateString();
+                        }
+                        // Comparación normalizada para decimales
+                        if ($key2 === 'sample_price') {
+                            if ((float) $current !== (float) $val) {
+                                $changed = true;
+                                break;
+                            }
+                        } else {
+                            if ((string) $current !== (string) $val) {
+                                $changed = true;
+                                break;
+                            }
+                        }
                     }
 
-                    // Sync tiers
-                    if (!empty($g['tiers'])) {
-                        $price->syncTiers($g['tiers']);
+                    // Comparar tiers (cantidad y contenido)
+                    $currentTiers = $existing->tiers
+                        ->sortBy('min_quantity')
+                        ->values()
+                        ->map(fn($t) => [
+                            'min' => (float) $t->min_quantity,
+                            'max' => $t->max_quantity !== null ? (float) $t->max_quantity : null,
+                            'price' => (float) $t->tier_price,
+                        ])
+                        ->all();
+
+                    $incomingTiers = collect($g['tiers'])
+                        ->sortBy(fn($t) => (float) $t['min_quantity'])
+                        ->values()
+                        ->map(fn($t) => [
+                            'min' => (float) $t['min_quantity'],
+                            'max' => isset($t['max_quantity']) && $t['max_quantity'] !== null && $t['max_quantity'] !== '' ? (float) $t['max_quantity'] : null,
+                            'price' => (float) $t['tier_price'],
+                        ])
+                        ->all();
+
+                    if ($currentTiers != $incomingTiers) {
+                        $changed = true;
                     }
 
-                    $created++;
-                } catch (\Throwable $e) {
-                    $failed++;
-                    $errors[] = "Fila {$g['first_row']}: error al crear precio ({$e->getMessage()}).";
+                    if (!$changed) {
+                        $skipped++;
+                        continue;
+                    }
+
+                    try {
+                        $existing->update($payload);
+                        if ($g['active']) {
+                            $existing->deactivateConflictingPrices();
+                        }
+                        // Sync de tiers: borra y recrea (consistente con syncTiers existente)
+                        $existing->syncTiers($g['tiers']);
+                        $updated++;
+                    } catch (\Throwable $e) {
+                        $failed++;
+                        $errors[] = "Fila {$g['first_row']}: error al actualizar precio ({$e->getMessage()}).";
+                    }
+                } else {
+                    // INSERT
+                    try {
+                        $price = Price::create($payload);
+                        if ($g['active']) {
+                            $price->deactivateConflictingPrices();
+                        }
+                        if (!empty($g['tiers'])) {
+                            $price->syncTiers($g['tiers']);
+                        }
+                        $created++;
+                    } catch (\Throwable $e) {
+                        $failed++;
+                        $errors[] = "Fila {$g['first_row']}: error al crear precio ({$e->getMessage()}).";
+                    }
                 }
             }
             DB::commit();
@@ -352,14 +425,15 @@ class PriceList extends Component
             $errors[] = 'Error general: ' . $e->getMessage();
         }
 
-        $this->importResults = [
-            'created' => $created,
-            'failed' => $failed,
-            'errors' => $errors,
-        ];
+        $this->importResults = compact('created', 'updated', 'skipped', 'failed', 'errors');
 
-        if ($created > 0) {
-            session()->flash('flash.banner', "Importados {$created} precios." . ($failed > 0 ? " {$failed} grupo(s) fallaron." : ''));
+        if ($created > 0 || $updated > 0) {
+            $parts = [];
+            if ($created > 0) $parts[] = "{$created} creados";
+            if ($updated > 0) $parts[] = "{$updated} actualizados";
+            if ($skipped > 0) $parts[] = "{$skipped} sin cambios";
+            if ($failed > 0)  $parts[] = "{$failed} fallaron";
+            session()->flash('flash.banner', 'Import precios: ' . implode(', ', $parts) . '.');
             session()->flash('flash.bannerStyle', $failed > 0 ? 'warning' : 'success');
         }
     }
