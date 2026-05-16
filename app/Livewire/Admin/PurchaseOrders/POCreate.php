@@ -16,12 +16,17 @@ class POCreate extends Component
     public string $po_number = '';
     public string $wo = '';
     public ?int $part_id = null;
+    public ?string $workstation_type = null;
     public string $po_date = '';
     public string $due_date = '';
     public $quantity = 0;  // Changed from int to mixed to avoid type issues
     public string $unit_price = '';
     public string $comments = '';
     public $pdf_file = null;
+
+    // Opciones de workstation_type disponibles para la parte seleccionada
+    // [['value' => 'table', 'label' => 'Mesa de Trabajo', 'sample_price' => 0.5], ...]
+    public array $available_workstation_types = [];
 
     // Price validation feedback
     public ?float $expected_price = null;
@@ -47,6 +52,7 @@ class POCreate extends Component
             'po_number' => 'required|string|max:255|unique:purchase_orders,po_number',
             'wo' => 'nullable|string|max:255',
             'part_id' => 'required|exists:parts,id',
+            'workstation_type' => 'nullable|in:table,machine,semi_automatic',
             'po_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:po_date',
             'quantity' => 'required|integer|min:1',
@@ -79,10 +85,17 @@ class POCreate extends Component
     public function selectPart($value): void
     {
         $this->part_id = $value ? (int) $value : null;
+        $this->loadAvailableWorkstationTypes();
         $this->validatePrice();
     }
 
     public function updatedPartId(): void
+    {
+        $this->loadAvailableWorkstationTypes();
+        $this->validatePrice();
+    }
+
+    public function updatedWorkstationType(): void
     {
         $this->validatePrice();
     }
@@ -97,6 +110,68 @@ class POCreate extends Component
         $this->validatePrice();
     }
 
+    /**
+     * Carga los workstation_type disponibles para la parte seleccionada
+     * a partir de los Prices activos. Sugiere uno por defecto.
+     */
+    protected function loadAvailableWorkstationTypes(): void
+    {
+        $this->available_workstation_types = [];
+
+        if (!$this->part_id) {
+            $this->workstation_type = null;
+            return;
+        }
+
+        $part = \App\Models\Part::find($this->part_id);
+        if (!$part) {
+            $this->workstation_type = null;
+            return;
+        }
+
+        // Prices activos agrupados por workstation_type
+        $activePrices = $part->prices()
+            ->where('active', true)
+            ->orderBy('workstation_type')
+            ->get()
+            ->keyBy('workstation_type');
+
+        foreach (\App\Models\Price::WORKSTATION_TYPES as $value => $label) {
+            if ($activePrices->has($value)) {
+                $this->available_workstation_types[] = [
+                    'value' => $value,
+                    'label' => $label,
+                    'sample_price' => (float) $activePrices[$value]->sample_price,
+                ];
+            }
+        }
+
+        // Si el workstation_type actual ya no aplica para la nueva parte, limpiarlo
+        if ($this->workstation_type && !$activePrices->has($this->workstation_type)) {
+            $this->workstation_type = null;
+        }
+
+        // Sugerir default: el que indique el Standard de la parte
+        if (!$this->workstation_type) {
+            $standard = $part->standards()->where('active', true)->first();
+            if ($standard) {
+                $detectionService = app(\App\Services\POPriceDetectionService::class);
+                // Crear PO temporal "vacío" sólo para resolver el default
+                $tmp = new \App\Models\PurchaseOrder(['part_id' => $part->id]);
+                $tmp->setRelation('part', $part);
+                $detection = $detectionService->detectPrice($tmp);
+                if ($detection->found && $activePrices->has($detection->workstationType)) {
+                    $this->workstation_type = $detection->workstationType;
+                }
+            }
+
+            // Si aún no hay default (no hay Standard activo), tomar el primero disponible
+            if (!$this->workstation_type && !empty($this->available_workstation_types)) {
+                $this->workstation_type = $this->available_workstation_types[0]['value'];
+            }
+        }
+    }
+
     protected function validatePrice(): void
     {
         if (!$this->part_id || !$this->quantity || !$this->unit_price) {
@@ -106,12 +181,18 @@ class POCreate extends Component
             return;
         }
 
-        // Get detailed detection result
+        // Construir PO temporal para detectar precio usando el workstation_type elegido
+        $tmpPO = new \App\Models\PurchaseOrder([
+            'part_id' => $this->part_id,
+            'workstation_type' => $this->workstation_type ?: null,
+        ]);
+        $part = \App\Models\Part::find($this->part_id);
+        if ($part) {
+            $tmpPO->setRelation('part', $part);
+        }
+
         $priceDetectionService = app(\App\Services\POPriceDetectionService::class);
-        $detection = $priceDetectionService->detectPriceForPart(
-            $this->part_id,
-            (int) $this->quantity
-        );
+        $detection = $priceDetectionService->detectPrice($tmpPO);
 
         if (!$detection->found) {
             $this->expected_price = null;
@@ -159,6 +240,7 @@ class POCreate extends Component
             'po_number' => $this->po_number,
             'wo' => $this->wo ?: null,
             'part_id' => $this->part_id,
+            'workstation_type' => $this->workstation_type ?: null,
             'po_date' => $this->po_date,
             'due_date' => $this->due_date,
             'quantity' => $this->quantity,

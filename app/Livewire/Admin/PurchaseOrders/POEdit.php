@@ -17,12 +17,16 @@ class POEdit extends Component
     public string $po_number = '';
     public string $wo = '';
     public ?int $part_id = null;
+    public ?string $workstation_type = null;
     public string $po_date = '';
     public string $due_date = '';
     public $quantity = 0;  // Changed from int to mixed to avoid type issues
     public string $unit_price = '';
     public string $comments = '';
     public $pdf_file = null;
+
+    // Opciones de workstation_type disponibles para la parte seleccionada
+    public array $available_workstation_types = [];
 
     // Price validation feedback
     public ?float $expected_price = null;
@@ -42,12 +46,14 @@ class POEdit extends Component
         $this->po_number = $purchaseOrder->po_number;
         $this->wo = $purchaseOrder->wo ?? '';
         $this->part_id = $purchaseOrder->part_id;
+        $this->workstation_type = $purchaseOrder->workstation_type;
         $this->po_date = $purchaseOrder->po_date->format('Y-m-d');
         $this->due_date = $purchaseOrder->due_date->format('Y-m-d');
         $this->quantity = $purchaseOrder->quantity;
         $this->unit_price = (string) $purchaseOrder->unit_price;
         $this->comments = $purchaseOrder->comments ?? '';
 
+        $this->loadAvailableWorkstationTypes();
         $this->validatePrice();
     }
 
@@ -57,6 +63,7 @@ class POEdit extends Component
             'po_number' => 'required|string|max:255|unique:purchase_orders,po_number,' . $this->purchaseOrder->id,
             'wo' => 'nullable|string|max:255',
             'part_id' => 'required|exists:parts,id',
+            'workstation_type' => 'nullable|in:table,machine,semi_automatic',
             'po_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:po_date',
             'quantity' => 'required|integer|min:1',
@@ -88,10 +95,17 @@ class POEdit extends Component
     public function selectPart($value): void
     {
         $this->part_id = $value ? (int) $value : null;
+        $this->loadAvailableWorkstationTypes();
         $this->validatePrice();
     }
 
     public function updatedPartId(): void
+    {
+        $this->loadAvailableWorkstationTypes();
+        $this->validatePrice();
+    }
+
+    public function updatedWorkstationType(): void
     {
         $this->validatePrice();
     }
@@ -106,6 +120,62 @@ class POEdit extends Component
         $this->validatePrice();
     }
 
+    /**
+     * Carga los workstation_type disponibles para la parte seleccionada
+     * a partir de los Prices activos. Si no hay uno seleccionado, sugiere uno.
+     */
+    protected function loadAvailableWorkstationTypes(): void
+    {
+        $this->available_workstation_types = [];
+
+        if (!$this->part_id) {
+            return;
+        }
+
+        $part = \App\Models\Part::find($this->part_id);
+        if (!$part) {
+            return;
+        }
+
+        $activePrices = $part->prices()
+            ->where('active', true)
+            ->orderBy('workstation_type')
+            ->get()
+            ->keyBy('workstation_type');
+
+        foreach (\App\Models\Price::WORKSTATION_TYPES as $value => $label) {
+            if ($activePrices->has($value)) {
+                $this->available_workstation_types[] = [
+                    'value' => $value,
+                    'label' => $label,
+                    'sample_price' => (float) $activePrices[$value]->sample_price,
+                ];
+            }
+        }
+
+        // Si el workstation_type actual ya no aplica para la nueva parte, limpiarlo
+        if ($this->workstation_type && !$activePrices->has($this->workstation_type)) {
+            $this->workstation_type = null;
+        }
+
+        // Si no hay seleccionado, sugerir default desde el Standard
+        if (!$this->workstation_type) {
+            $standard = $part->standards()->where('active', true)->first();
+            if ($standard) {
+                $detectionService = app(\App\Services\POPriceDetectionService::class);
+                $tmp = new \App\Models\PurchaseOrder(['part_id' => $part->id]);
+                $tmp->setRelation('part', $part);
+                $detection = $detectionService->detectPrice($tmp);
+                if ($detection->found && $activePrices->has($detection->workstationType)) {
+                    $this->workstation_type = $detection->workstationType;
+                }
+            }
+            if (!$this->workstation_type && !empty($this->available_workstation_types)) {
+                $this->workstation_type = $this->available_workstation_types[0]['value'];
+            }
+        }
+    }
+
     protected function validatePrice(): void
     {
         if (!$this->part_id || !$this->quantity || !$this->unit_price) {
@@ -115,12 +185,17 @@ class POEdit extends Component
             return;
         }
 
-        // Get detailed detection result
+        $tmpPO = new \App\Models\PurchaseOrder([
+            'part_id' => $this->part_id,
+            'workstation_type' => $this->workstation_type ?: null,
+        ]);
+        $part = \App\Models\Part::find($this->part_id);
+        if ($part) {
+            $tmpPO->setRelation('part', $part);
+        }
+
         $priceDetectionService = app(\App\Services\POPriceDetectionService::class);
-        $detection = $priceDetectionService->detectPriceForPart(
-            $this->part_id,
-            (int) $this->quantity
-        );
+        $detection = $priceDetectionService->detectPrice($tmpPO);
 
         if (!$detection->found) {
             $this->expected_price = null;
@@ -168,10 +243,13 @@ class POEdit extends Component
             $pdfPath = $this->pdf_file->store('purchase-orders', 'public');
         }
 
+        $previousStatus = $this->purchaseOrder->status;
+
         $this->purchaseOrder->update([
             'po_number' => $this->po_number,
             'wo' => $this->wo ?: null,
             'part_id' => $this->part_id,
+            'workstation_type' => $this->workstation_type ?: null,
             'po_date' => $this->po_date,
             'due_date' => $this->due_date,
             'quantity' => $this->quantity,
@@ -180,20 +258,29 @@ class POEdit extends Component
             'pdf_path' => $pdfPath,
         ]);
 
-        // Re-validate price if status was pending correction
-        if ($this->purchaseOrder->status === PurchaseOrder::STATUS_PENDING_CORRECTION) {
-            $validation = $this->purchaseOrderService->validatePrice($this->purchaseOrder);
-            
-            if ($validation['valid']) {
+        // SIEMPRE revalidar el precio después de actualizar (consistente con Create)
+        $validation = $this->purchaseOrderService->validatePrice($this->purchaseOrder);
+
+        if (!$validation['valid']) {
+            // Marcar como pending_correction sin sobreescribir los comments del usuario
+            $this->purchaseOrder->update([
+                'status' => PurchaseOrder::STATUS_PENDING_CORRECTION,
+            ]);
+
+            $bannerMsg = $previousStatus === PurchaseOrder::STATUS_PENDING_CORRECTION
+                ? 'Orden de compra actualizada pero aún requiere corrección de precio. ' . $validation['message']
+                : 'Orden de compra actualizada. El precio no es válido y la PO quedó marcada para corrección. ' . $validation['message'];
+
+            session()->flash('flash.banner', $bannerMsg);
+            session()->flash('flash.bannerStyle', 'warning');
+        } else {
+            // Precio válido: si estaba en pending_correction, regresar a pending
+            if ($previousStatus === PurchaseOrder::STATUS_PENDING_CORRECTION) {
                 $this->purchaseOrder->update(['status' => PurchaseOrder::STATUS_PENDING]);
                 session()->flash('flash.banner', 'Orden de compra actualizada. El precio ahora es válido.');
-                session()->flash('flash.bannerStyle', 'success');
             } else {
-                session()->flash('flash.banner', 'Orden de compra actualizada pero aún requiere corrección de precio.');
-                session()->flash('flash.bannerStyle', 'warning');
+                session()->flash('flash.banner', 'Orden de compra actualizada correctamente.');
             }
-        } else {
-            session()->flash('flash.banner', 'Orden de compra actualizada correctamente.');
             session()->flash('flash.bannerStyle', 'success');
         }
 

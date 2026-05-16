@@ -129,6 +129,51 @@
                     </div>
                 </div>
 
+                <!-- Tipo de Estación -->
+                @if(!empty($available_workstation_types))
+                    <div class="p-4 sm:p-6 lg:p-8">
+                        <div class="mb-4">
+                            <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                                <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                                Tipo de Estación
+                            </h3>
+                            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                                Elige en qué tipo de estación va a correr esta orden. El precio esperado se calcula según esta elección.
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            @foreach($available_workstation_types as $opt)
+                                <label class="relative flex flex-col p-3 rounded-lg border-2 cursor-pointer transition
+                                    {{ $workstation_type === $opt['value']
+                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' }}">
+                                    <input type="radio" wire:model.live="workstation_type" value="{{ $opt['value'] }}" class="sr-only" />
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-medium text-gray-900 dark:text-white text-sm">{{ $opt['label'] }}</span>
+                                        @if($workstation_type === $opt['value'])
+                                            <svg class="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                            </svg>
+                                        @endif
+                                    </div>
+                                    <span class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">
+                                        Precio muestra: ${{ number_format($opt['sample_price'], 4) }}
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('workstation_type')
+                            <p class="mt-2 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
+                @elseif($part_id)
+                    <div class="p-4 sm:p-6 lg:p-8">
+                        <div class="rounded-lg border-2 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200">
+                            Esta parte no tiene precios activos configurados. Crea al menos un Price activo en el catálogo para poder validar el precio del PO.
+                        </div>
+                    </div>
+                @endif
+
                 <!-- Cantidad y Precio -->
                 <div class="p-4 sm:p-6 lg:p-8">
                     <div class="mb-6">
