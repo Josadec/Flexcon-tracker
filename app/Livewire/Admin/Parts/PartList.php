@@ -182,11 +182,10 @@ class PartList extends Component
         $path = $this->importFile->getRealPath();
         $handle = fopen($path, 'r');
         if (!$handle) {
-            $this->importResults = ['errors' => ['No se pudo abrir el archivo.'], 'created' => 0, 'failed' => 0];
+            $this->importResults = ['errors' => ['No se pudo abrir el archivo.'], 'created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0];
             return;
         }
 
-        // BOM strip
         $bom = fread($handle, 3);
         if ($bom !== "\xEF\xBB\xBF") {
             rewind($handle);
@@ -195,7 +194,7 @@ class PartList extends Component
         $header = fgetcsv($handle);
         if (!$header) {
             fclose($handle);
-            $this->importResults = ['errors' => ['El archivo está vacío.'], 'created' => 0, 'failed' => 0];
+            $this->importResults = ['errors' => ['El archivo está vacío.'], 'created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0];
             return;
         }
 
@@ -207,13 +206,14 @@ class PartList extends Component
             fclose($handle);
             $this->importResults = [
                 'errors' => ['Faltan columnas en el CSV: ' . implode(', ', $missing)],
-                'created' => 0,
-                'failed' => 0,
+                'created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0,
             ];
             return;
         }
 
         $created = 0;
+        $updated = 0;
+        $skipped = 0;
         $failed = 0;
         $errors = [];
         $rowNum = 1;
@@ -233,33 +233,66 @@ class PartList extends Component
                     continue;
                 }
 
-                if (Part::where('number', $number)->exists()) {
-                    $failed++;
-                    $errors[] = "Fila {$rowNum}: el número de parte '{$number}' ya existe.";
-                    continue;
-                }
+                $payload = [
+                    'number' => $number,
+                    'item_number' => $itemNumber,
+                    'description' => trim((string) ($row['description'] ?? '')) ?: null,
+                    'unit_of_measure' => trim((string) ($row['unit_of_measure'] ?? '')) ?: null,
+                    'label_spec' => trim((string) ($row['label_spec'] ?? '')) ?: null,
+                    'is_crimp' => in_array(trim((string) ($row['is_crimp'] ?? '1')), ['1', 'true', 'TRUE', 'si', 'sí'], true),
+                    'active' => in_array(trim((string) ($row['active'] ?? '1')), ['1', 'true', 'TRUE', 'si', 'sí'], true),
+                    'notes' => trim((string) ($row['notes'] ?? '')) ?: null,
+                ];
 
-                if (Part::where('item_number', $itemNumber)->exists()) {
-                    $failed++;
-                    $errors[] = "Fila {$rowNum}: el item_number '{$itemNumber}' ya existe.";
-                    continue;
-                }
+                // Buscar por number (clave única primaria)
+                $existing = Part::where('number', $number)->first();
 
-                try {
-                    Part::create([
-                        'number' => $number,
-                        'item_number' => $itemNumber,
-                        'description' => trim((string) ($row['description'] ?? '')) ?: null,
-                        'unit_of_measure' => trim((string) ($row['unit_of_measure'] ?? '')) ?: null,
-                        'label_spec' => trim((string) ($row['label_spec'] ?? '')) ?: null,
-                        'is_crimp' => in_array(trim((string) ($row['is_crimp'] ?? '1')), ['1', 'true', 'TRUE', 'si', 'sí'], true),
-                        'active' => in_array(trim((string) ($row['active'] ?? '1')), ['1', 'true', 'TRUE', 'si', 'sí'], true),
-                        'notes' => trim((string) ($row['notes'] ?? '')) ?: null,
-                    ]);
-                    $created++;
-                } catch (\Throwable $e) {
-                    $failed++;
-                    $errors[] = "Fila {$rowNum}: error al crear ({$e->getMessage()}).";
+                if ($existing) {
+                    // Validar conflicto de item_number con otra parte
+                    if ($itemNumber !== $existing->item_number) {
+                        $conflict = Part::where('item_number', $itemNumber)->where('id', '!=', $existing->id)->exists();
+                        if ($conflict) {
+                            $failed++;
+                            $errors[] = "Fila {$rowNum}: el item_number '{$itemNumber}' ya está usado por otra parte.";
+                            continue;
+                        }
+                    }
+
+                    // Detectar cambios
+                    $changed = false;
+                    foreach ($payload as $key => $val) {
+                        if ((string) $existing->{$key} !== (string) $val) {
+                            $changed = true;
+                            break;
+                        }
+                    }
+
+                    if (!$changed) {
+                        $skipped++;
+                        continue;
+                    }
+
+                    try {
+                        $existing->update($payload);
+                        $updated++;
+                    } catch (\Throwable $e) {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: error al actualizar ({$e->getMessage()}).";
+                    }
+                } else {
+                    // INSERT: verificar que item_number no esté usado por otro
+                    if (Part::where('item_number', $itemNumber)->exists()) {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: el item_number '{$itemNumber}' ya existe en otra parte.";
+                        continue;
+                    }
+                    try {
+                        Part::create($payload);
+                        $created++;
+                    } catch (\Throwable $e) {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: error al crear ({$e->getMessage()}).";
+                    }
                 }
             }
             DB::commit();
@@ -270,14 +303,15 @@ class PartList extends Component
             fclose($handle);
         }
 
-        $this->importResults = [
-            'created' => $created,
-            'failed' => $failed,
-            'errors' => $errors,
-        ];
+        $this->importResults = compact('created', 'updated', 'skipped', 'failed', 'errors');
 
-        if ($created > 0) {
-            session()->flash('flash.banner', "Importadas {$created} partes." . ($failed > 0 ? " {$failed} fila(s) fallaron." : ''));
+        if ($created > 0 || $updated > 0) {
+            $parts = [];
+            if ($created > 0) $parts[] = "{$created} creadas";
+            if ($updated > 0) $parts[] = "{$updated} actualizadas";
+            if ($skipped > 0) $parts[] = "{$skipped} sin cambios";
+            if ($failed > 0)  $parts[] = "{$failed} fallaron";
+            session()->flash('flash.banner', 'Import partes: ' . implode(', ', $parts) . '.');
             session()->flash('flash.bannerStyle', $failed > 0 ? 'warning' : 'success');
         }
     }

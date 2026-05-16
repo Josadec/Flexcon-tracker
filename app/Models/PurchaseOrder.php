@@ -18,6 +18,7 @@ class PurchaseOrder extends Model
         'po_number',
         'wo',
         'part_id',
+        'workstation_type',
         'po_date',
         'due_date',
         'quantity',

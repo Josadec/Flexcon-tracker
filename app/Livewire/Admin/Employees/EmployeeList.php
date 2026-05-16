@@ -213,11 +213,10 @@ class EmployeeList extends Component
         $path = $this->importFile->getRealPath();
         $handle = fopen($path, 'r');
         if (!$handle) {
-            $this->importResults = ['errors' => ['No se pudo abrir el archivo.'], 'created' => 0, 'failed' => 0];
+            $this->importResults = ['errors' => ['No se pudo abrir el archivo.'], 'created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0];
             return;
         }
 
-        // BOM strip
         $bom = fread($handle, 3);
         if ($bom !== "\xEF\xBB\xBF") {
             rewind($handle);
@@ -226,7 +225,7 @@ class EmployeeList extends Component
         $header = fgetcsv($handle);
         if (!$header) {
             fclose($handle);
-            $this->importResults = ['errors' => ['El archivo está vacío.'], 'created' => 0, 'failed' => 0];
+            $this->importResults = ['errors' => ['El archivo está vacío.'], 'created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0];
             return;
         }
 
@@ -238,8 +237,7 @@ class EmployeeList extends Component
             fclose($handle);
             $this->importResults = [
                 'errors' => ['Faltan columnas en el CSV: ' . implode(', ', $missing)],
-                'created' => 0,
-                'failed' => 0,
+                'created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0,
             ];
             return;
         }
@@ -248,6 +246,8 @@ class EmployeeList extends Component
         $shiftsByName = Shift::pluck('id', 'name');
 
         $created = 0;
+        $updated = 0;
+        $skipped = 0;
         $failed = 0;
         $errors = [];
         $rowNum = 1;
@@ -265,27 +265,15 @@ class EmployeeList extends Component
                 $areaName = trim((string) ($row['area_name'] ?? ''));
                 $shiftName = trim((string) ($row['shift_name'] ?? ''));
 
-                if ($name === '' || $lastName === '' || $email === '' || $password === '' || $areaName === '' || $shiftName === '') {
+                if ($name === '' || $lastName === '' || $email === '' || $areaName === '' || $shiftName === '') {
                     $failed++;
-                    $errors[] = "Fila {$rowNum}: faltan campos obligatorios (name, last_name, email, password, area_name, shift_name).";
+                    $errors[] = "Fila {$rowNum}: faltan campos obligatorios (name, last_name, email, area_name, shift_name).";
                     continue;
                 }
 
                 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $failed++;
                     $errors[] = "Fila {$rowNum}: email inválido ({$email}).";
-                    continue;
-                }
-
-                if (strlen($password) < 8) {
-                    $failed++;
-                    $errors[] = "Fila {$rowNum}: la contraseña debe tener al menos 8 caracteres.";
-                    continue;
-                }
-
-                if (User::where('email', $email)->exists()) {
-                    $failed++;
-                    $errors[] = "Fila {$rowNum}: el email '{$email}' ya está registrado.";
                     continue;
                 }
 
@@ -304,32 +292,108 @@ class EmployeeList extends Component
                 }
 
                 $employeeNumber = trim((string) ($row['employee_number'] ?? '')) ?: null;
-                if ($employeeNumber && User::where('employee_number', $employeeNumber)->exists()) {
-                    $failed++;
-                    $errors[] = "Fila {$rowNum}: número de empleado '{$employeeNumber}' ya existe.";
-                    continue;
-                }
 
-                try {
-                    $user = User::create([
-                        'name' => $name,
-                        'last_name' => $lastName,
-                        'email' => $email,
-                        'password' => Hash::make($password),
-                        'employee_number' => $employeeNumber,
-                        'position' => trim((string) ($row['position'] ?? '')) ?: null,
-                        'birth_date' => trim((string) ($row['birth_date'] ?? '')) ?: null,
-                        'entry_date' => trim((string) ($row['entry_date'] ?? '')) ?: null,
-                        'active' => in_array(trim((string) ($row['active'] ?? '1')), ['1', 'true', 'TRUE', 'si', 'sí'], true),
-                        'comments' => trim((string) ($row['comments'] ?? '')) ?: null,
-                        'area_id' => $areaId,
-                        'shift_id' => $shiftId,
-                    ]);
-                    $user->assignRole('employee');
-                    $created++;
-                } catch (\Throwable $e) {
-                    $failed++;
-                    $errors[] = "Fila {$rowNum}: error al crear ({$e->getMessage()}).";
+                $payload = [
+                    'name' => $name,
+                    'last_name' => $lastName,
+                    'employee_number' => $employeeNumber,
+                    'position' => trim((string) ($row['position'] ?? '')) ?: null,
+                    'birth_date' => trim((string) ($row['birth_date'] ?? '')) ?: null,
+                    'entry_date' => trim((string) ($row['entry_date'] ?? '')) ?: null,
+                    'active' => in_array(trim((string) ($row['active'] ?? '1')), ['1', 'true', 'TRUE', 'si', 'sí'], true),
+                    'comments' => trim((string) ($row['comments'] ?? '')) ?: null,
+                    'area_id' => $areaId,
+                    'shift_id' => $shiftId,
+                ];
+
+                // Buscar empleado existente por email (clave primaria de identificación)
+                $existing = User::where('email', $email)->first();
+
+                if ($existing) {
+                    // Si employee_number cambió, verificar que no choque con otro user
+                    if ($employeeNumber && $employeeNumber !== $existing->employee_number) {
+                        $conflict = User::where('employee_number', $employeeNumber)->where('id', '!=', $existing->id)->exists();
+                        if ($conflict) {
+                            $failed++;
+                            $errors[] = "Fila {$rowNum}: número de empleado '{$employeeNumber}' ya está usado por otro usuario.";
+                            continue;
+                        }
+                    }
+
+                    // Comparar campos para decidir si actualizar
+                    $changed = false;
+                    foreach ($payload as $key => $val) {
+                        $current = $existing->{$key};
+                        if ($current instanceof \Carbon\CarbonInterface) {
+                            $current = $current->format('Y-m-d');
+                        }
+                        if ((string) $current !== (string) $val) {
+                            $changed = true;
+                            break;
+                        }
+                    }
+
+                    // Si trae password y es diferente, marcar como cambio
+                    $updatePassword = false;
+                    if ($password !== '') {
+                        if (strlen($password) < 8) {
+                            $failed++;
+                            $errors[] = "Fila {$rowNum}: la contraseña debe tener al menos 8 caracteres.";
+                            continue;
+                        }
+                        if (!\Illuminate\Support\Facades\Hash::check($password, $existing->password)) {
+                            $updatePassword = true;
+                            $changed = true;
+                        }
+                    }
+
+                    if (!$changed) {
+                        $skipped++;
+                        continue;
+                    }
+
+                    try {
+                        if ($updatePassword) {
+                            $payload['password'] = Hash::make($password);
+                        }
+                        $existing->update($payload);
+                        if (!$existing->hasRole('employee')) {
+                            $existing->assignRole('employee');
+                        }
+                        $updated++;
+                    } catch (\Throwable $e) {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: error al actualizar ({$e->getMessage()}).";
+                    }
+                } else {
+                    // INSERT: validar password obligatorio para crear
+                    if ($password === '') {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: la contraseña es obligatoria para crear un nuevo empleado.";
+                        continue;
+                    }
+                    if (strlen($password) < 8) {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: la contraseña debe tener al menos 8 caracteres.";
+                        continue;
+                    }
+
+                    if ($employeeNumber && User::where('employee_number', $employeeNumber)->exists()) {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: número de empleado '{$employeeNumber}' ya existe.";
+                        continue;
+                    }
+
+                    try {
+                        $payload['email'] = $email;
+                        $payload['password'] = Hash::make($password);
+                        $user = User::create($payload);
+                        $user->assignRole('employee');
+                        $created++;
+                    } catch (\Throwable $e) {
+                        $failed++;
+                        $errors[] = "Fila {$rowNum}: error al crear ({$e->getMessage()}).";
+                    }
                 }
             }
             DB::commit();
@@ -340,14 +404,15 @@ class EmployeeList extends Component
             fclose($handle);
         }
 
-        $this->importResults = [
-            'created' => $created,
-            'failed' => $failed,
-            'errors' => $errors,
-        ];
+        $this->importResults = compact('created', 'updated', 'skipped', 'failed', 'errors');
 
-        if ($created > 0) {
-            session()->flash('flash.banner', "Importados {$created} empleados." . ($failed > 0 ? " {$failed} fila(s) fallaron." : ''));
+        if ($created > 0 || $updated > 0) {
+            $parts = [];
+            if ($created > 0) $parts[] = "{$created} creados";
+            if ($updated > 0) $parts[] = "{$updated} actualizados";
+            if ($skipped > 0) $parts[] = "{$skipped} sin cambios";
+            if ($failed > 0)  $parts[] = "{$failed} fallaron";
+            session()->flash('flash.banner', 'Import empleados: ' . implode(', ', $parts) . '.');
             session()->flash('flash.bannerStyle', $failed > 0 ? 'warning' : 'success');
         }
     }
