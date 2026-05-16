@@ -11,7 +11,7 @@ class OverTimeCreate extends Component
 {
     public string $name = '';
     public string $date = '';
-    public string $shift_id = '';
+    public ?string $shift_id = null;
     public string $start_time = '';
     public string $end_time = '';
     public string $break_minutes = '0';
@@ -29,7 +29,7 @@ class OverTimeCreate extends Component
         return [
             'name' => 'required|string|max:255',
             'date' => 'required|date|after_or_equal:today',
-            'shift_id' => 'required|exists:shifts,id',
+            'shift_id' => 'nullable|exists:shifts,id',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'break_minutes' => 'required|integer|min:0',
@@ -78,7 +78,7 @@ class OverTimeCreate extends Component
         OverTime::create([
             'name' => $this->name,
             'date' => $this->date,
-            'shift_id' => $this->shift_id,
+            'shift_id' => $this->shift_id ?: null,
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
             'break_minutes' => $this->break_minutes,
