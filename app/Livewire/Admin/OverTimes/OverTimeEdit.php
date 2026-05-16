@@ -12,7 +12,7 @@ class OverTimeEdit extends Component
     public OverTime $overTime;
     public string $name = '';
     public string $date = '';
-    public string $shift_id = '';
+    public ?string $shift_id = null;
     public string $start_time = '';
     public string $end_time = '';
     public string $break_minutes = '0';
@@ -24,7 +24,7 @@ class OverTimeEdit extends Component
         $this->overTime = $overTime;
         $this->name = $overTime->name;
         $this->date = $overTime->date->toDateString();
-        $this->shift_id = $overTime->shift_id;
+        $this->shift_id = $overTime->shift_id ? (string) $overTime->shift_id : null;
         $this->start_time = Carbon::parse($overTime->start_time)->format('H:i');
         $this->end_time = Carbon::parse($overTime->end_time)->format('H:i');
         $this->break_minutes = (string) $overTime->break_minutes;
@@ -37,7 +37,7 @@ class OverTimeEdit extends Component
         return [
             'name' => 'required|string|max:255',
             'date' => 'required|date',
-            'shift_id' => 'required|exists:shifts,id',
+            'shift_id' => 'nullable|exists:shifts,id',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'break_minutes' => 'required|integer|min:0',
@@ -86,7 +86,7 @@ class OverTimeEdit extends Component
         $this->overTime->update([
             'name' => $this->name,
             'date' => $this->date,
-            'shift_id' => $this->shift_id,
+            'shift_id' => $this->shift_id ?: null,
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
             'break_minutes' => $this->break_minutes,

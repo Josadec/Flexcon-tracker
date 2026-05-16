@@ -44,7 +44,7 @@ class ShiftList extends Component
 
     public function render()
     {
-        $shifts = Shift::withCount('employees')
+        $shifts = Shift::withCount(['employees', 'BreakTimes'])
             ->search($this->search)
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);

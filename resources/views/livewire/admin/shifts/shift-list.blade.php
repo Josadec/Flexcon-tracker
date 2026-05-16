@@ -82,7 +82,7 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                             <button wire:click="sortBy('name')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Nombre
+                                NOMBRE
                                 @if($sortField === 'name')
                                     <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
@@ -92,7 +92,7 @@
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                             <button wire:click="sortBy('start_time')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Horario
+                                HORARIO
                                 @if($sortField === 'start_time')
                                     <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
@@ -102,7 +102,7 @@
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                             <button wire:click="sortBy('active')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Estado
+                                ESTADO
                                 @if($sortField === 'active')
                                     <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
@@ -110,8 +110,9 @@
                                 @endif
                             </button>
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Empleados</th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">EMPLEADOS</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">DESCANSOS</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">ACCIONES</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -144,6 +145,13 @@
                                     <span class="text-sm text-gray-400">0 empleados</span>
                                 @endif
                             </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if($shift->break_times_count > 0)
+                                    <span class="text-sm text-gray-900 dark:text-white">{{ $shift->break_times_count }} descanso{{ $shift->break_times_count > 1 ? 's' : '' }}</span>
+                                @else
+                                    <span class="text-sm text-gray-400">0 descansos</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <a href="{{ route('admin.shifts.show', $shift) }}" class="inline-flex items-center justify-center w-8 h-8 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded-md transition-colors" title="Ver">
@@ -167,7 +175,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-16 text-center">
+                            <td colspan="6" class="px-6 py-16 text-center">
                                 <div class="text-sm text-gray-500 dark:text-gray-400">No se encontraron turnos</div>
                             </td>
                         </tr>
