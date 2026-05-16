@@ -100,8 +100,6 @@ ksort($pricesByPart);
 foreach ($pricesByPart as $partId => $wsList) {
     // Descripcion de referencia: la primera del legacy o vacia
     $description = $legacyByPart[$partId][0]['description'] ?? '';
-    $configsForPart = $legacyByPart[$partId] ?? [];
-
     foreach ($wsList as $wsPrice) {
         $wsStd = $wsMap[$wsPrice];
         $stdId = $nextStdId++;
@@ -121,6 +119,10 @@ foreach ($pricesByPart as $partId => $wsList) {
             'description'              => $description,
         ];
 
+        $configsForPart = array_filter(
+            $legacyByPart[$partId] ?? [],
+            fn($c) => $c['persons_required'] !== null && $c['units_per_hour'] > 0
+        );
         if (empty($configsForPart)) continue;
 
         // Deduplicar por persons_required (legacy puede tener filas duplicadas

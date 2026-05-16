@@ -369,15 +369,19 @@ class CapacityWizard extends Component
                 ->whereIn('id', $this->selectedPOs)
                 ->get();
 
+            $addedCount = 0;
+
             foreach ($pos as $po) {
-                // Check if already added
-                $existingIndex = array_search($po->part_id, array_column($this->workOrderItems, 'part_id'));
-                if ($existingIndex !== false) {
-                    continue; // Skip if already added
+                // Skip si este PO especifico ya fue agregado (cada PO es una fila independiente,
+                // aunque comparta part_id con otra)
+                $existingPoIndex = array_search($po->id, array_column($this->workOrderItems, 'po_id'));
+                if ($existingPoIndex !== false) {
+                    $this->warnings[] = "PO {$po->po_number}: ya estaba agregado.";
+                    continue;
                 }
 
                 $standard = $po->part->standards()->where('active', true)->first();
-                
+
                 if (!$standard || !$standard->hasMigratedConfigurations()) {
                     $this->warnings[] = "PO {$po->po_number}: Part {$po->part->number} has no configurations.";
                     continue;
@@ -385,20 +389,20 @@ class CapacityWizard extends Component
 
                 // Get selected configuration or use optimal
                 $configId = $this->poConfigurations[$po->id] ?? null;
-                
+
                 if ($configId) {
                     $config = $standard->configurations()->find($configId);
                     if (!$config) {
                         $this->warnings[] = "PO {$po->po_number}: Selected configuration not found.";
                         continue;
                     }
-                    
+
                     // Validate persons required
                     if ($config->persons_required > $this->numPersons) {
                         $this->warnings[] = "PO {$po->po_number}: Configuration requires {$config->persons_required} persons but only {$this->numPersons} available.";
                         continue;
                     }
-                    
+
                     $requiredHours = $config->calculateRequiredHours($po->quantity);
                 } else {
                     // Use optimal configuration
@@ -407,7 +411,7 @@ class CapacityWizard extends Component
                         $po->quantity,
                         $this->numPersons
                     );
-                    
+
                     $requiredHours = $result['required_hours'];
                     $config = $standard->configurations()->find($result['configuration']['id']);
                 }
@@ -438,13 +442,14 @@ class CapacityWizard extends Component
                         'units_per_hour' => $config->units_per_hour,
                     ],
                 ];
+
+                $addedCount++;
             }
 
             $this->calculateDifference();
             $this->closePOModal();
-            
-            $count = count($this->selectedPOs);
-            $this->successMessage = "{$count} PO(s) agregado(s) exitosamente.";
+
+            $this->successMessage = "{$addedCount} PO(s) agregado(s) exitosamente.";
         } catch (\Exception $e) {
             $this->errorMessage = 'Error al agregar POs: ' . $e->getMessage();
         }

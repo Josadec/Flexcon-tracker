@@ -1,0 +1,4 @@
+"id","number","employees","active","comments","area_id","production_status_id","created_at","updated_at","deleted_at"
+"","T-01","1","1","Estacion de ensamble asistido","1","1","2026-04-09 20:05:00",NULL,NULL
+"","T-02","1","1","Estacion de ensamble asistido","1","1","2026-04-09 20:05:00",NULL,NULL
+"","T-03","1","1","Estacion de ensamble asistido","1","1","2026-04-09 20:05:00",NULL,NULL

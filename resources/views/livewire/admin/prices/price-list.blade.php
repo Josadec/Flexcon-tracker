@@ -215,7 +215,7 @@
                                     <span class="text-gray-400">Sin niveles</span>
                                 @endforelse
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $price->effective_date->format('d/m/Y') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $price->effective_date?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 @if($price->active)
                                     <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300">Activo</span>

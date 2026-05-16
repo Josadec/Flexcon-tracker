@@ -276,10 +276,10 @@ class PackingSlipShow extends Component
         $lots = Lot::with('workOrder.purchaseOrder.part')->whereIn('id', $this->selectedLotIds)->get();
 
         foreach ($lots as $lot) {
-            if (empty($lot->workOrder->external_wo_number ?? null)) {
+            if (!$lot->workOrder->hasExternalWoNumber()) {
                 $this->addError(
                     'selectedLotIds',
-                    "El lote {$lot->lot_number} pertenece a una WO sin número externo. Corrija la WO antes de continuar."
+                    "El lote {$lot->lot_number} pertenece a una WO sin número de WO disponible. Verifique que la Purchase Order tenga el campo WO configurado."
                 );
                 return;
             }

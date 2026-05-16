@@ -1,0 +1,7 @@
+"id","name","brand","model","sn","asset_number","employees","setup_time","maintenance_time","active","comments","area_id","production_status_id","created_at","updated_at","deleted_at"
+"","STS Machine","SEIP","","","S-20","1","15","30.00","1","","4","1","2026-04-09 20:05:00",NULL,NULL
+"","STS Machine","SEIP","","","S-21","2","15","30.00","1","","4","1","2026-04-09 20:05:00",NULL,NULL
+"","STS Machine","SEIP","","","S-22","1","15","30.00","1","","4","1","2026-04-09 20:05:00",NULL,NULL
+"","T- Machine","Flexcon","","","T-01","1","15","30.00","1","","5","1","2026-04-09 20:05:00",NULL,NULL
+"","T- Machine","Flexcon","","","T-02","1","15","30.00","1","","5","1","2026-04-09 20:05:00",NULL,NULL
+"","T- Machine","Flexcon","","","T-03","1","15","30.00","1","","5","1","2026-04-09 20:05:00",NULL,NULL

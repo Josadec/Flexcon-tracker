@@ -5,7 +5,7 @@
         </a>
         <div>
             <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Editar estándar</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Modificar información del estándar de la parte {{ $standard->part->number }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Modificar información del estándar de la parte {{ $standard->part?->number ?? 'N/A' }}</p>
         </div>
     </div>
 
@@ -17,21 +17,6 @@
         @endif
     </div>
 
-    @if(!$useNewConfigSystem)
-        <div class="p-4 rounded-lg border-2 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
-            <div class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                <div>
-                    <h3 class="text-sm font-medium text-amber-800 dark:text-amber-200">Estándar con formato antiguo</h3>
-                    <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">Este estándar usa el sistema legacy. Puede migrarlo al nuevo sistema de configuraciones múltiples.</p>
-                    <button type="button" wire:click="migrateToNewSystem" class="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-md transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        Migrar al nuevo sistema
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
 
     <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-200 dark:divide-gray-700">
         <form wire:submit="updateStandard" class="p-6 space-y-6">
@@ -45,7 +30,11 @@
                             required>
                             <option value="">Seleccione una parte</option>
                             @foreach($parts as $part)
+<<<<<<< HEAD
                                 <option value="{{ $part->id }}" @selected((int) $part_id === (int) $part->id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
+=======
+                                <option value="{{ $part->id }}" @selected($part->id == $part_id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
+>>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
                             @endforeach
                         </select>
                         @error('part_id')
@@ -134,7 +123,11 @@
                                                 <select wire:model.live="configurations.{{ $index }}.workstation_type"
                                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
                                                     @foreach($workstationTypes as $value => $label)
+<<<<<<< HEAD
                                                         <option value="{{ $value }}" @selected(($config['workstation_type'] ?? null) == $value)>{{ $label }}</option>
+=======
+                                                        <option value="{{ $value }}" @selected($value == $config['workstation_type'])>{{ $label }}</option>
+>>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.workstation_type")
@@ -149,12 +142,16 @@
                                                 </label>
                                                 <select wire:model="configurations.{{ $index }}.workstation_id"
                                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
-                                                    <option value="">Sin asignar</option>
+                                                    <option value="" @selected(empty($config['workstation_id']))>Sin asignar</option>
                                                     @php
                                                         $workstations = $this->getWorkstationsForType($config['workstation_type']);
                                                     @endphp
                                                     @foreach($workstations as $ws)
+<<<<<<< HEAD
                                                         <option value="{{ $ws['id'] }}" @selected((int) ($config['workstation_id'] ?? 0) === (int) $ws['id'])>{{ $ws['name'] }}</option>
+=======
+                                                        <option value="{{ $ws['id'] }}" @selected((string)$ws['id'] == (string)$config['workstation_id'])>{{ $ws['name'] }}</option>
+>>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.workstation_id")
@@ -217,6 +214,7 @@
                                 </div>
                             @endif
                         </div>
+<<<<<<< HEAD
                     @else
                         <!-- Legacy System Fields -->
                         <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
@@ -326,6 +324,8 @@
                                 </div>
                             </div>
                         </div>
+=======
+>>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
                     @endif
 
                     <!-- Active Status -->
@@ -359,7 +359,7 @@
                     <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <a href="{{ route('admin.standards.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-md transition-colors">Cancelar</a>
-                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors">Actualizar estándar</button>
+                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer">Actualizar estándar</button>
             </div>
         </form>
     </div>

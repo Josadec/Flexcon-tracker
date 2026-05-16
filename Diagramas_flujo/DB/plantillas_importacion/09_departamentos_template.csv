@@ -1,0 +1,8 @@
+id,name,description,comments,created_at,updated_at
+"",Produccion,Departamento encargado de ensamble de productos,NULL,"2026-01-01 08:00:00",NULL
+"",Recursos Humanos,Gestion de personal y nomina,NULL,"2026-01-01 08:00:00",NULL
+"",Calidad,Control e inspeccion de calidad de productos,NULL,"2026-01-01 08:00:00",NULL
+"",Empaque,Departamento encargado de empaque del producto,NULL,"2026-01-01 08:00:00",NULL
+"",Control de Materiales,"Almacenaje, Preensamble y elaboracion de kits",NULL,"2026-01-01 08:00:00",NULL
+"",Mantenimiento,Mantenimiento preventivo y correctivo de maquinaria y equipo,NULL,"2026-01-01 08:00:00",NULL
+"",Administracion,Planeacion y administracion de recursos,NULL,"2026-01-01 08:00:00",NULL
