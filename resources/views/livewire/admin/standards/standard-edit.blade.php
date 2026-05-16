@@ -31,10 +31,17 @@
                             <option value="">Seleccione una parte</option>
                             @foreach($parts as $part)
 <<<<<<< HEAD
+<<<<<<< HEAD
                                 <option value="{{ $part->id }}" @selected($part->id == $part_id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
 =======
                                 <option value="{{ $part->id }}" @selected((int) $part_id === (int) $part->id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
 >>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
+=======
+                                <option value="{{ $part->id }}" @selected((int) $part_id === (int) $part->id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
+=======
+                                <option value="{{ $part->id }}" @selected($part->id == $part_id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
+>>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
+>>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
                             @endforeach
                         </select>
                         @error('part_id')
@@ -124,10 +131,17 @@
                                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
                                                     @foreach($workstationTypes as $value => $label)
 <<<<<<< HEAD
+<<<<<<< HEAD
                                                         <option value="{{ $value }}" @selected($value == $config['workstation_type'])>{{ $label }}</option>
 =======
                                                         <option value="{{ $value }}" @selected(($config['workstation_type'] ?? null) == $value)>{{ $label }}</option>
 >>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
+=======
+                                                        <option value="{{ $value }}" @selected(($config['workstation_type'] ?? null) == $value)>{{ $label }}</option>
+=======
+                                                        <option value="{{ $value }}" @selected($value == $config['workstation_type'])>{{ $label }}</option>
+>>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
+>>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.workstation_type")
@@ -148,10 +162,17 @@
                                                     @endphp
                                                     @foreach($workstations as $ws)
 <<<<<<< HEAD
+<<<<<<< HEAD
                                                         <option value="{{ $ws['id'] }}" @selected((string)$ws['id'] == (string)$config['workstation_id'])>{{ $ws['name'] }}</option>
 =======
                                                         <option value="{{ $ws['id'] }}" @selected((int) ($config['workstation_id'] ?? 0) === (int) $ws['id'])>{{ $ws['name'] }}</option>
 >>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
+=======
+                                                        <option value="{{ $ws['id'] }}" @selected((int) ($config['workstation_id'] ?? 0) === (int) $ws['id'])>{{ $ws['name'] }}</option>
+=======
+                                                        <option value="{{ $ws['id'] }}" @selected((string)$ws['id'] == (string)$config['workstation_id'])>{{ $ws['name'] }}</option>
+>>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
+>>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.workstation_id")
@@ -215,7 +236,10 @@
                             @endif
                         </div>
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
                     @else
                         <!-- Legacy System Fields -->
                         <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
@@ -325,7 +349,12 @@
                                 </div>
                             </div>
                         </div>
+<<<<<<< HEAD
 >>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
+=======
+=======
+>>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
+>>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
                     @endif
 
                     <!-- Active Status -->
