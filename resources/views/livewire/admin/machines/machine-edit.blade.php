@@ -106,7 +106,7 @@
                         >
                             <option value="">Selecciona un área</option>
                             @foreach($areas as $area)
-                                <option value="{{ $area->id }}">{{ $area->name }}</option>
+                                <option value="{{ $area->id }}" @selected((int) $area_id === (int) $area->id)>{{ $area->name }}</option>
                             @endforeach
                         </select>
                         @error('area_id')

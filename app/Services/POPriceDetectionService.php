@@ -18,8 +18,11 @@ class POPriceDetectionService
     ];
 
     /**
-     * Detecta el precio correcto para un PO basado en el Standard
-     * 
+     * Detecta el precio correcto para un PO.
+     * Prioridad:
+     *   1) $po->workstation_type (si el admin lo eligió manualmente en el PO)
+     *   2) workstation_type derivado del Standard de la parte (fallback)
+     *
      * @param PurchaseOrder $po
      * @return PriceDetectionResult
      */
@@ -40,28 +43,32 @@ class POPriceDetectionService
             $po->load('part');
         }
 
-        // Obtener el Standard activo para la parte
-        $standard = $po->part->standards()->active()->first();
+        // 1) Si el PO tiene un workstation_type explícito, usarlo directamente
+        $workstationType = $po->workstation_type ?: null;
 
-        if (!$standard) {
-            return new PriceDetectionResult(
-                price: null,
-                workstationType: '',
-                found: false,
-                error: 'No hay Standard activo para esta parte'
-            );
-        }
-
-        // Obtener el workstation_type del Standard
-        $workstationType = $this->getWorkstationTypeFromStandard($standard);
-
+        // 2) Fallback: resolver del Standard de la parte
         if (!$workstationType) {
-            return new PriceDetectionResult(
-                price: null,
-                workstationType: '',
-                found: false,
-                error: 'El Standard no tiene un tipo de estación de trabajo definido'
-            );
+            $standard = $po->part->standards()->active()->first();
+
+            if (!$standard) {
+                return new PriceDetectionResult(
+                    price: null,
+                    workstationType: '',
+                    found: false,
+                    error: 'No hay Standard activo para esta parte y la PO no tiene workstation_type definido'
+                );
+            }
+
+            $workstationType = $this->getWorkstationTypeFromStandard($standard);
+
+            if (!$workstationType) {
+                return new PriceDetectionResult(
+                    price: null,
+                    workstationType: '',
+                    found: false,
+                    error: 'El Standard no tiene un tipo de estación de trabajo definido'
+                );
+            }
         }
 
         // Buscar el precio activo para el workstation_type

@@ -125,24 +125,6 @@
                         :current="request()->routeIs('admin.sent-lists.tv')" wire:navigate>
                         {{ __('Monitor TV') }}
                     </flux:navlist.item>
-                    @if ($authUser->hasRole('admin'))
-                        <flux:navlist.item icon="calendar-days" :href="route('admin.holidays.index')"
-                            :current="request()->routeIs('admin.holidays.*')" wire:navigate>{{ __('Días Festivos') }}
-                        </flux:navlist.item>
-                        <flux:navlist.item icon="clock" :href="route('admin.shifts.index')"
-                            :current="request()->routeIs('admin.shifts.*')" wire:navigate>{{ __('Turnos') }}
-                        </flux:navlist.item>
-                        <flux:navlist.item icon="pause-circle" :href="route('admin.break-times.index')"
-                            :current="request()->routeIs('admin.break-times.*')" wire:navigate>{{ __('Descansos') }}
-                        </flux:navlist.item>
-                        <flux:navlist.item icon="bolt" :href="route('admin.over-times.index')"
-                            :current="request()->routeIs('admin.over-times.*')" wire:navigate>{{ __('Tiempo Extra') }}
-                        </flux:navlist.item>
-                        <flux:navlist.item icon="signal" :href="route('admin.production-statuses.index')"
-                            :current="request()->routeIs('admin.production-statuses.*')" wire:navigate>
-                            {{ __('Estados de Producción') }}
-                        </flux:navlist.item>
-                    @endif
                 </flux:navlist.group>
             @endif
 
@@ -258,6 +240,22 @@
                     </flux:navlist.item>
                     <flux:navlist.item icon="cog-6-tooth" :href="route('admin.machines.index')"
                         :current="request()->routeIs('admin.machines.*')" wire:navigate>{{ __('Máquinas') }}
+                    </flux:navlist.item>
+                    <flux:navlist.item icon="calendar-days" :href="route('admin.holidays.index')"
+                        :current="request()->routeIs('admin.holidays.*')" wire:navigate>{{ __('Días Festivos') }}
+                    </flux:navlist.item>
+                    <flux:navlist.item icon="clock" :href="route('admin.shifts.index')"
+                        :current="request()->routeIs('admin.shifts.*')" wire:navigate>{{ __('Turnos') }}
+                    </flux:navlist.item>
+                    <flux:navlist.item icon="pause-circle" :href="route('admin.break-times.index')"
+                        :current="request()->routeIs('admin.break-times.*')" wire:navigate>{{ __('Descansos') }}
+                    </flux:navlist.item>
+                    <flux:navlist.item icon="bolt" :href="route('admin.over-times.index')"
+                        :current="request()->routeIs('admin.over-times.*')" wire:navigate>{{ __('Tiempo Extra') }}
+                    </flux:navlist.item>
+                    <flux:navlist.item icon="signal" :href="route('admin.production-statuses.index')"
+                        :current="request()->routeIs('admin.production-statuses.*')" wire:navigate>
+                        {{ __('Estados de Producción') }}
                     </flux:navlist.item>
                     <flux:navlist.item icon="shield-check" :href="route('admin.roles.index')"
                         :current="request()->routeIs('admin.roles.*')" wire:navigate>{{ __('Roles') }}

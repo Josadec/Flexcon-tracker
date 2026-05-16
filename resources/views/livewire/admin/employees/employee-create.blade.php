@@ -60,13 +60,15 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Número de Empleado</label>
-                        <input 
-                            wire:model="employee_number" 
-                            type="text" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 font-mono" 
+                        <input
+                            wire:model="employee_number"
+                            type="text"
+                            placeholder="Opcional"
+                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 font-mono"
                         />
-                        @error('employee_number') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Déjalo vacío si aún no tienes el número.</p>
+                        @error('employee_number')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                         @enderror
                     </div>
                     <div>

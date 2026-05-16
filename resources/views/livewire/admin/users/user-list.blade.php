@@ -1,18 +1,103 @@
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
             <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Usuarios</h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestión de usuarios del sistema</p>
         </div>
-        <a href="{{ route('admin.users.create') }}" 
-           class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
-            Nuevo Usuario
-        </a>
+        <div class="flex items-center gap-2 flex-wrap">
+            <button wire:click="downloadTemplate"
+                class="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
+                title="Descargar plantilla CSV">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Plantilla
+            </button>
+            <button wire:click="openImportModal"
+                class="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                Importar CSV
+            </button>
+            <button wire:click="exportCsv"
+                class="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M8 12l4 4m0 0l4-4m-4 4V4"/>
+                </svg>
+                Exportar CSV
+            </button>
+            <a href="{{ route('admin.users.create') }}"
+               class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Nuevo Usuario
+            </a>
+        </div>
     </div>
+
+    {{-- Modal Import CSV --}}
+    @if($showImportModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" wire:click.self="closeImportModal">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Importar Usuarios desde CSV</h3>
+                    <button wire:click="closeImportModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-4 overflow-y-auto space-y-4">
+                    <div class="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-800 dark:text-blue-200">
+                        <p class="font-medium">Formato requerido:</p>
+                        <p class="mt-1">Columnas obligatorias: <code class="font-mono text-xs">name, email, password, role_name</code></p>
+                        <p class="mt-1">Opcionales: <code class="font-mono text-xs">last_name, account, area_name</code></p>
+                        <p class="mt-1"><strong>Rol</strong> y <strong>Área</strong> se referencian por nombre exacto. El área sólo se usa si el rol es <strong>Supervisor</strong>. Descarga la plantilla si tienes dudas.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Archivo CSV</label>
+                        <input type="file" wire:model="importFile" accept=".csv,text/csv" class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                        @error('importFile') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        <div wire:loading wire:target="importFile" class="mt-2 text-xs text-gray-500">Subiendo archivo...</div>
+                    </div>
+
+                    @if(!empty($importResults))
+                        <div class="rounded-md border p-3 text-sm
+                            {{ ($importResults['failed'] ?? 0) > 0 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200' }}">
+                            <p class="font-medium">Resultado:</p>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                                <div><span class="font-semibold">{{ $importResults['created'] ?? 0 }}</span> creados</div>
+                                <div><span class="font-semibold">{{ $importResults['updated'] ?? 0 }}</span> actualizados</div>
+                                <div><span class="font-semibold">{{ $importResults['skipped'] ?? 0 }}</span> sin cambios</div>
+                                <div><span class="font-semibold">{{ $importResults['failed'] ?? 0 }}</span> fallaron</div>
+                            </div>
+                            @if(!empty($importResults['errors']))
+                                <details class="mt-2">
+                                    <summary class="cursor-pointer text-xs font-medium">Ver errores ({{ count($importResults['errors']) }})</summary>
+                                    <ul class="mt-2 list-disc list-inside text-xs space-y-0.5 max-h-40 overflow-y-auto">
+                                        @foreach($importResults['errors'] as $err)
+                                            <li>{{ $err }}</li>
+                                        @endforeach
+                                    </ul>
+                                </details>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+                <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                    <button wire:click="closeImportModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                        Cerrar
+                    </button>
+                    <button wire:click="importCsv" wire:loading.attr="disabled" wire:target="importCsv,importFile" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50">
+                        <span wire:loading.remove wire:target="importCsv">Procesar</span>
+                        <span wire:loading wire:target="importCsv">Procesando...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <!-- Stats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">

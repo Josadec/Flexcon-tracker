@@ -98,13 +98,13 @@
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Área <span class="text-red-500">*</span>
                         </label>
-                        <select 
-                            wire:model="area_id" 
+                        <select
+                            wire:model="area_id"
                             class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
                         >
                             <option value="">Seleccionar</option>
                             @foreach($areas as $area)
-                                <option value="{{ $area->id }}">{{ $area->name }}</option>
+                                <option value="{{ $area->id }}" @selected((int) $area_id === (int) $area->id)>{{ $area->name }}</option>
                             @endforeach
                         </select>
                         @error('area_id') 
@@ -115,13 +115,13 @@
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Turno <span class="text-red-500">*</span>
                         </label>
-                        <select 
-                            wire:model="shift_id" 
+                        <select
+                            wire:model="shift_id"
                             class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
                         >
                             <option value="">Seleccionar</option>
                             @foreach($shifts as $shift)
-                                <option value="{{ $shift->id }}">{{ $shift->name }}</option>
+                                <option value="{{ $shift->id }}" @selected((int) $shift_id === (int) $shift->id)>{{ $shift->name }}</option>
                             @endforeach
                         </select>
                         @error('shift_id') 
