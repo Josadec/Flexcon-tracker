@@ -53,11 +53,14 @@ class StoreOverTimeRequest extends FormRequest
                 'min:0',
                 'max:480',
             ],
-            'employees_qty' => [
+            'selected_employee_ids' => [
                 'required',
-                'integer',
+                'array',
                 'min:1',
-                'max:1000',
+            ],
+            'selected_employee_ids.*' => [
+                'integer',
+                'exists:users,id',
             ],
             'comments' => [
                 'nullable',
@@ -84,9 +87,9 @@ class StoreOverTimeRequest extends FormRequest
             'end_time.required' => 'La hora de fin es requerida.',
             'break_minutes.min' => 'Los minutos de descanso no pueden ser negativos.',
             'break_minutes.max' => 'Los minutos de descanso no pueden exceder 8 horas.',
-            'employees_qty.required' => 'Debe especificar la cantidad de empleados.',
-            'employees_qty.min' => 'Debe haber al menos 1 empleado.',
-            'employees_qty.max' => 'La cantidad de empleados no puede exceder 1000.',
+            'selected_employee_ids.required' => 'Debe seleccionar al menos un empleado.',
+            'selected_employee_ids.min'      => 'Debe seleccionar al menos un empleado.',
+            'selected_employee_ids.*.exists' => 'Uno o más empleados seleccionados no existen.',
         ];
     }
 }

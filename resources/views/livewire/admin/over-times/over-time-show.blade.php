@@ -22,6 +22,12 @@
             </div>
         </div>
         <div class="flex gap-3">
+            <a href="{{ route('admin.over-times.export', $overTime) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Exportar a Excel
+            </a>
             <a href="{{ route('admin.over-times.edit', $overTime) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -54,8 +60,24 @@
                     <dd class="text-sm text-gray-900 dark:text-white">{{ $overTime->shift->name ?? '—' }}</dd>
                 </div>
                 <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Cantidad de empleados</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">{{ $overTime->employees_qty }} empleado{{ $overTime->employees_qty > 1 ? 's' : '' }}</dd>
+                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Empleados ({{ $overTime->users->count() }})</dt>
+                    <dd class="mt-1">
+                        @if($overTime->users->isNotEmpty())
+                            <ul class="space-y-1">
+                                @foreach($overTime->users as $user)
+                                    <li class="text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-medium">{{ $user->initials }}</span>
+                                        {{ $user->full_name }}
+                                        @if($user->position)
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">· {{ $user->position }}</span>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Sin empleados asignados</span>
+                        @endif
+                    </dd>
                 </div>
             </div>
         </div>

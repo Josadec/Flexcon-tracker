@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\OverTimes;
 
 use App\Models\OverTime;
 use App\Models\Shift;
+use App\Models\User;
 use Livewire\Component;
 use Carbon\Carbon;
 
@@ -16,33 +17,50 @@ class OverTimeEdit extends Component
     public string $start_time = '';
     public string $end_time = '';
     public string $break_minutes = '0';
-    public string $employees_qty = '1';
     public string $comments = '';
+
+    // Selección de empleados
+    public array $selectedEmployeeIds = [];
+    public string $employeeSearch = '';
 
     public function mount(OverTime $overTime): void
     {
-        $this->overTime = $overTime;
-        $this->name = $overTime->name;
-        $this->date = $overTime->date->toDateString();
-        $this->shift_id = $overTime->shift_id ? (string) $overTime->shift_id : null;
-        $this->start_time = Carbon::parse($overTime->start_time)->format('H:i');
-        $this->end_time = Carbon::parse($overTime->end_time)->format('H:i');
-        $this->break_minutes = (string) $overTime->break_minutes;
-        $this->employees_qty = (string) $overTime->employees_qty;
-        $this->comments = $overTime->comments ?? '';
+        $this->overTime       = $overTime;
+        $this->name           = $overTime->name;
+        $this->date           = $overTime->date->toDateString();
+        $this->shift_id       = $overTime->shift_id ? (string) $overTime->shift_id : null;
+        $this->start_time     = Carbon::parse($overTime->start_time)->format('H:i');
+        $this->end_time       = Carbon::parse($overTime->end_time)->format('H:i');
+        $this->break_minutes  = (string) $overTime->break_minutes;
+        $this->comments       = $overTime->comments ?? '';
+
+        // Cargar empleados ya asignados como strings para Livewire 3
+        $this->selectedEmployeeIds = $overTime->users
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->toArray();
     }
 
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'date' => 'required|date',
-            'shift_id' => 'nullable|exists:shifts,id',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-            'break_minutes' => 'required|integer|min:0',
-            'employees_qty' => 'required|integer|min:1',
-            'comments' => 'nullable|string',
+            'name'                   => 'required|string|max:255',
+            'date'                   => 'required|date',
+            'shift_id'               => 'nullable|exists:shifts,id',
+            'start_time'             => 'required|date_format:H:i',
+            'end_time'               => 'required|date_format:H:i|after:start_time',
+            'break_minutes'          => 'required|integer|min:0',
+            'selectedEmployeeIds'    => 'required|array|min:1',
+            'selectedEmployeeIds.*'  => 'exists:users,id',
+            'comments'               => 'nullable|string',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'selectedEmployeeIds.required' => 'Debe seleccionar al menos un empleado.',
+            'selectedEmployeeIds.min'      => 'Debe seleccionar al menos un empleado.',
         ];
     }
 
@@ -54,7 +72,7 @@ class OverTimeEdit extends Component
 
         try {
             $start = Carbon::createFromFormat('H:i', $this->start_time);
-            $end = Carbon::createFromFormat('H:i', $this->end_time);
+            $end   = Carbon::createFromFormat('H:i', $this->end_time);
 
             // Handle overnight shifts
             if ($end->lessThan($start)) {
@@ -63,7 +81,7 @@ class OverTimeEdit extends Component
 
             $totalMinutes = $start->diffInMinutes($end);
             $breakMinutes = (int) ($this->break_minutes ?: 0);
-            $netMinutes = max(0, $totalMinutes - $breakMinutes);
+            $netMinutes   = max(0, $totalMinutes - $breakMinutes);
 
             return round($netMinutes / 60, 2);
         } catch (\Exception $e) {
@@ -73,8 +91,8 @@ class OverTimeEdit extends Component
 
     public function getTotalHoursProperty(): float
     {
-        $netHours = $this->net_hours;
-        $employees = (int) ($this->employees_qty ?: 1);
+        $netHours  = $this->net_hours;
+        $employees = count($this->selectedEmployeeIds);
 
         return round($netHours * $employees, 2);
     }
@@ -84,15 +102,16 @@ class OverTimeEdit extends Component
         $this->validate();
 
         $this->overTime->update([
-            'name' => $this->name,
-            'date' => $this->date,
-            'shift_id' => $this->shift_id ?: null,
-            'start_time' => $this->start_time,
-            'end_time' => $this->end_time,
+            'name'          => $this->name,
+            'date'          => $this->date,
+            'shift_id'      => $this->shift_id ?: null,
+            'start_time'    => $this->start_time,
+            'end_time'      => $this->end_time,
             'break_minutes' => $this->break_minutes,
-            'employees_qty' => $this->employees_qty,
-            'comments' => $this->comments ?: null,
+            'comments'      => $this->comments ?: null,
         ]);
+
+        $this->overTime->users()->sync($this->selectedEmployeeIds);
 
         session()->flash('flash.banner', 'Over Time actualizado correctamente.');
         session()->flash('flash.bannerStyle', 'success');
@@ -104,6 +123,18 @@ class OverTimeEdit extends Component
     {
         $shifts = Shift::active()->orderBy('name')->get();
 
-        return view('livewire.admin.over-times.over-time-edit', compact('shifts'));
+        $employees = User::active()
+            ->employees()
+            ->when($this->employeeSearch, function ($q) {
+                $q->search($this->employeeSearch);
+            })
+            ->orderBy('name')
+            ->get();
+
+        $selectedEmployees = User::whereIn('id', $this->selectedEmployeeIds)
+            ->orderBy('name')
+            ->get();
+
+        return view('livewire.admin.over-times.over-time-edit', compact('shifts', 'employees', 'selectedEmployees'));
     }
 }

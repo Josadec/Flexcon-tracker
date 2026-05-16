@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Carbon\Carbon;
 
 class OverTime extends Model
@@ -16,7 +17,6 @@ class OverTime extends Model
         'start_time',
         'end_time',
         'break_minutes',
-        'employees_qty',
         'date',
         'shift_id',
         'comments',
@@ -27,7 +27,6 @@ class OverTime extends Model
         'end_time' => 'datetime:H:i',
         'date' => 'date',
         'break_minutes' => 'integer',
-        'employees_qty' => 'integer',
     ];
 
     /**
@@ -42,6 +41,16 @@ class OverTime extends Model
     public function shift(): BelongsTo
     {
         return $this->belongsTo(Shift::class);
+    }
+
+    /**
+     * Empleados asignados a este overtime
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'over_time_user')
+                    ->withTimestamps()
+                    ->orderBy('name');
     }
 
     /**
@@ -143,7 +152,8 @@ class OverTime extends Model
      */
     public function calculateTotalHours(): float
     {
-        return $this->calculateNetHours() * $this->employees_qty;
+        $count = $this->users_count ?? $this->users()->count();
+        return $this->calculateNetHours() * $count;
     }
 
     /**

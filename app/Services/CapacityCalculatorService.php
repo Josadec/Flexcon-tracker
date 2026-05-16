@@ -45,7 +45,9 @@ class CapacityCalculatorService
         $regular_hours = $available_days * $total_shift_hours * $num_persons;
 
         // Get overtime hours for the date range
-        $overtime_hours = OverTime::whereBetween('date', [$start_date, $end_date])
+        // withCount('users') evita N+1 queries al calcular total_hours vía accessor
+        $overtime_hours = OverTime::withCount('users')
+            ->whereBetween('date', [$start_date, $end_date])
             ->get()
             ->sum('total_hours'); // Uses accessor from OverTime model
 

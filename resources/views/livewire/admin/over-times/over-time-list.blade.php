@@ -107,6 +107,7 @@
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">TURNO</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">HORARIO</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">EMPLEADOS</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">HORAS NETAS</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">HORAS TOTALES</th>
                         <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">ACCIONES</th>
                     </tr>
@@ -127,7 +128,8 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                 {{ \Carbon\Carbon::parse($overTime->start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($overTime->end_time)->format('H:i') }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ $overTime->employees_qty }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ $overTime->users_count }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ $overTime->net_hours }} hrs</td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2.5 py-0.5 text-xs font-medium rounded-full border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ $overTime->total_hours }} hrs</span>
                             </td>
@@ -154,7 +156,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-16 text-center">
+                            <td colspan="8" class="px-6 py-16 text-center">
                                 <div class="text-sm text-gray-500 dark:text-gray-400">No se encontraron tiempos extra</div>
                                 <a href="{{ route('admin.over-times.create') }}" class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
                                     Crear el primero
