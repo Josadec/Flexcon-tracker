@@ -51,14 +51,15 @@ class OverTimeList extends Component
         $shifts = Shift::orderBy('name')->get();
 
         $query = OverTime::with('shift')
+            ->withCount('users')
             ->when($this->search, fn ($q) => $q->search($this->search))
             ->when($this->filterShift, fn ($q) => $q->byShift($this->filterShift))
             ->orderBy($this->sortBy, $this->sortDirection);
 
         $overTimes = $query->paginate($this->perPage);
 
-        // total_hours es un accessor (calculado), no una columna en BD
-        $totalHours = OverTime::all()->sum(fn (OverTime $o) => $o->total_hours);
+        // total_hours es un accessor (calculado), requiere users_count para evitar N+1
+        $totalHours = OverTime::withCount('users')->get()->sum(fn (OverTime $o) => $o->total_hours);
 
         $stats = [
             'total' => OverTime::count(),

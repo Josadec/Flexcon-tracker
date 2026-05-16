@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\OverTime;
 use App\Models\Shift;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -34,7 +35,7 @@ class OverTimeFactory extends Factory
 
         // End time: 2-4 horas después
         $duration = $this->faker->numberBetween(2, 4);
-        $endTime = $startTime->copy()->addHours($duration);
+        $endTime  = $startTime->copy()->addHours($duration);
 
         return [
             'name' => $this->faker->randomElement([
@@ -44,14 +45,29 @@ class OverTimeFactory extends Factory
                 'Producción Extra Cliente Prioritario',
                 'Overtime Recuperación',
             ]),
-            'start_time' => $startTime->format('H:i'),
-            'end_time' => $endTime->format('H:i'),
-            'break_minutes' => $this->faker->randomElement([0, 15, 30]), // 0, 15 o 30 min
-            'employees_qty' => $this->faker->numberBetween(5, 20),
-            'date' => $this->faker->dateTimeBetween('now', '+30 days')->format('Y-m-d'),
-            'shift_id' => $shift->id,
-            'comments' => $this->faker->optional(0.3)->sentence(),
+            'start_time'    => $startTime->format('H:i'),
+            'end_time'      => $endTime->format('H:i'),
+            'break_minutes' => $this->faker->randomElement([0, 15, 30]),
+            'date'          => $this->faker->dateTimeBetween('now', '+30 days')->format('Y-m-d'),
+            'shift_id'      => $shift->id,
+            'comments'      => $this->faker->optional(0.3)->sentence(),
         ];
+    }
+
+    /**
+     * Asociar empleados aleatorios tras crear el overtime
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (OverTime $overTime) {
+            $employees = User::active()->employees()->inRandomOrder()->take(
+                $this->faker->numberBetween(1, 5)
+            )->get();
+
+            if ($employees->isNotEmpty()) {
+                $overTime->users()->sync($employees->pluck('id')->toArray());
+            }
+        });
     }
 
     /**
@@ -60,11 +76,10 @@ class OverTimeFactory extends Factory
     public function nightShift(): static
     {
         return $this->state(fn (array $attributes) => [
-            'name' => 'Overtime Nocturno',
-            'start_time' => '22:00',
-            'end_time' => '02:00', // Cruza medianoche
+            'name'          => 'Overtime Nocturno',
+            'start_time'    => '22:00',
+            'end_time'      => '02:00',
             'break_minutes' => 30,
-            'employees_qty' => $this->faker->numberBetween(5, 15),
         ]);
     }
 
@@ -74,14 +89,13 @@ class OverTimeFactory extends Factory
     public function weekend(): static
     {
         return $this->state(fn (array $attributes) => [
-            'name' => 'Overtime Fin de Semana',
-            'date' => $this->faker->dateTimeBetween('now', '+30 days')
-                                  ->modify('next saturday')
-                                  ->format('Y-m-d'),
-            'start_time' => '08:00',
-            'end_time' => '17:00',
+            'name'          => 'Overtime Fin de Semana',
+            'date'          => $this->faker->dateTimeBetween('now', '+30 days')
+                                          ->modify('next saturday')
+                                          ->format('Y-m-d'),
+            'start_time'    => '08:00',
+            'end_time'      => '17:00',
             'break_minutes' => 60,
-            'employees_qty' => $this->faker->numberBetween(10, 25),
         ]);
     }
 
@@ -91,14 +105,13 @@ class OverTimeFactory extends Factory
     public function short(): static
     {
         $start = \Carbon\Carbon::parse('17:00');
-        $end = $start->copy()->addHours(2);
+        $end   = $start->copy()->addHours(2);
 
         return $this->state(fn (array $attributes) => [
-            'name' => 'Overtime Corto',
-            'start_time' => $start->format('H:i'),
-            'end_time' => $end->format('H:i'),
+            'name'          => 'Overtime Corto',
+            'start_time'    => $start->format('H:i'),
+            'end_time'      => $end->format('H:i'),
             'break_minutes' => 0,
-            'employees_qty' => $this->faker->numberBetween(5, 10),
         ]);
     }
 
@@ -108,14 +121,13 @@ class OverTimeFactory extends Factory
     public function long(): static
     {
         $start = \Carbon\Carbon::parse('17:00');
-        $end = $start->copy()->addHours(6);
+        $end   = $start->copy()->addHours(6);
 
         return $this->state(fn (array $attributes) => [
-            'name' => 'Overtime Extendido',
-            'start_time' => $start->format('H:i'),
-            'end_time' => $end->format('H:i'),
+            'name'          => 'Overtime Extendido',
+            'start_time'    => $start->format('H:i'),
+            'end_time'      => $end->format('H:i'),
             'break_minutes' => 60,
-            'employees_qty' => $this->faker->numberBetween(15, 30),
         ]);
     }
 }

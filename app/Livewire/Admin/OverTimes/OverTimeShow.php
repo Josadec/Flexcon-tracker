@@ -11,7 +11,7 @@ class OverTimeShow extends Component
 
     public function mount(OverTime $overTime): void
     {
-        $this->overTime = $overTime->load('shift');
+        $this->overTime = $overTime->load(['shift', 'users']);
     }
 
     public function render()

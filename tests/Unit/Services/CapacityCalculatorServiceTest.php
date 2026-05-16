@@ -4,7 +4,7 @@ namespace Tests\Unit\Services;
 
 use Tests\TestCase;
 use App\Services\CapacityCalculatorService;
-use App\Models\{Shift, Part, Standard, Holiday, OverTime, PurchaseOrder, SentList, WorkOrder};
+use App\Models\{Shift, Part, Standard, Holiday, OverTime, PurchaseOrder, SentList, WorkOrder, User};
 use App\Exceptions\CapacityExceededException;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -358,14 +358,15 @@ class CapacityCalculatorServiceTest extends TestCase
         // Overtime: 2 hours (16:30 - 18:30), 0 break, 1 employee
         // Net hours = 2 hours
         // Total hours = 2 hours × 1 employee = 2 hours
-        OverTime::factory()->create([
-            'date' => '2025-01-06',
-            'shift_id' => $shift->id,
-            'start_time' => '16:30:00',
-            'end_time' => '18:30:00',
+        $user = User::factory()->create(['active' => true]);
+        $overTime = OverTime::factory()->create([
+            'date'          => '2025-01-06',
+            'shift_id'      => $shift->id,
+            'start_time'    => '16:30:00',
+            'end_time'      => '18:30:00',
             'break_minutes' => 0,
-            'employees_qty' => 1,
         ]);
+        $overTime->users()->attach($user->id);
 
         $start_date = Carbon::parse('2025-01-06');
         $end_date = Carbon::parse('2025-01-10'); // 5 days

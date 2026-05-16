@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\OverTimeExportController;
 use App\Http\Controllers\PackingSlipPdfController;
 use App\Http\Controllers\PartsReportController;
 use App\Http\Controllers\ReportController;
@@ -163,6 +164,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('/over-times/create', \App\Livewire\Admin\OverTimes\OverTimeCreate::class)->name('over-times.create');
     Route::get('/over-times/{overTime}', \App\Livewire\Admin\OverTimes\OverTimeShow::class)->name('over-times.show');
     Route::get('/over-times/{overTime}/edit', \App\Livewire\Admin\OverTimes\OverTimeEdit::class)->name('over-times.edit');
+    Route::get('/over-times/{overTime}/export', [OverTimeExportController::class, 'export'])->name('over-times.export');
 
     // Production Capacity Calculator (Legacy)
     Route::get('/capacity-calculator', \App\Livewire\CapacityCalculator::class)->name('capacity.calculator');
