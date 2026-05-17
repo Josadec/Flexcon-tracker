@@ -47,27 +47,35 @@
                 </div>
 
                 {{-- Filtros --}}
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <select wire:model.live="filterDepartment"
+                <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+                    {{-- Buscador --}}
+                    <div class="relative flex-1 min-w-[220px]">
+                        <input type="text" wire:model.live.debounce.300ms="searchTerm"
+                            placeholder="Buscar por WO #, # parte o descripción..."
+                            class="w-full pl-9 pr-8 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                        <svg class="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        @if ($searchTerm)
+                            <button wire:click="$set('searchTerm', '')"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                title="Limpiar búsqueda">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        @endif
+                    </div>
+
+                    <select wire:model.live="filterWorkstation"
                         class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">Todos los Departamentos</option>
-                        @foreach (\App\Models\SentList::getDepartments() as $key => $label)
-                            <option value="{{ $key }}">{{ $label }}</option>
-                        @endforeach
+                        <option value="">Todos los tipos</option>
+                        <option value="Mesa">Mesa</option>
+                        <option value="Máquina">Máquina</option>
+                        <option value="Semi-Automática">Semi-Automática</option>
+                        <option value="Sin Clasificar">Sin Clasificar</option>
                     </select>
 
-                    <select wire:model.live="filterStatus"
-                        class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">Todos los Estados</option>
-                        @foreach (\App\Models\SentList::getStatuses() as $key => $label)
-                            <option value="{{ $key }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-
-                    <button wire:click="toggleCompleted"
-                        class="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                        {{ $showCompleted ? 'Ocultar' : 'Mostrar' }} Completados
-                    </button>
                 </div>
             </div>
         </div>
@@ -101,37 +109,73 @@
         </div>
     @endif
 
-    {{-- Panel Resumen del Ciclo Post-Calidad --}}
+    {{-- Panel Resumen del Ciclo Completo --}}
     @php
-        $summaryTotal = ($lifecycleSummary['viajero_pending'] ?? 0)
-            + ($lifecycleSummary['decision_pending'] ?? 0)
-            + ($lifecycleSummary['material_pending'] ?? 0)
-            + ($lifecycleSummary['material_inflight'] ?? 0);
+        $summaryTotal = array_sum($lifecycleSummary ?? []);
     @endphp
     @if ($summaryTotal > 0)
         <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4">
             <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
                 <div class="flex flex-wrap items-center gap-3 text-xs">
                     <span class="font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Acciones pendientes:</span>
-                    @if ($lifecycleSummary['viajero_pending'] > 0)
+
+                    @if (($lifecycleSummary['material_release_pending'] ?? 0) > 0)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
+                            <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                            <strong>{{ $lifecycleSummary['material_release_pending'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['material_release_pending']) }} esperando liberación de material — <span class="font-semibold">Materiales</span>
+                        </span>
+                    @endif
+
+                    @if (($lifecycleSummary['crimp_kit_pending'] ?? 0) > 0)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700">
+                            <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                            <strong>{{ $lifecycleSummary['crimp_kit_pending'] }}</strong> CRIMP {{ Str::plural('lote', $lifecycleSummary['crimp_kit_pending']) }} esperando kit — <span class="font-semibold">Materiales</span>
+                        </span>
+                    @endif
+
+                    @if (($lifecycleSummary['inspection_pending'] ?? 0) > 0)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700">
+                            <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+                            <strong>{{ $lifecycleSummary['inspection_pending'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['inspection_pending']) }} esperando inspección — <span class="font-semibold">Calidad</span>
+                        </span>
+                    @endif
+
+                    @if (($lifecycleSummary['production_pending'] ?? 0) > 0)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700">
+                            <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                            <strong>{{ $lifecycleSummary['production_pending'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['production_pending']) }} esperando pesada de producción — <span class="font-semibold">Producción</span>
+                        </span>
+                    @endif
+
+                    @if (($lifecycleSummary['quality_pending'] ?? 0) > 0)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700">
+                            <span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
+                            <strong>{{ $lifecycleSummary['quality_pending'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['quality_pending']) }} esperando pesada de calidad — <span class="font-semibold">Calidad</span>
+                        </span>
+                    @endif
+
+                    @if (($lifecycleSummary['viajero_pending'] ?? 0) > 0)
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-700">
                             <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
                             <strong>{{ $lifecycleSummary['viajero_pending'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['viajero_pending']) }} esperando entrega de viajero — <span class="font-semibold">Empaque</span>
                         </span>
                     @endif
-                    @if ($lifecycleSummary['decision_pending'] > 0)
+
+                    @if (($lifecycleSummary['decision_pending'] ?? 0) > 0)
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700">
                             <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
                             <strong>{{ $lifecycleSummary['decision_pending'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['decision_pending']) }} esperando decisión — <span class="font-semibold">Materiales</span>
                         </span>
                     @endif
-                    @if ($lifecycleSummary['material_pending'] > 0)
+
+                    @if (($lifecycleSummary['material_pending'] ?? 0) > 0)
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
                             <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
                             <strong>{{ $lifecycleSummary['material_pending'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['material_pending']) }} esperando entrega de sobrantes — <span class="font-semibold">Empaque</span>
                         </span>
                     @endif
-                    @if ($lifecycleSummary['material_inflight'] > 0)
+
+                    @if (($lifecycleSummary['material_inflight'] ?? 0) > 0)
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700">
                             <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
                             <strong>{{ $lifecycleSummary['material_inflight'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['material_inflight']) }} esperando recepción de material — <span class="font-semibold">Materiales</span>
@@ -245,17 +289,92 @@
                                 @endphp
 
                                 @php
-                                    // Resumen del ciclo post-calidad por WO (sólo lotes con acción pendiente)
-                                    $woLifecycle = ['viajero' => 0, 'decision' => 0, 'material_deliver' => 0, 'material_receive' => 0];
+                                    // Conteo de lotes pendientes / completados por fase para este WO
+                                    $woLifecycle = [
+                                        'material' => 0, 'crimp_kit' => 0, 'inspection' => 0, 'production' => 0, 'quality' => 0,
+                                        'viajero' => 0, 'decision' => 0, 'material_deliver' => 0, 'material_receive' => 0,
+                                        'completed' => 0,
+                                        // Completados por fase
+                                        'kit_done' => 0, 'inspection_done' => 0, 'production_done' => 0, 'quality_done' => 0,
+                                    ];
                                     foreach ($allLots as $l) {
+                                        // Lote completado: ciclo completo finalizado
+                                        if ($l->hasPackagingRecords() && $l->isSurplusReceived()) {
+                                            $woLifecycle['completed']++;
+                                        }
+
+                                        // Kit / Material completado
+                                        if ($part->is_crimp) {
+                                            // CRIMP: al menos un kit liberado/listo y ninguno preparing/pending
+                                            if ($l->kits->isNotEmpty() && !$l->kits->contains(fn($k) => in_array($k->status, ['preparing','pending'], true))) {
+                                                $woLifecycle['kit_done']++;
+                                            }
+                                        } else {
+                                            if (($l->material_status ?? '') === 'released') {
+                                                $woLifecycle['kit_done']++;
+                                            }
+                                        }
+
+                                        // Inspección completada
+                                        if (($l->inspection_status ?? '') === 'approved') {
+                                            $woLifecycle['inspection_done']++;
+                                        }
+
+                                        // Producción completada (pesadas al 100%)
+                                        $prodWeighedDone = $l->weighings->sum('good_pieces') + $l->weighings->sum('bad_pieces');
+                                        $reworkPendingDone = $l->qualityWeighings->where('rework_status', 'pending_rework')->sum('bad_pieces');
+                                        $prodToWeighDone = $l->quantity + $reworkPendingDone;
+                                        if ($prodWeighedDone > 0 && $prodWeighedDone >= $prodToWeighDone) {
+                                            $woLifecycle['production_done']++;
+                                        }
+
+                                        // Calidad completada (verificación total)
+                                        if ($l->getQualitySemaphoreStatus() === 'green') {
+                                            $woLifecycle['quality_done']++;
+                                        }
+                                        // Kit / Material
+                                        if ($part->is_crimp) {
+                                            // CRIMP: sin kits aún o kits en preparing/pending
+                                            $hasKits = $l->kits->isNotEmpty();
+                                            $hasPendingKit = $l->kits->contains(fn($k) => in_array($k->status, ['preparing','pending'], true));
+                                            if (!$hasKits || $hasPendingKit) {
+                                                $woLifecycle['crimp_kit']++;
+                                            }
+                                        } else {
+                                            if (($l->material_status ?? 'pending') === 'pending') {
+                                                $woLifecycle['material']++;
+                                            }
+                                        }
+
+                                        // Inspección
+                                        if (($l->inspection_status ?? 'pending') === 'pending' && $l->canBeInspected()) {
+                                            $woLifecycle['inspection']++;
+                                        }
+
+                                        // Producción pendiente: hay piezas por pesar y la inspección está aprobada
+                                        $prodWeighed = $l->weighings->sum('good_pieces') + $l->weighings->sum('bad_pieces');
+                                        $reworkPending = $l->qualityWeighings->where('rework_status', 'pending_rework')->sum('bad_pieces');
+                                        $prodToWeigh = $l->quantity + $reworkPending;
+                                        if ($prodWeighed < $prodToWeigh && ($l->inspection_status ?? '') === 'approved') {
+                                            $woLifecycle['production']++;
+                                        }
+
+                                        // Calidad pendiente: hay piezas pesadas en producción pero no todas verificadas
+                                        if ($l->getQualitySemaphoreStatus() === 'yellow') {
+                                            $woLifecycle['quality']++;
+                                        }
+
+                                        // Post-calidad (Empaque)
                                         $next = $l->getNextPendingAction();
-                                        if (!$next) continue;
-                                        if ($next['phase'] === 'viajero')  $woLifecycle['viajero']++;
-                                        if ($next['phase'] === 'decision') $woLifecycle['decision']++;
-                                        if ($next['phase'] === 'material' && $next['state'] === 'pending')     $woLifecycle['material_deliver']++;
-                                        if ($next['phase'] === 'material' && $next['state'] === 'in_progress') $woLifecycle['material_receive']++;
+                                        if ($next) {
+                                            if ($next['phase'] === 'viajero')  $woLifecycle['viajero']++;
+                                            if ($next['phase'] === 'decision') $woLifecycle['decision']++;
+                                            if ($next['phase'] === 'material' && $next['state'] === 'pending')     $woLifecycle['material_deliver']++;
+                                            if ($next['phase'] === 'material' && $next['state'] === 'in_progress') $woLifecycle['material_receive']++;
+                                        }
                                     }
                                     $woHasPending = array_sum($woLifecycle) > 0;
+                                    $woHasEmpPending = ($woLifecycle['viajero'] + $woLifecycle['decision'] + $woLifecycle['material_deliver'] + $woLifecycle['material_receive']) > 0;
                                 @endphp
                                 {{-- Fila Principal de WO --}}
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
@@ -274,14 +393,108 @@
                                         {{ $part->number }}</td>
                                     <td class="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-xs truncate"
                                         title="{{ $part->description }}">{{ $part->description }}</td>
-                                    {{-- Celdas vacias para Kit, Insp, Prod, Cal en fila WO --}}
-                                    <td class="px-4 py-3"></td>
-                                    <td class="px-4 py-3"></td>
-                                    <td class="px-4 py-3"></td>
-                                    <td class="px-4 py-3"></td>
+                                    {{-- Kit / Material --}}
+                                    <td class="px-4 py-3 text-center">
+                                        @if ($woLifecycle['material'] > 0 || $woLifecycle['crimp_kit'] > 0 || $woLifecycle['kit_done'] > 0)
+                                            <div class="flex flex-wrap items-center justify-center gap-1">
+                                                @if ($woLifecycle['material'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700"
+                                                        title="{{ $woLifecycle['material'] }} {{ Str::plural('lote', $woLifecycle['material']) }} esperando liberación de material — Materiales">
+                                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                                        {{ $woLifecycle['material'] }}
+                                                    </span>
+                                                @endif
+                                                @if ($woLifecycle['crimp_kit'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700"
+                                                        title="{{ $woLifecycle['crimp_kit'] }} CRIMP {{ Str::plural('lote', $woLifecycle['crimp_kit']) }} esperando kit — Materiales">
+                                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                                                        CRIMP {{ $woLifecycle['crimp_kit'] }}
+                                                    </span>
+                                                @endif
+                                                @if ($woLifecycle['kit_done'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700"
+                                                        title="{{ $woLifecycle['kit_done'] }} {{ Str::plural('lote', $woLifecycle['kit_done']) }} con {{ $part->is_crimp ? 'kit listo' : 'material liberado' }}">
+                                                        <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                                        {{ $woLifecycle['kit_done'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-[10px] text-gray-400 dark:text-gray-500">—</span>
+                                        @endif
+                                    </td>
+                                    {{-- Inspección --}}
+                                    <td class="px-4 py-3 text-center">
+                                        @if ($woLifecycle['inspection'] > 0 || $woLifecycle['inspection_done'] > 0)
+                                            <div class="flex flex-wrap items-center justify-center gap-1">
+                                                @if ($woLifecycle['inspection'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700"
+                                                        title="{{ $woLifecycle['inspection'] }} {{ Str::plural('lote', $woLifecycle['inspection']) }} esperando inspección — Calidad">
+                                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                        {{ $woLifecycle['inspection'] }}
+                                                    </span>
+                                                @endif
+                                                @if ($woLifecycle['inspection_done'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700"
+                                                        title="{{ $woLifecycle['inspection_done'] }} {{ Str::plural('lote', $woLifecycle['inspection_done']) }} aprobado{{ $woLifecycle['inspection_done'] > 1 ? 's' : '' }} en inspección">
+                                                        <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                                        {{ $woLifecycle['inspection_done'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-[10px] text-gray-400 dark:text-gray-500">—</span>
+                                        @endif
+                                    </td>
+                                    {{-- Producción --}}
+                                    <td class="px-4 py-3 text-center">
+                                        @if ($woLifecycle['production'] > 0 || $woLifecycle['production_done'] > 0)
+                                            <div class="flex flex-wrap items-center justify-center gap-1">
+                                                @if ($woLifecycle['production'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700"
+                                                        title="{{ $woLifecycle['production'] }} {{ Str::plural('lote', $woLifecycle['production']) }} esperando pesada de producción — Producción">
+                                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+                                                        {{ $woLifecycle['production'] }}
+                                                    </span>
+                                                @endif
+                                                @if ($woLifecycle['production_done'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700"
+                                                        title="{{ $woLifecycle['production_done'] }} {{ Str::plural('lote', $woLifecycle['production_done']) }} con pesada de producción completa">
+                                                        <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                                        {{ $woLifecycle['production_done'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-[10px] text-gray-400 dark:text-gray-500">—</span>
+                                        @endif
+                                    </td>
+                                    {{-- Calidad --}}
+                                    <td class="px-4 py-3 text-center">
+                                        @if ($woLifecycle['quality'] > 0 || $woLifecycle['quality_done'] > 0)
+                                            <div class="flex flex-wrap items-center justify-center gap-1">
+                                                @if ($woLifecycle['quality'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700"
+                                                        title="{{ $woLifecycle['quality'] }} {{ Str::plural('lote', $woLifecycle['quality']) }} esperando pesada de calidad — Calidad">
+                                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                        {{ $woLifecycle['quality'] }}
+                                                    </span>
+                                                @endif
+                                                @if ($woLifecycle['quality_done'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700"
+                                                        title="{{ $woLifecycle['quality_done'] }} {{ Str::plural('lote', $woLifecycle['quality_done']) }} con calidad verificada">
+                                                        <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                                        {{ $woLifecycle['quality_done'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-[10px] text-gray-400 dark:text-gray-500">—</span>
+                                        @endif
+                                    </td>
                                     {{-- Resumen Empaque (post-calidad) por WO --}}
                                     <td class="px-4 py-3">
-                                        @if ($woHasPending)
+                                        @if ($woHasEmpPending)
                                             <div class="flex flex-wrap items-center justify-center gap-1">
                                                 @if ($woLifecycle['viajero'] > 0)
                                                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-700"
@@ -311,6 +524,22 @@
                                                         {{ $woLifecycle['material_receive'] }}
                                                     </span>
                                                 @endif
+                                                @if ($woLifecycle['completed'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700"
+                                                        title="{{ $woLifecycle['completed'] }} {{ Str::plural('lote', $woLifecycle['completed']) }} completado{{ $woLifecycle['completed'] > 1 ? 's' : '' }} — ciclo finalizado">
+                                                        <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                                        Completado {{ $woLifecycle['completed'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @elseif ($woLifecycle['completed'] > 0)
+                                            {{-- Solo completados, sin pendientes --}}
+                                            <div class="flex flex-wrap items-center justify-center gap-1">
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700"
+                                                    title="{{ $woLifecycle['completed'] }} {{ Str::plural('lote', $woLifecycle['completed']) }} completado{{ $woLifecycle['completed'] > 1 ? 's' : '' }} — ciclo finalizado">
+                                                    <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                                    Completado {{ $woLifecycle['completed'] }}
+                                                </span>
                                             </div>
                                         @else
                                             <div class="text-center text-[10px] text-gray-400 dark:text-gray-500">—</div>
@@ -400,22 +629,76 @@
                                                 <span class="ml-1 px-1 py-0.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded font-semibold" title="Ciclo de completado {{ $lot->completion_count }}">Completado {{ $lot->completion_count }}</span>
                                             @endif
 
-                                            {{-- Próxima acción pendiente (post-calidad) --}}
-                                            @php $nextAction = $lot->getNextPendingAction(); @endphp
-                                            @if ($nextAction)
+                                            {{-- Próxima acción pendiente (lifecycle completo) --}}
+                                            @php
+                                                // Resolver la primera fase pendiente del lote
+                                                $lotPendingPhase = null;
+
+                                                // 1) Kit / Material
+                                                if ($part->is_crimp) {
+                                                    $lotHasKits = $lot->kits->isNotEmpty();
+                                                    $lotHasPendingKit = $lot->kits->contains(fn($k) => in_array($k->status, ['preparing','pending'], true));
+                                                    if (!$lotHasKits) {
+                                                        $lotPendingPhase = ['actor' => 'Materiales', 'label' => 'Materiales debe crear el kit (CRIMP sin kits)', 'is_crimp' => true];
+                                                    } elseif ($lotHasPendingKit) {
+                                                        $lotPendingPhase = ['actor' => 'Materiales', 'label' => 'Materiales debe preparar/liberar el kit (CRIMP)', 'is_crimp' => true];
+                                                    }
+                                                } else {
+                                                    if (($lot->material_status ?? 'pending') === 'pending') {
+                                                        $lotPendingPhase = ['actor' => 'Materiales', 'label' => 'Materiales debe liberar el material'];
+                                                    }
+                                                }
+
+                                                // 2) Inspección
+                                                if (!$lotPendingPhase && ($lot->inspection_status ?? 'pending') === 'pending' && $lot->canBeInspected()) {
+                                                    $lotPendingPhase = ['actor' => 'Calidad', 'label' => 'Calidad debe inspeccionar el lote'];
+                                                }
+
+                                                // 3) Producción
+                                                if (!$lotPendingPhase) {
+                                                    $prodWeighedNow = $lot->weighings->sum('good_pieces') + $lot->weighings->sum('bad_pieces');
+                                                    $reworkPendingNow = $lot->qualityWeighings->where('rework_status', 'pending_rework')->sum('bad_pieces');
+                                                    $prodToWeighNow = $lot->quantity + $reworkPendingNow;
+                                                    if ($prodWeighedNow < $prodToWeighNow && ($lot->inspection_status ?? '') === 'approved') {
+                                                        $remaining = $prodToWeighNow - $prodWeighedNow;
+                                                        $lotPendingPhase = ['actor' => 'Producción', 'label' => 'Producción debe pesar ' . number_format($remaining) . ' pz'];
+                                                    }
+                                                }
+
+                                                // 4) Calidad
+                                                if (!$lotPendingPhase && $lot->getQualitySemaphoreStatus() === 'yellow') {
+                                                    $qPending = $lot->getQualityPendingPieces();
+                                                    $lotPendingPhase = ['actor' => 'Calidad', 'label' => 'Calidad debe pesar ' . number_format($qPending) . ' pz'];
+                                                }
+
+                                                // 5) Post-calidad (Viajero / Decisión / Material)
+                                                if (!$lotPendingPhase) {
+                                                    $next = $lot->getNextPendingAction();
+                                                    if ($next) {
+                                                        $lotPendingPhase = ['actor' => $next['actor'], 'label' => $next['label']];
+                                                    }
+                                                }
+
+                                                $actorColorMap = [
+                                                    'Materiales' => 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700',
+                                                    'Calidad'    => 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border-teal-300 dark:border-teal-700',
+                                                    'Producción' => 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700',
+                                                    'Empaque'    => 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700',
+                                                ];
+                                            @endphp
+                                            @if ($lotPendingPhase)
                                                 @php
-                                                    $actorColorMap = [
-                                                        'Empaque'    => 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700',
-                                                        'Materiales' => 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700',
-                                                    ];
-                                                    $actorClass = $actorColorMap[$nextAction['actor']] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600';
+                                                    $isCrimpPhase = $lotPendingPhase['is_crimp'] ?? false;
+                                                    $actorClass = $isCrimpPhase
+                                                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700'
+                                                        : ($actorColorMap[$lotPendingPhase['actor']] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600');
                                                 @endphp
                                                 <div class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium {{ $actorClass }}"
-                                                    title="{{ $nextAction['label'] }}">
+                                                    title="{{ $lotPendingPhase['label'] }}">
                                                     <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
                                                     </svg>
-                                                    <span>{{ $nextAction['actor'] }}</span>
+                                                    <span>{{ $lotPendingPhase['actor'] }}{{ $isCrimpPhase ? ' (CRIMP)' : '' }}</span>
                                                 </div>
                                             @endif
                                         </td>
