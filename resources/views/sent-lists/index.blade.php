@@ -5,15 +5,24 @@
                 <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Listas preliminares</h1>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Generadas desde el wizard de capacidad</p>
             </div>
-            @if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('Materiales'))
-                <a href="{{ route('admin.capacity.wizard') }}"
-                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm flex-shrink-0 ml-auto">
+            <div class="flex items-center gap-2 ml-auto flex-shrink-0">
+                <a href="{{ route('admin.sent-lists.display') }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 014-4h4m0 0l-3-3m3 3l-3 3M5 5h6a2 2 0 012 2v2" />
                     </svg>
-                    Nueva lista
+                    Lista de envío
                 </a>
-            @endif
+                @if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('Materiales'))
+                    <a href="{{ route('admin.capacity.wizard') }}"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Nueva lista
+                    </a>
+                @endif
+            </div>
         </div>
     </x-slot>
 
@@ -141,6 +150,13 @@
                                     </td>
                                     <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-right">
                                         <div class="flex items-center justify-end gap-2">
+                                            <a href="{{ route('admin.sent-lists.display.sl', $sentList->id) }}"
+                                                class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition"
+                                                title="Ir a Lista de envío">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 014-4h4m0 0l-3-3m3 3l-3 3M5 5h6a2 2 0 012 2v2" />
+                                                </svg>
+                                            </a>
                                             <a href="{{ route('admin.sent-lists.show', $sentList) }}"
                                                 class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
                                                 title="Ver">
