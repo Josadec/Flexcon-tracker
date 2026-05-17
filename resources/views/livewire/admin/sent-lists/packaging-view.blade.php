@@ -474,7 +474,7 @@
                                             </svg>
                                         </div>
                                         <div class="text-sm font-semibold text-green-700 dark:text-green-300">Nuevo Lote</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format($decMissing) }} pz en {{ $decIsCrimp ? 'lote + kit' : 'lote' }} nuevo</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format(max(0, $decLotTotal - $decPacked)) }} pz en {{ $decIsCrimp ? 'lote + kit' : 'lote' }} nuevo</div>
                                     </button>
 
                                     {{-- Opción 3: Cerrar Lote como está --}}

@@ -65,6 +65,10 @@ class ShippingListDisplay extends Component
     public $filterDepartment = '';
     public $filterStatus = '';
     public $showCompleted = true;
+    public $focusedWorkOrderId = null; // Filtro por WO específico (vista detalle)
+    public $focusedWorkOrderLabel = null;
+    public $focusedSentListId = null;  // Filtro por SentList completa
+    public $focusedSentListLabel = null;
 
     // Modal de lotes
     public $showLotModal = false;
@@ -211,9 +215,39 @@ class ShippingListDisplay extends Component
     public $qualKitAlreadyWeighed = 0;
     public $qualKitRemainingPieces = 0;
 
-    public function mount()
+    public function mount($workOrder = null, $sentList = null)
     {
-        // Inicializar filtros
+        // Filtro por WO específico (ruta /display/wo/{workOrder})
+        if ($workOrder) {
+            $wo = WorkOrder::with('purchaseOrder.part')->find($workOrder);
+            if ($wo) {
+                $this->focusedWorkOrderId = $wo->id;
+                $this->focusedWorkOrderLabel = $wo->purchaseOrder?->wo ?? ('#' . $wo->id);
+            } else {
+                session()->flash('error', 'Work Order no encontrado.');
+                $this->redirect(route('admin.sent-lists.display'), navigate: true);
+            }
+        }
+
+        // Filtro por SentList completa (ruta /display/sl/{sentList})
+        if ($sentList) {
+            $sl = SentList::find($sentList);
+            if ($sl) {
+                $this->focusedSentListId = $sl->id;
+                $this->focusedSentListLabel = '#' . $sl->id;
+            } else {
+                session()->flash('error', 'Lista de envío no encontrada.');
+                $this->redirect(route('admin.sent-lists.display'), navigate: true);
+            }
+        }
+    }
+
+    /**
+     * Limpiar el foco y volver a la vista completa.
+     */
+    public function clearFocusedWorkOrder()
+    {
+        $this->redirect(route('admin.sent-lists.display'), navigate: true);
     }
 
     #[On('refresh-display')]
@@ -1271,12 +1305,11 @@ class ShippingListDisplay extends Component
 
         $this->selectedLotForDecision = $lot;
 
-        // LOT-level calculations (quality rejected = discard, not faltantes)
+        // LOT-level calculations — descartadas por calidad cuentan como faltantes (piezas perdidas).
         $this->decLotTotal = $lot->quantity;
         $this->decPacked = $lot->getPackagingPackedPieces();
         $this->decSurplus = $lot->getPackagingTotalSurplus();
-        $qualityDiscarded = $lot->getQualityBadPieces();
-        $this->decMissing = max(0, $this->decLotTotal - $this->decPacked - $this->decSurplus - $qualityDiscarded);
+        $this->decMissing = max(0, $this->decLotTotal - $this->decPacked - $this->decSurplus);
         $this->decIsCrimp = (bool) ($lot->workOrder->purchaseOrder->part->is_crimp ?? false);
         $this->decClosureDecision = $lot->closure_decision;
         $this->decSurplusDelivered = (bool) $lot->surplus_delivered;
@@ -1381,8 +1414,8 @@ class ShippingListDisplay extends Component
     }
 
     /**
-     * Decision: Nuevo Lote — open Create Lot modal with MISSING pieces.
-     * faltantes = WO total - empacadas - sobrantes
+     * Decision: Nuevo Lote — open Create Lot modal.
+     * Nuevo Lote = Total Lote - Empacadas
      */
     public function decisionNewLot()
     {
@@ -1391,7 +1424,7 @@ class ShippingListDisplay extends Component
         if (!$this->selectedLotForDecision) return;
 
         $this->createLotType = 'new_lot';
-        $this->createLotQuantity = $this->decMissing;
+        $this->createLotQuantity = max(0, $this->decLotTotal - $this->decPacked);
         $this->createLotName = Lot::generateNextLotNumber($this->selectedLotForDecision->work_order_id);
         $this->showCreateLotFormModal = true;
     }
@@ -2182,6 +2215,22 @@ class ShippingListDisplay extends Component
         ])
         ->whereHas('lots'); // Solo WOs que tengan al menos un lote
 
+        // Vista enfocada en un único WO
+        if ($this->focusedWorkOrderId) {
+            $query->where('id', $this->focusedWorkOrderId);
+        }
+
+        // Vista enfocada en una SentList completa
+        // Usa getEffectiveWorkOrders() para cubrir WOs asignados vía FK directa
+        // Y también los WOs de POs vinculadas via pivot (sent_list_purchase_orders)
+        if ($this->focusedSentListId) {
+            $sl = SentList::with(['workOrders', 'purchaseOrders.workOrder'])->find($this->focusedSentListId);
+            if ($sl) {
+                $effectiveIds = $sl->getEffectiveWorkOrders()->pluck('id');
+                $query->whereIn('id', $effectiveIds);
+            }
+        }
+
         // Aplicar filtros de SentList si existen
         if ($this->filterDepartment) {
             $query->whereHas('sentList', function ($q) {
@@ -2217,8 +2266,27 @@ class ShippingListDisplay extends Component
             };
         });
 
+        // Resumen del ciclo post-calidad (Viajero / Decisión / Material)
+        $lifecycleSummary = [
+            'viajero_pending'   => 0, // Empaque debe entregar
+            'decision_pending'  => 0, // Materiales debe decidir
+            'material_pending'  => 0, // Empaque debe entregar sobrantes
+            'material_inflight' => 0, // Sobrantes entregados, Materiales debe recibir
+        ];
+        foreach ($workOrders as $wo) {
+            foreach ($wo->lots as $lot) {
+                $next = $lot->getNextPendingAction();
+                if (!$next) continue;
+                if ($next['phase'] === 'viajero')  $lifecycleSummary['viajero_pending']++;
+                if ($next['phase'] === 'decision') $lifecycleSummary['decision_pending']++;
+                if ($next['phase'] === 'material' && $next['state'] === 'pending')     $lifecycleSummary['material_pending']++;
+                if ($next['phase'] === 'material' && $next['state'] === 'in_progress') $lifecycleSummary['material_inflight']++;
+            }
+        }
+
         return view('livewire.admin.sent-lists.shipping-list-display', [
             'workOrdersGrouped' => $workOrdersGrouped,
+            'lifecycleSummary'  => $lifecycleSummary,
             'canMaterials'  => $this->canAccessDepartment('materials'),
             'canProduction' => $this->canAccessDepartment('production'),
             'canQuality'    => $this->canAccessDepartment('quality'),

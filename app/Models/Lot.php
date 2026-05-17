@@ -766,25 +766,28 @@ class Lot extends Model
 
     /**
      * Get pieces pending packaging.
+     * Pendientes = Calidad − Empacadas − Sobrantes declarados (ya separados en registros).
      */
     public function getPackagingPendingPieces(): int
     {
-        return max(0, $this->getPackagingAvailablePieces() - $this->getPackagingPackedPieces());
+        return max(
+            0,
+            $this->getPackagingAvailablePieces()
+                - $this->getPackagingPackedPieces()
+                - $this->getPackagingTotalSurplus()
+        );
     }
 
     /**
-     * Get total effective surplus: available − packed, minus any manual adjustment deltas.
+     * Get total surplus declared across packaging records (uses adjusted value when present).
      */
     public function getPackagingTotalSurplus(): int
     {
-        $surplus = $this->getPackagingPendingPieces(); // available − packed
+        $recordsSurplus = $this->packagingRecords->sum(function ($r) {
+            return $r->adjusted_surplus !== null ? (int) $r->adjusted_surplus : (int) $r->surplus_pieces;
+        });
 
-        // Apply manual adjustment deltas (original − adjusted) from recounts
-        $adjustmentDelta = $this->packagingRecords
-            ->filter(fn ($r) => $r->adjusted_surplus !== null)
-            ->sum(fn ($r) => $r->surplus_pieces - $r->adjusted_surplus);
-
-        return max(0, $surplus - $adjustmentDelta);
+        return max(0, (int) $recordsSurplus);
     }
 
     /**
@@ -868,6 +871,90 @@ class Lot extends Model
     public const CLOSURE_COMPLETE_LOT = 'complete_lot';
     public const CLOSURE_NEW_LOT = 'new_lot';
     public const CLOSURE_CLOSE_AS_IS = 'close_as_is';
+
+    /**
+     * Get the post-quality lifecycle state for visual indicators.
+     * Returns 3 phases (viajero, decision, material) each with:
+     *   - state: 'idle' | 'pending' | 'in_progress' | 'done'
+     *   - actor: 'Empaque' | 'Materiales' | null
+     *   - label: tooltip text
+     */
+    public function getPostQualityLifecycle(): array
+    {
+        $hasAvailable      = $this->getPackagingAvailablePieces() > 0;
+        $hasPacked         = $this->getPackagingPackedPieces() > 0;
+        $viajeroReceived   = $this->isViajeroReceived();
+        $hasDecision       = $this->hasClosureDecision();
+        $surplus           = $this->getPackagingTotalSurplus();
+        $hasSurplus        = $surplus > 0;
+        $surplusDelivered  = (bool) $this->surplus_delivered;
+        $surplusReceived   = $this->isSurplusReceived();
+
+        // ── Viajero ────────────────────────────────────────────────
+        if ($viajeroReceived) {
+            $viajero = ['state' => 'done', 'actor' => null, 'label' => 'Viajero recibido por Materiales'];
+        } elseif ($hasPacked || $hasAvailable) {
+            $viajero = ['state' => 'pending', 'actor' => 'Empaque', 'label' => 'Empaque debe entregar viajero'];
+        } else {
+            $viajero = ['state' => 'idle', 'actor' => null, 'label' => 'Sin actividad de empaque aún'];
+        }
+
+        // ── Decisión ───────────────────────────────────────────────
+        if ($hasDecision) {
+            $decLabel = match ($this->closure_decision) {
+                self::CLOSURE_COMPLETE_LOT => 'Decisión: Completar Lote',
+                self::CLOSURE_NEW_LOT      => 'Decisión: Nuevo Lote',
+                self::CLOSURE_CLOSE_AS_IS  => 'Decisión: Cerrar Lote',
+                default                    => 'Decisión tomada',
+            };
+            $decision = ['state' => 'done', 'actor' => null, 'label' => $decLabel];
+        } elseif ($viajeroReceived) {
+            $decision = ['state' => 'pending', 'actor' => 'Materiales', 'label' => 'Materiales debe tomar decisión de cierre'];
+        } else {
+            $decision = ['state' => 'idle', 'actor' => null, 'label' => 'Esperando entrega de viajero'];
+        }
+
+        // ── Material / Sobrantes ───────────────────────────────────
+        if ($surplusReceived) {
+            $material = [
+                'state' => 'done',
+                'actor' => null,
+                'label' => $hasSurplus
+                    ? 'Material sobrante recibido (' . number_format($surplus) . ' pz)'
+                    : 'Recepción de material confirmada',
+            ];
+        } elseif ($hasDecision) {
+            if ($hasSurplus) {
+                if (!$surplusDelivered) {
+                    $material = ['state' => 'pending', 'actor' => 'Empaque', 'label' => 'Empaque debe entregar ' . number_format($surplus) . ' pz sobrantes'];
+                } else {
+                    $material = ['state' => 'in_progress', 'actor' => 'Materiales', 'label' => 'Materiales debe recibir ' . number_format($surplus) . ' pz sobrantes'];
+                }
+            } else {
+                $material = ['state' => 'pending', 'actor' => 'Materiales', 'label' => 'Materiales debe confirmar recepción'];
+            }
+        } elseif ($viajeroReceived) {
+            $material = ['state' => 'idle', 'actor' => null, 'label' => 'Esperando decisión de Materiales'];
+        } else {
+            $material = ['state' => 'idle', 'actor' => null, 'label' => 'Esperando entrega de viajero'];
+        }
+
+        return compact('viajero', 'decision', 'material');
+    }
+
+    /**
+     * Get the next pending action for this lot (first non-done phase).
+     * Returns null if all phases are done or idle.
+     */
+    public function getNextPendingAction(): ?array
+    {
+        foreach ($this->getPostQualityLifecycle() as $phase => $info) {
+            if (in_array($info['state'], ['pending', 'in_progress'], true)) {
+                return ['phase' => $phase] + $info;
+            }
+        }
+        return null;
+    }
 
     // =====================================================
     // RETURN TO PACKAGING HELPERS

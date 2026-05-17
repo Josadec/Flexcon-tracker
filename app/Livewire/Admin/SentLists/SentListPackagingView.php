@@ -269,7 +269,7 @@ class SentListPackagingView extends Component
         if (!$this->selectedLotForDecision) return;
 
         $this->createLotType     = 'new_lot';
-        $this->createLotQuantity = $this->decMissing;
+        $this->createLotQuantity = max(0, $this->decLotTotal - $this->decPacked);
         $this->createLotName     = Lot::generateNextLotNumber($this->selectedLotForDecision->work_order_id);
         $this->showCreateLotFormModal = true;
     }
