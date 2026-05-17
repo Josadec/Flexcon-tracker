@@ -5,13 +5,22 @@
                 <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Editar lista #{{ $sentList->id }}</h1>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Cambiar estado de la lista</p>
             </div>
-            <a href="{{ route('admin.sent-lists.show', $sentList) }}"
-                class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm flex-shrink-0 ml-auto">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Volver
-            </a>
+            <div class="flex items-center gap-2 flex-shrink-0 ml-auto">
+                <a href="{{ route('admin.sent-lists.display.sl', $sentList->id) }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 014-4h4m0 0l-3-3m3 3l-3 3M5 5h6a2 2 0 012 2v2" />
+                    </svg>
+                    Lista de envío
+                </a>
+                <a href="{{ route('admin.sent-lists.show', $sentList) }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Volver
+                </a>
+            </div>
         </div>
     </x-slot>
 

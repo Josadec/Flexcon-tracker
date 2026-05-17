@@ -73,6 +73,75 @@
         </div>
     </div>
 
+    {{-- Banner de vista enfocada (WO o SentList) --}}
+    @if ($focusedWorkOrderId || $focusedSentListId)
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+            <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg px-4 py-3 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    <span class="text-sm text-indigo-800 dark:text-indigo-200">
+                        @if ($focusedWorkOrderId)
+                            Vista enfocada — mostrando sólo el WO <strong class="font-semibold">{{ $focusedWorkOrderLabel }}</strong>
+                        @else
+                            Vista enfocada — mostrando sólo la Lista de envío <strong class="font-semibold">{{ $focusedSentListLabel }}</strong>
+                        @endif
+                    </span>
+                </div>
+                <a href="{{ route('admin.sent-lists.display') }}" wire:navigate
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-600 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Ver todo
+                </a>
+            </div>
+        </div>
+    @endif
+
+    {{-- Panel Resumen del Ciclo Post-Calidad --}}
+    @php
+        $summaryTotal = ($lifecycleSummary['viajero_pending'] ?? 0)
+            + ($lifecycleSummary['decision_pending'] ?? 0)
+            + ($lifecycleSummary['material_pending'] ?? 0)
+            + ($lifecycleSummary['material_inflight'] ?? 0);
+    @endphp
+    @if ($summaryTotal > 0)
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                <div class="flex flex-wrap items-center gap-3 text-xs">
+                    <span class="font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Acciones pendientes:</span>
+                    @if ($lifecycleSummary['viajero_pending'] > 0)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-700">
+                            <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                            <strong>{{ $lifecycleSummary['viajero_pending'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['viajero_pending']) }} esperando entrega de viajero — <span class="font-semibold">Empaque</span>
+                        </span>
+                    @endif
+                    @if ($lifecycleSummary['decision_pending'] > 0)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700">
+                            <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                            <strong>{{ $lifecycleSummary['decision_pending'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['decision_pending']) }} esperando decisión — <span class="font-semibold">Materiales</span>
+                        </span>
+                    @endif
+                    @if ($lifecycleSummary['material_pending'] > 0)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                            <strong>{{ $lifecycleSummary['material_pending'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['material_pending']) }} esperando entrega de sobrantes — <span class="font-semibold">Empaque</span>
+                        </span>
+                    @endif
+                    @if ($lifecycleSummary['material_inflight'] > 0)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700">
+                            <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                            <strong>{{ $lifecycleSummary['material_inflight'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['material_inflight']) }} esperando recepción de material — <span class="font-semibold">Materiales</span>
+                        </span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Contenido Principal --}}
     <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-20">
         @foreach ($workOrdersGrouped as $workstationType => $workOrders)
@@ -175,23 +244,78 @@
                                     ];
                                 @endphp
 
+                                @php
+                                    // Resumen del ciclo post-calidad por WO (sólo lotes con acción pendiente)
+                                    $woLifecycle = ['viajero' => 0, 'decision' => 0, 'material_deliver' => 0, 'material_receive' => 0];
+                                    foreach ($allLots as $l) {
+                                        $next = $l->getNextPendingAction();
+                                        if (!$next) continue;
+                                        if ($next['phase'] === 'viajero')  $woLifecycle['viajero']++;
+                                        if ($next['phase'] === 'decision') $woLifecycle['decision']++;
+                                        if ($next['phase'] === 'material' && $next['state'] === 'pending')     $woLifecycle['material_deliver']++;
+                                        if ($next['phase'] === 'material' && $next['state'] === 'in_progress') $woLifecycle['material_receive']++;
+                                    }
+                                    $woHasPending = array_sum($woLifecycle) > 0;
+                                @endphp
                                 {{-- Fila Principal de WO --}}
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                                     <td class="px-4 py-3 text-gray-900 dark:text-white font-medium">WO</td>
-                                    <td class="px-4 py-3 text-indigo-600 dark:text-indigo-400 font-medium">
-                                        {{ $po->wo }}</td>
+                                    <td class="px-4 py-3 font-medium">
+                                        <a href="{{ route('admin.sent-lists.display.wo', $wo->id) }}"
+                                            wire:navigate
+                                            class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline cursor-pointer"
+                                            title="Ver solo este WO">
+                                            {{ $po->wo }}
+                                        </a>
+                                    </td>
                                     <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $part->item_number }}
                                     </td>
                                     <td class="px-4 py-3 text-gray-900 dark:text-white font-semibold">
                                         {{ $part->number }}</td>
                                     <td class="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-xs truncate"
                                         title="{{ $part->description }}">{{ $part->description }}</td>
-                                    {{-- Celdas vacias para Kit, Insp, Prod, Empaque, Inspeccion en fila WO --}}
+                                    {{-- Celdas vacias para Kit, Insp, Prod, Cal en fila WO --}}
                                     <td class="px-4 py-3"></td>
                                     <td class="px-4 py-3"></td>
                                     <td class="px-4 py-3"></td>
                                     <td class="px-4 py-3"></td>
-                                    <td class="px-4 py-3"></td>
+                                    {{-- Resumen Empaque (post-calidad) por WO --}}
+                                    <td class="px-4 py-3">
+                                        @if ($woHasPending)
+                                            <div class="flex flex-wrap items-center justify-center gap-1">
+                                                @if ($woLifecycle['viajero'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-700"
+                                                        title="{{ $woLifecycle['viajero'] }} {{ Str::plural('lote', $woLifecycle['viajero']) }} esperando entrega de viajero — Empaque">
+                                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1"/></svg>
+                                                        {{ $woLifecycle['viajero'] }}
+                                                    </span>
+                                                @endif
+                                                @if ($woLifecycle['decision'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700"
+                                                        title="{{ $woLifecycle['decision'] }} {{ Str::plural('lote', $woLifecycle['decision']) }} esperando decisión — Materiales">
+                                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                                        {{ $woLifecycle['decision'] }}
+                                                    </span>
+                                                @endif
+                                                @if ($woLifecycle['material_deliver'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700"
+                                                        title="{{ $woLifecycle['material_deliver'] }} {{ Str::plural('lote', $woLifecycle['material_deliver']) }} esperando entrega de sobrantes — Empaque">
+                                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                                        {{ $woLifecycle['material_deliver'] }}
+                                                    </span>
+                                                @endif
+                                                @if ($woLifecycle['material_receive'] > 0)
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700"
+                                                        title="{{ $woLifecycle['material_receive'] }} {{ Str::plural('lote', $woLifecycle['material_receive']) }} esperando recepción de material — Materiales">
+                                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                                        {{ $woLifecycle['material_receive'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <div class="text-center text-[10px] text-gray-400 dark:text-gray-500">—</div>
+                                        @endif
+                                    </td>
                                     {{-- Cantidades --}}
                                     <td class="px-4 py-3 text-right text-gray-900 dark:text-white font-medium">
                                         {{ number_format($cantWO) }}</td>
@@ -274,6 +398,25 @@
                                             @endif
                                             @if ($lot->completion_count > 0)
                                                 <span class="ml-1 px-1 py-0.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded font-semibold" title="Ciclo de completado {{ $lot->completion_count }}">Completado {{ $lot->completion_count }}</span>
+                                            @endif
+
+                                            {{-- Próxima acción pendiente (post-calidad) --}}
+                                            @php $nextAction = $lot->getNextPendingAction(); @endphp
+                                            @if ($nextAction)
+                                                @php
+                                                    $actorColorMap = [
+                                                        'Empaque'    => 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700',
+                                                        'Materiales' => 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700',
+                                                    ];
+                                                    $actorClass = $actorColorMap[$nextAction['actor']] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600';
+                                                @endphp
+                                                <div class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium {{ $actorClass }}"
+                                                    title="{{ $nextAction['label'] }}">
+                                                    <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    <span>{{ $nextAction['actor'] }}</span>
+                                                </div>
                                             @endif
                                         </td>
                                         <td class="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">
@@ -470,7 +613,19 @@
                                                     default => 'Empaque: Sin piezas de calidad',
                                                 };
                                             @endphp
+                                            @php
+                                                $lifecycle = $lot->getPostQualityLifecycle();
+                                                $stateColorMap = [
+                                                    'idle'        => 'bg-gray-300 dark:bg-gray-600',
+                                                    'pending'     => 'bg-amber-500',
+                                                    'in_progress' => 'bg-orange-500',
+                                                    'done'        => 'bg-green-600',
+                                                ];
+                                                $surplus = $lot->getPackagingTotalSurplus();
+                                                $canDeliverSurplus = $canPackaging && $lot->viajero_received && $surplus > 0 && !$lot->surplus_delivered;
+                                            @endphp
                                             <div class="flex items-center justify-center gap-1">
+                                                {{-- Semáforo Empaque general --}}
                                                 @if ($canPackaging)
                                                     <button wire:click="openPackagingModal({{ $lot->id }})"
                                                         class="w-5 h-5 rounded {{ $pkgSemColor }} hover:opacity-80 cursor-pointer transition-opacity"
@@ -478,54 +633,55 @@
                                                 @else
                                                     <span class="w-5 h-5 rounded {{ $pkgSemColor }} opacity-60" title="{{ $pkgSemTitle }}"></span>
                                                 @endif
-                                                @if ($lot->viajero_received && $canMaterials)
+
+                                                {{-- Indicador Viajero --}}
+                                                <span class="w-5 h-5 rounded {{ $stateColorMap[$lifecycle['viajero']['state']] }} {{ $lifecycle['viajero']['state'] === 'pending' ? 'animate-pulse' : '' }} flex items-center justify-center"
+                                                    title="Viajero: {{ $lifecycle['viajero']['label'] }}">
+                                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/>
+                                                    </svg>
+                                                </span>
+
+                                                {{-- Indicador Decisión --}}
+                                                @if ($lifecycle['decision']['state'] === 'pending' && $canMaterials)
                                                     <button wire:click="openDecisionModal({{ $lot->id }})"
-                                                        class="w-5 h-5 rounded {{ $lot->closure_decision ? 'bg-purple-700' : 'bg-purple-500 hover:bg-purple-600' }} cursor-pointer transition-colors flex items-center justify-center"
-                                                        title="Decisión Control de Materiales{{ $lot->closure_decision ? ' (decisión tomada)' : '' }}">
+                                                        class="w-5 h-5 rounded bg-amber-500 hover:bg-amber-600 animate-pulse cursor-pointer transition-colors flex items-center justify-center"
+                                                        title="Decisión: {{ $lifecycle['decision']['label'] }}">
                                                         <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                                         </svg>
                                                     </button>
+                                                @elseif ($lifecycle['decision']['state'] === 'done' && $canMaterials)
+                                                    <button wire:click="openDecisionModal({{ $lot->id }})"
+                                                        class="w-5 h-5 rounded bg-green-600 hover:opacity-80 cursor-pointer transition-opacity flex items-center justify-center"
+                                                        title="Decisión: {{ $lifecycle['decision']['label'] }}">
+                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                                        </svg>
+                                                    </button>
+                                                @else
+                                                    <span class="w-5 h-5 rounded {{ $stateColorMap[$lifecycle['decision']['state']] }} flex items-center justify-center"
+                                                        title="Decisión: {{ $lifecycle['decision']['label'] }}">
+                                                        <svg class="w-3 h-3 text-white opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                                        </svg>
+                                                    </span>
                                                 @endif
-                                                @if ($lot->viajero_received && $lot->getPackagingTotalSurplus() > 0 && !$lot->surplus_delivered && $canPackaging)
-                                                    {{-- Paso 1: Empaque entrega sobrante --}}
+
+                                                {{-- Indicador Material / Sobrantes --}}
+                                                @if ($canDeliverSurplus)
                                                     <button wire:click="openDeliverMaterialModal({{ $lot->id }})"
-                                                        class="w-5 h-5 rounded bg-amber-500 hover:bg-amber-600 cursor-pointer transition-colors flex items-center justify-center"
-                                                        title="Entregar Material Sobrante ({{ number_format($lot->getPackagingTotalSurplus()) }} pz)">
+                                                        class="w-5 h-5 rounded bg-amber-500 hover:bg-amber-600 animate-pulse cursor-pointer transition-colors flex items-center justify-center"
+                                                        title="Material: {{ $lifecycle['material']['label'] }}">
                                                         <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                                                         </svg>
                                                     </button>
-                                                @elseif ($lot->viajero_received && $lot->getPackagingTotalSurplus() > 0 && $lot->surplus_delivered && !$lot->surplus_received)
-                                                    {{-- Paso 2: Entregado, pendiente recepción por Control de Materiales --}}
-                                                    <span class="w-5 h-5 rounded bg-amber-600 flex items-center justify-center"
-                                                        title="Material entregado, pendiente recepción ({{ number_format($lot->getPackagingTotalSurplus()) }} pz)">
-                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                        </svg>
-                                                    </span>
-                                                @elseif ($lot->viajero_received && $lot->getPackagingTotalSurplus() > 0 && $lot->surplus_received)
-                                                    {{-- Paso 3: Material recibido por Control de Materiales --}}
-                                                    <span class="w-5 h-5 rounded bg-green-600 flex items-center justify-center"
-                                                        title="Material sobrante recibido ({{ number_format($lot->getPackagingTotalSurplus()) }} pz)">
-                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                        </svg>
-                                                    </span>
-                                                @elseif ($lot->viajero_received && $lot->getPackagingTotalSurplus() <= 0 && $lot->surplus_received)
-                                                    {{-- Sin sobrantes + material recibido confirmado --}}
-                                                    <span class="w-5 h-5 rounded bg-green-600 flex items-center justify-center"
-                                                        title="Material recibido — lote completado">
-                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                        </svg>
-                                                    </span>
-                                                @elseif ($lot->viajero_received && $lot->getPackagingTotalSurplus() <= 0 && !$lot->surplus_received)
-                                                    {{-- Sin sobrantes, pendiente confirmación de recepción --}}
-                                                    <span class="w-5 h-5 rounded bg-amber-500 flex items-center justify-center"
-                                                        title="Pendiente: confirmar recepción de material">
-                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"/>
+                                                @else
+                                                    <span class="w-5 h-5 rounded {{ $stateColorMap[$lifecycle['material']['state']] }} {{ $lifecycle['material']['state'] === 'pending' || $lifecycle['material']['state'] === 'in_progress' ? 'animate-pulse' : '' }} flex items-center justify-center"
+                                                        title="Material: {{ $lifecycle['material']['label'] }}">
+                                                        <svg class="w-3 h-3 text-white opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                                                         </svg>
                                                     </span>
                                                 @endif
@@ -2200,7 +2356,7 @@
                         </div>
 
                         <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
-                            Faltantes = Total Lote - Empacadas - Sobrantes - Descartadas (calidad)
+                            Faltantes = Total Lote - Empacadas - Sobrantes
                         </p>
 
                         {{-- Decision options (only if no closure decision yet) --}}
@@ -2231,7 +2387,7 @@
                                             </svg>
                                         </div>
                                         <div class="text-sm font-semibold text-green-700 dark:text-green-300">Nuevo Lote</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format($decMissing) }} pz en {{ $decIsCrimp ? 'lote + kit' : 'lote' }} nuevo</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format(max(0, $decLotTotal - $decPacked)) }} pz en {{ $decIsCrimp ? 'lote + kit' : 'lote' }} nuevo</div>
                                     </button>
 
                                     {{-- Opción 3: Cerrar Lote como está --}}
