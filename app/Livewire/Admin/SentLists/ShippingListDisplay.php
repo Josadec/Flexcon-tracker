@@ -2221,8 +2221,14 @@ class ShippingListDisplay extends Component
         }
 
         // Vista enfocada en una SentList completa
+        // Usa getEffectiveWorkOrders() para cubrir WOs asignados vía FK directa
+        // Y también los WOs de POs vinculadas via pivot (sent_list_purchase_orders)
         if ($this->focusedSentListId) {
-            $query->where('sent_list_id', $this->focusedSentListId);
+            $sl = SentList::with(['workOrders', 'purchaseOrders.workOrder'])->find($this->focusedSentListId);
+            if ($sl) {
+                $effectiveIds = $sl->getEffectiveWorkOrders()->pluck('id');
+                $query->whereIn('id', $effectiveIds);
+            }
         }
 
         // Aplicar filtros de SentList si existen
