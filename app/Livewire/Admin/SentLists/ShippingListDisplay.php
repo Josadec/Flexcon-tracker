@@ -272,7 +272,7 @@ class ShippingListDisplay extends Component
 
         $this->selectedWorkOrderId = $workOrderId;
         $this->selectedWorkOrder = WorkOrder::with(['purchaseOrder.part', 'lots'])->find($workOrderId);
-        
+
         if (!$this->selectedWorkOrder) {
             session()->flash('error', 'Work Order no encontrada.');
             return;
@@ -317,7 +317,7 @@ class ShippingListDisplay extends Component
                 session()->flash('message', 'Lote eliminado correctamente.');
             }
         }
-        
+
         // Remover del array
         unset($this->lots[$index]);
         $this->lots = array_values($this->lots); // Reindexar
@@ -430,7 +430,7 @@ class ShippingListDisplay extends Component
 
         // Obtener el kit asociado al lote (el más reciente)
         $this->selectedKit = $this->selectedLotForKit->kits->sortByDesc('created_at')->first();
-        
+
         if ($this->selectedKit) {
             $this->kitStatus = $this->selectedKit->status ?? 'preparing';
         } else {
@@ -561,7 +561,7 @@ class ShippingListDisplay extends Component
             'released' => 'Aprobado',
             'in_assembly' => 'En Ensamble',
         ];
-        
+
         $statusLabel = $statusLabels[$this->kitStatus] ?? $this->kitStatus;
         session()->flash('message', "Status de kit actualizado a: {$statusLabel}");
 
@@ -797,7 +797,7 @@ class ShippingListDisplay extends Component
     public function approveLot($lotId)
     {
         $lot = Lot::find($lotId);
-        
+
         if (!$lot) {
             session()->flash('error', 'Lote no encontrado.');
             return;
@@ -817,7 +817,7 @@ class ShippingListDisplay extends Component
     public function rejectLot($lotId)
     {
         $lot = Lot::find($lotId);
-        
+
         if (!$lot) {
             session()->flash('error', 'Lote no encontrado.');
             return;
@@ -2214,22 +2214,6 @@ class ShippingListDisplay extends Component
         }
 
         // Vista enfocada en una SentList completa
-<<<<<<< HEAD
-        // Usa getEffectiveWorkOrders() para cubrir WOs asignados vía FK directa
-        // Y también los WOs de POs vinculadas via pivot (sent_list_purchase_orders)
-        if ($this->focusedSentListId) {
-            $sl = SentList::with(['workOrders', 'purchaseOrders.workOrder'])->find($this->focusedSentListId);
-            if ($sl) {
-                $effectiveIds = $sl->getEffectiveWorkOrders()->pluck('id');
-                $query->whereIn('id', $effectiveIds);
-            }
-        }
-
-        // Aplicar filtros de SentList si existen
-        if ($this->filterDepartment) {
-            $query->whereHas('sentList', function ($q) {
-                $q->where('current_department', $this->filterDepartment);
-=======
         // Incluye WOs por dos rutas: directa (sent_list_id) y vía pivot (purchase_order → sent_list).
         if ($this->focusedSentListId) {
             $slId = $this->focusedSentListId;
@@ -2238,7 +2222,6 @@ class ShippingListDisplay extends Component
                   ->orWhereHas('purchaseOrder.sentLists', function ($sub) use ($slId) {
                       $sub->where('sent_lists.id', $slId);
                   });
->>>>>>> c286b37ed68b4714a65be68b160fbdb81cb5839c
             });
         }
 
