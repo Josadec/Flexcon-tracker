@@ -50,7 +50,9 @@
       "Bash(dir C:\\\\xampp\\\\htdocs\\\\flexcon-tracker\\\\app\\\\Models *)",
       "Bash(dir C:\\\\xampp\\\\htdocs\\\\flexcon-tracker\\\\app\\\\Http\\\\Controllers *)",
       "Bash(composer remove *)",
-      "Bash(findstr \"^name\\\\|^versions\\\\|^descrip\")"
+      "Bash(findstr \"^name\\\\|^versions\\\\|^descrip\")",
+      "Bash(composer install *)",
+      "Bash(composer update *)"
     ],
     "deny": [],
     "ask": []
