@@ -62,9 +62,8 @@ class ShippingListDisplay extends Component
     }
 
     public $refreshInterval = 30; // Segundos para auto-refresh
-    public $filterDepartment = '';
-    public $filterStatus = '';
-    public $showCompleted = true;
+    public $filterWorkstation = ''; // Mesa | Máquina | Semi-Automática | ''
+    public $searchTerm = '';
     public $focusedWorkOrderId = null; // Filtro por WO específico (vista detalle)
     public $focusedWorkOrderLabel = null;
     public $focusedSentListId = null;  // Filtro por SentList completa
@@ -256,20 +255,6 @@ class ShippingListDisplay extends Component
         // Forzar actualización
     }
 
-    public function toggleCompleted()
-    {
-        $this->showCompleted = !$this->showCompleted;
-    }
-
-    public function setDepartmentFilter($department)
-    {
-        $this->filterDepartment = $department === $this->filterDepartment ? '' : $department;
-    }
-
-    public function setStatusFilter($status)
-    {
-        $this->filterStatus = $status === $this->filterStatus ? '' : $status;
-    }
 
     public function getWorkstationHeaderColor($type)
     {
@@ -2202,18 +2187,26 @@ class ShippingListDisplay extends Component
 
     public function render()
     {
-        // Obtener Work Orders con lots (todos los estados)
+        // ¿Estamos en vista enfocada? (por WO o por SentList)
+        $isFocusedView = $this->focusedWorkOrderId || $this->focusedSentListId;
+
+        // Obtener Work Orders
         $query = WorkOrder::with([
             'purchaseOrder.part.standards' => function ($query) {
                 $query->active();
             },
-            'lots.weighings', // Cargar todos los lotes con sus pesadas
-            'lots.qualityWeighings', // Cargar pesadas de calidad
-            'lots.packagingRecords', // Cargar registros de empaque
-            'lots.kits', // Cargar kits para semáforo
+            'lots.weighings',
+            'lots.qualityWeighings',
+            'lots.packagingRecords',
+            'lots.kits',
             'sentList'
-        ])
-        ->whereHas('lots'); // Solo WOs que tengan al menos un lote
+        ]);
+
+        // En vista general: solo WOs con al menos un lote.
+        // En vista enfocada: traer todos los WOs aunque aún no tengan lotes.
+        if (!$isFocusedView) {
+            $query->whereHas('lots');
+        }
 
         // Vista enfocada en un único WO
         if ($this->focusedWorkOrderId) {
@@ -2221,6 +2214,7 @@ class ShippingListDisplay extends Component
         }
 
         // Vista enfocada en una SentList completa
+<<<<<<< HEAD
         // Usa getEffectiveWorkOrders() para cubrir WOs asignados vía FK directa
         // Y también los WOs de POs vinculadas via pivot (sent_list_purchase_orders)
         if ($this->focusedSentListId) {
@@ -2235,52 +2229,113 @@ class ShippingListDisplay extends Component
         if ($this->filterDepartment) {
             $query->whereHas('sentList', function ($q) {
                 $q->where('current_department', $this->filterDepartment);
+=======
+        // Incluye WOs por dos rutas: directa (sent_list_id) y vía pivot (purchase_order → sent_list).
+        if ($this->focusedSentListId) {
+            $slId = $this->focusedSentListId;
+            $query->where(function ($q) use ($slId) {
+                $q->where('sent_list_id', $slId)
+                  ->orWhereHas('purchaseOrder.sentLists', function ($sub) use ($slId) {
+                      $sub->where('sent_lists.id', $slId);
+                  });
+>>>>>>> c286b37ed68b4714a65be68b160fbdb81cb5839c
             });
         }
 
-        if ($this->filterStatus) {
-            $query->whereHas('sentList', function ($q) {
-                $q->where('status', $this->filterStatus);
-            });
-        }
-
-        if (!$this->showCompleted) {
-            $query->whereHas('sentList', function ($q) {
-                $q->where('status', '!=', SentList::STATUS_CONFIRMED);
+        // Búsqueda libre: WO #, # parte o descripción
+        if ($search = trim((string) $this->searchTerm)) {
+            $like = '%' . $search . '%';
+            $query->where(function ($q) use ($like) {
+                $q->where('wo_number', 'like', $like)
+                  ->orWhereHas('purchaseOrder', function ($q) use ($like) {
+                      $q->where('wo', 'like', $like)
+                        ->orWhere('po_number', 'like', $like);
+                  })
+                  ->orWhereHas('purchaseOrder.part', function ($q) use ($like) {
+                      $q->where('number', 'like', $like)
+                        ->orWhere('description', 'like', $like)
+                        ->orWhere('item_number', 'like', $like);
+                  });
             });
         }
 
         $workOrders = $query->orderBy('wo_number')->get();
 
-        // Agrupar por tipo de estación (Mesa, Máquina, Semi-Automática)
-        $workOrdersGrouped = $workOrders->groupBy(function ($wo) {
-            $standard = $wo->purchaseOrder->part->standards()->active()->first();
-            if (!$standard) return 'Sin Clasificar';
-            
-            $assemblyMode = $standard->getAssemblyMode();
-            return match($assemblyMode) {
-                'manual' => 'Mesa',
-                'machine' => 'Máquina',
-                'semi_automatic' => 'Semi-Automática',
-                default => 'Sin Clasificar',
+        // Resolver el tipo de estación de un WO (PO.workstation_type tiene prioridad, fallback al Standard).
+        $resolveWorkstation = function ($wo) {
+            $woType = $wo->purchaseOrder->workstation_type ?? null;
+            $mode = $woType ?: optional($wo->purchaseOrder->part->standards()->active()->first())->getAssemblyMode();
+            return match($mode) {
+                'manual', 'table' => 'Mesa',
+                'machine'         => 'Máquina',
+                'semi_automatic'  => 'Semi-Automática',
+                default           => 'Sin Clasificar',
             };
-        });
+        };
 
-        // Resumen del ciclo post-calidad (Viajero / Decisión / Material)
+        // Aplicar filtro por tipo de estación
+        if ($this->filterWorkstation) {
+            $workOrders = $workOrders->filter(fn ($wo) => $resolveWorkstation($wo) === $this->filterWorkstation)->values();
+        }
+
+        // Agrupar por tipo de estación (Mesa, Máquina, Semi-Automática)
+        $workOrdersGrouped = $workOrders->groupBy($resolveWorkstation);
+
+        // Resumen del ciclo completo (Material/Kit → Inspección → Producción → Calidad → Empaque)
         $lifecycleSummary = [
-            'viajero_pending'   => 0, // Empaque debe entregar
-            'decision_pending'  => 0, // Materiales debe decidir
-            'material_pending'  => 0, // Empaque debe entregar sobrantes
-            'material_inflight' => 0, // Sobrantes entregados, Materiales debe recibir
+            'material_release_pending' => 0, // Materiales debe liberar material (no-CRIMP)
+            'crimp_kit_pending'        => 0, // Materiales debe crear/liberar kit (CRIMP)
+            'inspection_pending'       => 0, // Calidad debe inspeccionar
+            'production_pending'       => 0, // Producción debe pesar
+            'quality_pending'          => 0, // Calidad debe pesar
+            'viajero_pending'          => 0, // Empaque debe entregar viajero
+            'decision_pending'         => 0, // Materiales debe decidir
+            'material_pending'         => 0, // Empaque debe entregar sobrantes
+            'material_inflight'        => 0, // Sobrantes entregados, Materiales debe recibir
         ];
         foreach ($workOrders as $wo) {
+            $isCrimp = (bool) ($wo->purchaseOrder?->part?->is_crimp ?? false);
             foreach ($wo->lots as $lot) {
+                // Kit / Material
+                if ($isCrimp) {
+                    // CRIMP: sin kits aún, o kits en estado preparing/pending
+                    $hasKits = $lot->kits->isNotEmpty();
+                    $hasPendingKit = $lot->kits->contains(fn($k) => in_array($k->status, ['preparing','pending'], true));
+                    if (!$hasKits || $hasPendingKit) {
+                        $lifecycleSummary['crimp_kit_pending']++;
+                    }
+                } else {
+                    if (($lot->material_status ?? 'pending') === 'pending') {
+                        $lifecycleSummary['material_release_pending']++;
+                    }
+                }
+
+                // Inspección
+                if (($lot->inspection_status ?? 'pending') === 'pending' && $lot->canBeInspected()) {
+                    $lifecycleSummary['inspection_pending']++;
+                }
+
+                // Producción
+                $prodWeighed = $lot->weighings->sum('good_pieces') + $lot->weighings->sum('bad_pieces');
+                $reworkPending = $lot->qualityWeighings->where('rework_status', 'pending_rework')->sum('bad_pieces');
+                $prodToWeigh = $lot->quantity + $reworkPending;
+                if ($prodWeighed < $prodToWeigh && ($lot->inspection_status ?? '') === 'approved') {
+                    $lifecycleSummary['production_pending']++;
+                }
+
+                // Calidad
+                if ($lot->getQualitySemaphoreStatus() === 'yellow') {
+                    $lifecycleSummary['quality_pending']++;
+                }
+
+                // Post-calidad
                 $next = $lot->getNextPendingAction();
-                if (!$next) continue;
-                if ($next['phase'] === 'viajero')  $lifecycleSummary['viajero_pending']++;
-                if ($next['phase'] === 'decision') $lifecycleSummary['decision_pending']++;
-                if ($next['phase'] === 'material' && $next['state'] === 'pending')     $lifecycleSummary['material_pending']++;
-                if ($next['phase'] === 'material' && $next['state'] === 'in_progress') $lifecycleSummary['material_inflight']++;
+                if ($next) {
+                    if ($next['phase'] === 'viajero')  $lifecycleSummary['viajero_pending']++;
+                    if ($next['phase'] === 'decision') $lifecycleSummary['decision_pending']++;
+                    if ($next['phase'] === 'material' && $next['state'] === 'pending')     $lifecycleSummary['material_pending']++;
+                    if ($next['phase'] === 'material' && $next['state'] === 'in_progress') $lifecycleSummary['material_inflight']++;
+                }
             }
         }
 
