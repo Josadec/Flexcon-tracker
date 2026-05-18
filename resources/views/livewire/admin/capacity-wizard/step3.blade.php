@@ -289,10 +289,13 @@
                                 </h3>
                                 @if (isset($workOrderItems[$currentLotIndex]))
                                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        PO:
-                                        <strong>{{ $workOrderItems[$currentLotIndex]['po_number'] ?? 'N/A' }}</strong>
+                                        WO: <strong>{{ $workOrderItems[$currentLotIndex]['wo'] ?? 'N/A' }}</strong>
+                                        |
+                                        PO: <strong>{{ $workOrderItems[$currentLotIndex]['po_number'] ?? 'N/A' }}</strong>
                                         |
                                         Parte: <strong>{{ $workOrderItems[$currentLotIndex]['part_number'] }}</strong>
+                                        |
+                                        Qty: <strong>{{ number_format($workOrderItems[$currentLotIndex]['quantity'] ?? 0) }}</strong>
                                     </p>
                                 @endif
                             </div>

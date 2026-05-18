@@ -466,6 +466,12 @@ class CapacityWizard extends Component
             // Solo POs que tienen Work Order con status "Open"
             ->whereHas('workOrder.status', function($q) {
                 $q->where('name', 'Open');
+            })
+            // Excluir POs ya asignados a cualquier Shipping List (sin importar su status)
+            ->whereDoesntHave('sentLists')
+            // Excluir POs cuyo WO tiene sent_list_id asignado (flujo legacy)
+            ->whereDoesntHave('workOrder', function($q) {
+                $q->whereNotNull('sent_list_id');
             });
 
         if (!empty($this->poSearchTerm)) {
