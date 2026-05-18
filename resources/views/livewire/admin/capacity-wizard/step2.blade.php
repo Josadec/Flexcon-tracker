@@ -89,11 +89,29 @@
                 </div>
             @endif
 
+            {{-- Work Orders Counter --}}
+            @if (count($workOrderItems) > 0)
+                <div class="flex items-center justify-between px-1">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        WOs en lista:
+                        <span class="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            {{ count($workOrderItems) }}
+                        </span>
+                    </span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                        Total unidades: {{ number_format(array_sum(array_column($workOrderItems, 'quantity'))) }}
+                    </span>
+                </div>
+            @endif
+
             {{-- Work Orders Table --}}
             <div class="rounded-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
                 <table class="w-full">
                     <thead class="bg-gray-50 dark:bg-gray-900/50">
                         <tr>
+                            <th
+                                class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                #</th>
                             <th
                                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                                 # Parte</th>
@@ -123,6 +141,9 @@
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse($workOrderItems as $index => $item)
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    {{ $loop->iteration }}
+                                </td>
                                 <td class="px-4 py-3">
                                     <div class="font-medium text-gray-900 dark:text-white">{{ $item['part_number'] }}
                                     </div>
@@ -160,7 +181,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                <td colspan="9" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                                     No hay números de parte agregados
                                 </td>
                             </tr>
@@ -196,11 +217,11 @@
     <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             {{-- Background overlay --}}
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closePOModal"></div>
+            <div class="fixed inset-0 bg-gray-500/75 transition-opacity" wire:click="closePOModal"></div>
 
             {{-- Modal panel --}}
             <div
-                class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                class="relative inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
                 <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     {{-- Header --}}
                     <div class="flex items-center justify-between mb-4">

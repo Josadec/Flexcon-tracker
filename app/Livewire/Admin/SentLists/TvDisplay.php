@@ -148,6 +148,28 @@ class TvDisplay extends Component
                 ];
             }
 
+            // Countdown a fecha de envío
+            $sendDate = $wo->scheduled_send_date;
+            $daysToSend = null;
+            $sendColor = 'gray';
+            $sendLabel = 'Sin fecha';
+            if ($sendDate) {
+                $daysToSend = now()->startOfDay()->diffInDays($sendDate->startOfDay(), false);
+                if ($daysToSend < 0) {
+                    $sendColor = 'red';
+                    $sendLabel = abs((int) $daysToSend) . ' día(s) atrasado';
+                } elseif ($daysToSend < 1) {
+                    $sendColor = 'red';
+                    $sendLabel = 'Hoy';
+                } elseif ($daysToSend <= 3) {
+                    $sendColor = 'yellow';
+                    $sendLabel = ((int) $daysToSend) . ' día(s)';
+                } else {
+                    $sendColor = 'green';
+                    $sendLabel = ((int) $daysToSend) . ' días';
+                }
+            }
+
             $firstLot = $wo->lots->first();
             $woCards[] = [
                 'wo' => $wo->purchaseOrder->wo ?? 'N/A',
@@ -157,6 +179,12 @@ class TvDisplay extends Component
                 'is_crimp' => $isCrimp,
                 'lot_count' => $lotCount,
                 'lots' => $lotsDetail,
+                'send_date' => $sendDate?->format('d/m/Y'),
+                'days_to_send' => $daysToSend,
+                'send_color' => $sendColor,
+                'send_label' => $sendLabel,
+                'wo_quantity' => $wo->original_quantity,
+                'wo_sent' => $wo->sent_pieces,
                 'kit' => ['green' => $kitGreen, 'yellow' => $kitYellow, 'gray' => $kitGray],
                 'inspeccion' => ['green' => $inspGreen, 'yellow' => $inspYellow, 'gray' => $inspGray],
                 'produccion' => ['green' => $prodGreen, 'yellow' => $prodYellow, 'gray' => $prodGray],
@@ -194,10 +222,55 @@ class TvDisplay extends Component
         // Chunk WO cards into slides of N cards each
         $slides = array_chunk($woCards, $this->cardsPerSlide);
 
+        // KPIs del día
+        $todayStart = now()->startOfDay();
+        $todayEnd = now()->endOfDay();
+
+        $packedTodayByStation = ['Mesa' => 0, 'Máquina' => 0, 'Semi-Automática' => 0, 'Sin Clasificar' => 0];
+        $packedTodayTotal = 0;
+        $totalTargetVisible = 0;
+        $totalSentVisible = 0;
+
+        foreach ($workOrders as $wo) {
+            $totalTargetVisible += (int) ($wo->original_quantity ?? 0);
+            $totalSentVisible   += (int) ($wo->sent_pieces ?? 0);
+
+            // Resolver workstation (PO.workstation_type → fallback al Standard)
+            $woType = $wo->purchaseOrder?->workstation_type ?? null;
+            $mode = $woType ?: optional($wo->purchaseOrder?->part?->standards()->active()->first())->getAssemblyMode();
+            $station = match($mode) {
+                'manual', 'table' => 'Mesa',
+                'machine'         => 'Máquina',
+                'semi_automatic'  => 'Semi-Automática',
+                default           => 'Sin Clasificar',
+            };
+
+            foreach ($wo->lots as $lot) {
+                $todayPacked = $lot->packagingRecords
+                    ->whereBetween('packed_at', [$todayStart, $todayEnd])
+                    ->sum('packed_pieces');
+                $packedTodayByStation[$station] = ($packedTodayByStation[$station] ?? 0) + (int) $todayPacked;
+                $packedTodayTotal += (int) $todayPacked;
+            }
+        }
+
+        $globalCompletion = $totalTargetVisible > 0
+            ? min(100, round(($totalSentVisible / $totalTargetVisible) * 100, 1))
+            : 0;
+
+        $dayKpis = [
+            'packed_today_total'  => $packedTodayTotal,
+            'packed_today_by_station' => $packedTodayByStation,
+            'total_target' => $totalTargetVisible,
+            'total_sent'   => $totalSentVisible,
+            'completion_pct' => $globalCompletion,
+        ];
+
         return view('livewire.admin.sent-lists.tv-display', [
             'woCards' => $woCards,
             'slides' => $slides,
             'areaStats' => $areaStats,
+            'dayKpis' => $dayKpis,
         ])->layout('components.layouts.tv');
     }
 }

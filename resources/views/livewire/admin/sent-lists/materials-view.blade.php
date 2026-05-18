@@ -87,8 +87,13 @@
                             $rejectedLotIds = $sentList->unresolvedRejections->pluck('lot_id')->filter()->toArray();
                         @endphp
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {{ $wo->lots->pluck('id')->intersect($rejectedLotIds)->isNotEmpty() ? 'bg-red-50 dark:bg-red-900/10 border-l-4 border-red-400' : '' }}">
-                            <td class="px-4 py-3 font-mono font-medium text-blue-600 dark:text-blue-400">
-                                {{ $wo->purchaseOrder->wo ?? $wo->wo_number }}
+                            <td class="px-4 py-3 font-mono font-medium">
+                                <a href="{{ route('admin.sent-lists.display.wo', $wo->id) }}"
+                                    wire:navigate
+                                    class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
+                                    title="Ver este WO en la Lista de envío">
+                                    {{ $wo->purchaseOrder->wo ?? $wo->wo_number }}
+                                </a>
                             </td>
                             <td class="px-4 py-3">
                                 <div class="font-medium text-gray-900 dark:text-white">{{ $wo->purchaseOrder->part->number ?? '-' }}</div>

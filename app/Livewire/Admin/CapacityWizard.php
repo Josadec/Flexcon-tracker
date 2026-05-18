@@ -328,9 +328,18 @@ class CapacityWizard extends Component
     public function openPOModal()
     {
         $this->showPOModal = true;
-        $this->selectedPOs = [];
-        $this->poConfigurations = [];
         $this->poSearchTerm = '';
+
+        // Pre-seleccionar los POs que ya están en la lista
+        $this->selectedPOs = array_values(array_column($this->workOrderItems, 'po_id'));
+
+        // Pre-cargar las configuraciones ya seleccionadas para cada PO que está en la lista
+        $this->poConfigurations = [];
+        foreach ($this->workOrderItems as $item) {
+            if (!empty($item['po_id']) && !empty($item['configuration']['id'])) {
+                $this->poConfigurations[$item['po_id']] = $item['configuration']['id'];
+            }
+        }
     }
 
     public function closePOModal()
@@ -466,6 +475,12 @@ class CapacityWizard extends Component
             // Solo POs que tienen Work Order con status "Open"
             ->whereHas('workOrder.status', function($q) {
                 $q->where('name', 'Open');
+            })
+            // Excluir POs ya asignados a cualquier Shipping List (sin importar su status)
+            ->whereDoesntHave('sentLists')
+            // Excluir POs cuyo WO tiene sent_list_id asignado (flujo legacy)
+            ->whereDoesntHave('workOrder', function($q) {
+                $q->whereNotNull('sent_list_id');
             });
 
         if (!empty($this->poSearchTerm)) {
