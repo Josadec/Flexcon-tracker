@@ -117,8 +117,23 @@ class SentList extends Model
     public function purchaseOrders(): BelongsToMany
     {
         return $this->belongsToMany(PurchaseOrder::class, 'sent_list_purchase_orders')
-            ->withPivot(['quantity', 'required_hours', 'lot_number'])
+            ->withPivot([
+                'quantity',
+                'required_hours',
+                'lot_number',
+                'is_carryover',
+                'carryover_from_sent_list_id',
+                'pending_quantity_at_carryover',
+            ])
             ->withTimestamps();
+    }
+
+    /**
+     * Returns only the POs flagged as carryover in this SentList.
+     */
+    public function carryoverPurchaseOrders(): BelongsToMany
+    {
+        return $this->purchaseOrders()->wherePivot('is_carryover', true);
     }
 
     /**

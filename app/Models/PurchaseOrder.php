@@ -66,7 +66,14 @@ class PurchaseOrder extends Model
     public function sentLists(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(SentList::class, 'sent_list_purchase_orders')
-            ->withPivot(['quantity', 'required_hours', 'lot_number'])
+            ->withPivot([
+                'quantity',
+                'required_hours',
+                'lot_number',
+                'is_carryover',
+                'carryover_from_sent_list_id',
+                'pending_quantity_at_carryover',
+            ])
             ->withTimestamps();
     }
 
@@ -116,6 +123,40 @@ class PurchaseOrder extends Model
     public function scopePendingCorrection(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_PENDING_CORRECTION);
+    }
+
+    /**
+     * Scope: POs with active carryover — approved, previously in a SentList,
+     * and WO still has pending pieces (sent_pieces < purchase_orders.quantity).
+     */
+    public function scopeWithCarryover(Builder $query): Builder
+    {
+        return $query->where('status', self::STATUS_APPROVED)
+            ->whereHas('sentLists')
+            ->whereHas('workOrder', function ($q) {
+                $q->whereColumn('sent_pieces', '<', 'purchase_orders.quantity');
+            });
+    }
+
+    /**
+     * Returns pending pieces according to the linked WO.
+     * Falls back to full PO quantity when no WO exists.
+     */
+    public function getPendingQuantityAttribute(): int
+    {
+        return $this->workOrder
+            ? $this->workOrder->pending_quantity
+            : $this->quantity;
+    }
+
+    /**
+     * True when the PO has an incomplete WO with at least one piece already shipped.
+     */
+    public function hasActiveCarryover(): bool
+    {
+        return $this->workOrder !== null
+            && !$this->workOrder->isComplete()
+            && $this->workOrder->sent_pieces > 0;
     }
 
     /**
