@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use Livewire\Component;
 use App\Models\{Shift, Part, SentList, User, Lot, Kit};
 use App\Services\CapacityCalculatorService;
+use App\Services\CarryoverService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -374,15 +375,13 @@ class CapacityWizard extends Component
         }
 
         try {
-            $pos = \App\Models\PurchaseOrder::with(['part.standards.configurations'])
+            $pos = \App\Models\PurchaseOrder::with(['part.standards.configurations', 'workOrder'])
                 ->whereIn('id', $this->selectedPOs)
                 ->get();
 
             $addedCount = 0;
 
             foreach ($pos as $po) {
-                // Skip si este PO especifico ya fue agregado (cada PO es una fila independiente,
-                // aunque comparta part_id con otra)
                 $existingPoIndex = array_search($po->id, array_column($this->workOrderItems, 'po_id'));
                 if ($existingPoIndex !== false) {
                     $this->warnings[] = "PO {$po->po_number}: ya estaba agregado.";
@@ -396,7 +395,10 @@ class CapacityWizard extends Component
                     continue;
                 }
 
-                // Get selected configuration or use optimal
+                // Use pending_quantity for carryover POs, full quantity for new ones
+                $isCarryover = $po->hasActiveCarryover();
+                $planningQty = $isCarryover ? $po->workOrder->pending_quantity : $po->quantity;
+
                 $configId = $this->poConfigurations[$po->id] ?? null;
 
                 if ($configId) {
@@ -406,18 +408,16 @@ class CapacityWizard extends Component
                         continue;
                     }
 
-                    // Validate persons required
                     if ($config->persons_required > $this->numPersons) {
                         $this->warnings[] = "PO {$po->po_number}: Configuration requires {$config->persons_required} persons but only {$this->numPersons} available.";
                         continue;
                     }
 
-                    $requiredHours = $config->calculateRequiredHours($po->quantity);
+                    $requiredHours = $config->calculateRequiredHours($planningQty);
                 } else {
-                    // Use optimal configuration
                     $result = $this->service->calculateRequiredHours(
                         $po->part_id,
-                        $po->quantity,
+                        $planningQty,
                         $this->numPersons
                     );
 
@@ -425,7 +425,6 @@ class CapacityWizard extends Component
                     $config = $standard->configurations()->find($result['configuration']['id']);
                 }
 
-                // Validate capacity
                 if ($config) {
                     $validation = $config->validateCapacity();
                     if (!$validation['is_valid']) {
@@ -434,21 +433,24 @@ class CapacityWizard extends Component
                 }
 
                 $this->workOrderItems[] = [
-                    'part_id' => $po->part_id,
-                    'part_number' => $po->part->number,
+                    'part_id'          => $po->part_id,
+                    'part_number'      => $po->part->number,
                     'part_description' => $po->part->description,
-                    'is_crimp' => (bool) ($po->part->is_crimp ?? false),
-                    'quantity' => $po->quantity,
-                    'required_hours' => $requiredHours,
-                    'po_id' => $po->id,
-                    'po_number' => $po->po_number,
-                    'wo' => $po->wo,
-                    'configuration' => [
-                        'id' => $config->id,
-                        'workstation_type' => $config->workstation_type,
-                        'workstation_type_label' => $config->workstation_type_label,
-                        'persons_required' => $config->persons_required,
-                        'units_per_hour' => $config->units_per_hour,
+                    'is_crimp'         => (bool) ($po->part->is_crimp ?? false),
+                    'quantity'         => $planningQty,
+                    'required_hours'   => $requiredHours,
+                    'po_id'            => $po->id,
+                    'po_number'        => $po->po_number,
+                    'wo'               => $po->wo,
+                    'is_carryover'     => $isCarryover,
+                    'original_qty'     => $po->quantity,
+                    'sent_pieces'      => $po->workOrder?->sent_pieces ?? 0,
+                    'configuration'    => [
+                        'id'                    => $config->id,
+                        'workstation_type'      => $config->workstation_type,
+                        'workstation_type_label'=> $config->workstation_type_label,
+                        'persons_required'      => $config->persons_required,
+                        'units_per_hour'        => $config->units_per_hour,
                     ],
                 ];
 
@@ -472,13 +474,24 @@ class CapacityWizard extends Component
                 $q->where('active', true)
                   ->has('configurations');
             })
-            // Solo POs que tienen Work Order con status "Open"
             ->whereHas('workOrder.status', function($q) {
                 $q->where('name', 'Open');
             })
-            // Excluir POs ya asignados a cualquier Shipping List (sin importar su status)
-            ->whereDoesntHave('sentLists')
-            // Excluir POs cuyo WO tiene sent_list_id asignado (flujo legacy)
+            ->where(function ($q) {
+                // New PO: never in any SentList
+                $q->whereDoesntHave('sentLists')
+                  // Carryover: was in a prior SentList, WO incomplete, not in an active pending list
+                  ->orWhere(function ($q2) {
+                      $q2->whereHas('sentLists')
+                         ->whereHas('workOrder', function ($woQ) {
+                             $woQ->whereColumn('sent_pieces', '<', 'purchase_orders.quantity');
+                         })
+                         ->whereDoesntHave('sentLists', function ($slQ) {
+                             $slQ->where('status', \App\Models\SentList::STATUS_PENDING);
+                         });
+                  });
+            })
+            // Exclude WOs that were assigned directly via legacy flow (sent_list_id set, not via wizard)
             ->whereDoesntHave('workOrder', function($q) {
                 $q->whereNotNull('sent_list_id');
             });
@@ -795,11 +808,23 @@ class CapacityWizard extends Component
                             }, $lotNumbersArray));
                         }
                         
-                        $sentList->purchaseOrders()->attach($item['po_id'], [
-                            'quantity' => $item['quantity'],
-                            'required_hours' => $item['required_hours'],
-                            'lot_number' => $lotNumbersString,
-                        ]);
+                        $carryoverService = app(CarryoverService::class);
+                        if ($item['is_carryover'] ?? false) {
+                            $pivotData = $carryoverService->buildCarryoverPivotData(
+                                $purchaseOrder,
+                                $item['quantity'],
+                                $item['required_hours'],
+                                $lotNumbersString
+                            );
+                        } else {
+                            $pivotData = $carryoverService->buildStandardPivotData(
+                                $item['quantity'],
+                                $item['required_hours'],
+                                $lotNumbersString
+                            );
+                        }
+
+                        $sentList->purchaseOrders()->attach($item['po_id'], $pivotData);
                         
                         // Actualizar fecha programada de envío del Work Order (UNA para toda la lista)
                         if ($purchaseOrder && $purchaseOrder->workOrder && !empty($this->scheduledShipDate)) {

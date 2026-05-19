@@ -149,12 +149,22 @@
                                     </div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400">
                                         {{ Str::limit($item['part_description'] ?? '', 25) }}</div>
+                                    @if($item['is_carryover'] ?? false)
+                                        <span class="inline-block mt-1 text-xs bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 px-2 py-0.5 rounded-full font-medium">
+                                            Carryover
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
                                     {{ $item['wo'] ?? '-' }}
                                 </td>
                                 <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">
                                     {{ number_format($item['quantity']) }}
+                                    @if($item['is_carryover'] ?? false)
+                                        <div class="text-xs text-orange-600 dark:text-orange-400 mt-0.5">
+                                            de {{ number_format($item['original_qty'] ?? $item['quantity']) }} totales
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
                                     {{ $item['configuration']['workstation_type_label'] ?? 'N/A' }}
@@ -265,15 +275,23 @@
                                     <div class="flex-1">
                                         {{-- WO Info --}}
                                         <div class="flex items-center justify-between mb-2">
-                                            <div>
-                                                <span
-                                                    class="font-semibold text-gray-900 dark:text-white">{{ $po->wo ?? '-' }}</span>
-                                                <span class="mx-2 text-gray-400">|</span>
-                                                <span
-                                                    class="text-gray-700 dark:text-gray-300">{{ $po->part->number }}</span>
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span class="font-semibold text-gray-900 dark:text-white">{{ $po->wo ?? '-' }}</span>
+                                                <span class="text-gray-400">|</span>
+                                                <span class="text-gray-700 dark:text-gray-300">{{ $po->part->number }}</span>
+                                                @if($po->hasActiveCarryover())
+                                                    <span class="text-xs bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 px-2 py-0.5 rounded-full font-medium">
+                                                        Carryover &bull; {{ number_format($po->workOrder->pending_quantity) }} pz pendientes
+                                                    </span>
+                                                @endif
                                             </div>
-                                            <span class="text-sm text-gray-500">Qty:
-                                                {{ number_format($po->quantity) }}</span>
+                                            <span class="text-sm text-gray-500 shrink-0">
+                                                @if($po->hasActiveCarryover())
+                                                    {{ number_format($po->workOrder->sent_pieces) }}/{{ number_format($po->quantity) }} enviadas
+                                                @else
+                                                    Qty: {{ number_format($po->quantity) }}
+                                                @endif
+                                            </span>
                                         </div>
                                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                                             {{ $po->part->description }}</p>

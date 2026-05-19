@@ -123,9 +123,15 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                     @forelse($sentList->purchaseOrders as $po)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <tr @class([
+                            'hover:bg-gray-50 dark:hover:bg-gray-700',
+                            'bg-orange-50 dark:bg-orange-900/10' => $po->pivot->is_carryover,
+                        ])>
                             <td class="px-4 py-3 font-medium text-blue-600 dark:text-blue-400">
                                 {{ $po->wo ?? '-' }}
+                                @if($po->pivot->is_carryover)
+                                    <span class="block text-xs text-orange-600 dark:text-orange-400 font-normal">Carryover</span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 font-medium text-blue-600 dark:text-blue-400">
                                 {{ $po->po_number }}
@@ -142,6 +148,9 @@
                                         class="w-24 text-right rounded border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:outline-none focus:border-blue-500" />
                                 @else
                                     {{ number_format($po->pivot->quantity) }}
+                                    @if($po->pivot->is_carryover && $po->pivot->pending_quantity_at_carryover)
+                                        <div class="text-xs text-orange-600 dark:text-orange-400">de {{ number_format($po->pivot->pending_quantity_at_carryover) }} pend.</div>
+                                    @endif
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
