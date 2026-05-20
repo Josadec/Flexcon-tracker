@@ -2199,6 +2199,7 @@ class ShippingListDisplay extends Component
             'lots.qualityWeighings',
             'lots.packagingRecords',
             'lots.kits',
+            'lots.completionLogs',
             'sentList'
         ]);
 

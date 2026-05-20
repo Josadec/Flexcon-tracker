@@ -112,8 +112,17 @@ class SentListController extends Controller
     public function destroy(SentList $sentList)
     {
         if (!$sentList->canBeDeleted()) {
+            // Identificar la causa real para informar correctamente al usuario
+            if (!$sentList->isPending()) {
+                $message = $sentList->isCanceled()
+                    ? 'No se pueden eliminar listas canceladas.'
+                    : 'No se pueden eliminar listas confirmadas.';
+            } else {
+                $message = 'No se puede eliminar: la lista ya tiene órdenes de trabajo asociadas.';
+            }
+
             return redirect()->route('admin.sent-lists.index')
-                ->with('error', 'No se pueden eliminar listas confirmadas.');
+                ->with('error', $message);
         }
 
         $sentList->delete();

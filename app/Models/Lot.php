@@ -725,6 +725,48 @@ class Lot extends Model
     }
 
     /**
+     * Devuelve el desglose de piezas cerradas por ciclo de completado.
+     *
+     * Incluye los ciclos intermedios registrados en LotCompletionLog (cada vez
+     * que se usó "Completar Lote") y, si el lote ya tiene una decisión de cierre
+     * ("Cerrar Lote" o "Nuevo Lote"), el ciclo final con las piezas empacadas
+     * actuales — que no quedan registradas en LotCompletionLog.
+     *
+     * @return array<int, array{cycle:int, pieces:int}>
+     */
+    public function getCompletionCycles(): array
+    {
+        $cycles = [];
+
+        foreach ($this->completionLogs->sortBy('cycle_number') as $log) {
+            $cycles[] = ['cycle' => (int) $log->cycle_number, 'pieces' => (int) $log->packed_pieces];
+        }
+
+        // Ciclo final: el lote llegó a una decisión de cierre y aún no está en LotCompletionLog.
+        if (!is_null($this->closure_decision)) {
+            $finalCycle = ($this->completion_count ?? 0) + 1;
+            $alreadyLogged = $this->completionLogs->contains('cycle_number', $finalCycle);
+
+            if (!$alreadyLogged) {
+                $finalPacked = (int) $this->packagingRecords->sum('packed_pieces');
+                if ($finalPacked > 0) {
+                    $cycles[] = ['cycle' => $finalCycle, 'pieces' => $finalPacked];
+                }
+            }
+        }
+
+        return $cycles;
+    }
+
+    /**
+     * Total de piezas cerradas sumando todos los ciclos de completado del lote.
+     */
+    public function getTotalCompletedPieces(): int
+    {
+        return array_sum(array_column($this->getCompletionCycles(), 'pieces'));
+    }
+
+    /**
      * Relationship: viajero received by user.
      */
     public function viajeroReceivedByUser(): BelongsTo
