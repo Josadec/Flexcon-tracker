@@ -241,12 +241,14 @@ class ShippingQueue extends Component
                 'user_id'   => Auth::id(),
             ]);
 
-            $this->successMessage = "Packing Slip {$packingSlip->ps_number} creado exitosamente en estado Borrador.";
             $this->showCreatePsModal = false;
             $this->selectedLotIds = [];
             $this->labelSpecs = [];
             $this->psNotes = '';
             $this->errorMessage = null;
+
+            session()->flash('notify', ['type' => 'success', 'message' => "Packing Slip {$packingSlip->ps_number} creado exitosamente en estado Borrador."]);
+            $this->redirect(route('packing-slips.show', $packingSlip), navigate: true);
 
         } catch (\Throwable $e) {
             DB::rollBack();
