@@ -35,7 +35,7 @@
                 <div class="flex items-center justify-between">
                     <h1 class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">LISTA DE ENVÍO</h1>
                     <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                        <svg class="w-4 h-4" wire:loading class="animate-spin" fill="none" stroke="currentColor"
+                        <svg wire:loading class="w-4 h-4 animate-spin" fill="none" stroke="currentColor"
                             viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
@@ -47,18 +47,20 @@
                 </div>
 
                 {{-- Filtros --}}
-                <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
                     {{-- Buscador --}}
-                    <div class="relative flex-1 min-w-[220px]">
+                    <div class="relative w-full sm:w-80">
+                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </span>
                         <input type="text" wire:model.live.debounce.300ms="searchTerm"
                             placeholder="Buscar por WO #, # parte o descripción..."
-                            class="w-full pl-9 pr-8 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
-                        <svg class="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
+                            class="w-full h-10 pl-9 pr-9 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
                         @if ($searchTerm)
                             <button wire:click="$set('searchTerm', '')"
-                                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                                 title="Limpiar búsqueda">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -67,15 +69,15 @@
                         @endif
                     </div>
 
+                    {{-- Filtro por tipo de estación --}}
                     <select wire:model.live="filterWorkstation"
-                        class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                        class="w-full sm:w-52 h-10 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer">
                         <option value="">Todos los tipos</option>
                         <option value="Mesa">Mesa</option>
                         <option value="Máquina">Máquina</option>
                         <option value="Semi-Automática">Semi-Automática</option>
                         <option value="Sin Clasificar">Sin Clasificar</option>
                     </select>
-
                 </div>
             </div>
         </div>
@@ -247,6 +249,9 @@
                                     class="px-4 py-3 text-right text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">
                                     Pz Sobrantes</th>
                                 <th
+                                    class="px-4 py-3 text-right text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                    Pz Completadas</th>
+                                <th
                                     class="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                     Fecha Prog. A</th>
                                 <th
@@ -279,6 +284,9 @@
                                         if ($l->hasPackagingRecords()) return $l->getPackagingTotalSurplus();
                                         return 0;
                                     });
+
+                                    // Piezas cerradas en cada ciclo de completado/cierre, acumuladas por WO
+                                    $woCompletedPieces = $allLots->sum(fn ($l) => $l->getTotalCompletedPieces());
 
                                     // Obtener estados de departamentos (simulado por ahora)
                                     $departmentStatuses = [
@@ -557,6 +565,10 @@
                                         {{ number_format($toSend) }}</td>
                                     <td class="px-4 py-3 text-right font-semibold {{ $woSobrantes > 0 ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20' : 'text-gray-400 dark:text-gray-500' }}">
                                         {{ number_format($woSobrantes) }}</td>
+                                    {{-- Pz Completadas (acumulado de todas las decisiones de los lotes del WO) --}}
+                                    <td class="px-4 py-3 text-right font-semibold {{ $woCompletedPieces > 0 ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-400 dark:text-gray-500' }}"
+                                        title="Total de piezas cerradas en todas las decisiones de 'Completar Lote' de este WO">
+                                        {{ number_format($woCompletedPieces) }}</td>
                                     {{-- Fechas --}}
                                     <td class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">
                                         {{ $wo->scheduled_send_date?->format('m/d/Y') ?? '-' }}</td>
@@ -984,6 +996,29 @@
                                         <td class="px-4 py-2 text-right text-xs font-medium {{ $lotSobrantes > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500' }}">
                                             {{ number_format($lotSobrantes) }}
                                         </td>
+                                        {{-- Pz Completadas por ciclo (C1, C2, ...) + sumatoria --}}
+                                        <td class="px-4 py-2 text-right text-xs">
+                                            @php
+                                                $lotCycles = $lot->getCompletionCycles();
+                                                $lotCompletedTotal = array_sum(array_column($lotCycles, 'pieces'));
+                                            @endphp
+                                            @if (!empty($lotCycles))
+                                                <div class="flex flex-wrap items-center justify-end gap-1">
+                                                    @foreach ($lotCycles as $cycle)
+                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                                                            title="Ciclo {{ $cycle['cycle'] }}: {{ number_format($cycle['pieces']) }} pz cerradas">
+                                                            C{{ $cycle['cycle'] }}: {{ number_format($cycle['pieces']) }}
+                                                        </span>
+                                                    @endforeach
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                                                        title="Total de piezas completadas del lote">
+                                                        &Sigma; {{ number_format($lotCompletedTotal) }}
+                                                    </span>
+                                                </div>
+                                            @else
+                                                <span class="text-gray-400 dark:text-gray-500">&mdash;</span>
+                                            @endif
+                                        </td>
                                         {{-- Fechas --}}
                                         <td class="px-4 py-2 text-center text-xs text-gray-600 dark:text-gray-400">
                                             {{ $wo->scheduled_send_date?->format('m/d/Y') ?? '-' }}</td>
@@ -1003,7 +1038,7 @@
                                 @endphp
                                 @if($exceedsWO)
                                     <tr class="bg-red-50 dark:bg-red-900/30">
-                                        <td colspan="19" class="px-4 py-2">
+                                        <td colspan="20" class="px-4 py-2">
                                             <div class="flex items-center text-red-600 dark:text-red-400 text-xs font-semibold">
                                                 <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
@@ -1021,7 +1056,11 @@
                                             Total:</td>
                                         <td class="px-4 py-2 text-right {{ $exceedsWO ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">
                                             {{ number_format($totalLotQuantity) }}</td>
-                                        <td colspan="7"></td>
+                                        <td></td>
+                                        <td class="px-4 py-2 text-right {{ $woCompletedPieces > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500' }}"
+                                            title="Total de piezas completadas en todas las decisiones de los lotes de este WO">
+                                            &Sigma; {{ number_format($woCompletedPieces) }}</td>
+                                        <td colspan="4"></td>
                                     </tr>
                                 @endif
                             @endforeach
@@ -1302,16 +1341,47 @@
                                     <span
                                         class="text-sm font-semibold text-gray-900 dark:text-white">{{ number_format($lot->quantity) }}</span>
                                 </div>
+
+                                {{-- Pz Completadas por ciclo --}}
+                                @php
+                                    $lotCyclesM = $lot->getCompletionCycles();
+                                    $lotCompletedTotalM = array_sum(array_column($lotCyclesM, 'pieces'));
+                                @endphp
+                                @if (!empty($lotCyclesM))
+                                    <div
+                                        class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">Pz Completadas:</span>
+                                        <div class="flex flex-wrap items-center justify-end gap-1">
+                                            @foreach ($lotCyclesM as $cycle)
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                                                    C{{ $cycle['cycle'] }}: {{ number_format($cycle['pieces']) }}
+                                                </span>
+                                            @endforeach
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                                                &Sigma; {{ number_format($lotCompletedTotalM) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
 
                         @if ($allLots->count() > 1)
-                            <div class="p-4 bg-gray-100 dark:bg-gray-700/40">
+                            @php
+                                $woCompletedPiecesM = $allLots->sum(fn ($l) => $l->getTotalCompletedPieces());
+                            @endphp
+                            <div class="p-4 bg-gray-100 dark:bg-gray-700/40 space-y-1">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm font-semibold text-gray-900 dark:text-white">Total:</span>
                                     <span
                                         class="text-base font-semibold text-gray-900 dark:text-white">{{ number_format($allLots->sum('quantity')) }}</span>
                                 </div>
+                                @if ($woCompletedPiecesM > 0)
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Total Completadas:</span>
+                                        <span class="text-base font-semibold text-emerald-700 dark:text-emerald-300">&Sigma; {{ number_format($woCompletedPiecesM) }}</span>
+                                    </div>
+                                @endif
                             </div>
                         @endif
                     @endforeach
