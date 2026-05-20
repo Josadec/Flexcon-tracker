@@ -256,6 +256,9 @@ class PackingSlip extends Model
      */
     public function getTotalQuantityAttribute(): int
     {
+        if ($this->relationLoaded('items')) {
+            return (int) $this->items->sum('quantity_packed');
+        }
         return (int) $this->items()->sum('quantity_packed');
     }
 
@@ -264,6 +267,9 @@ class PackingSlip extends Model
      */
     public function getTotalItemsAttribute(): int
     {
+        if ($this->relationLoaded('items')) {
+            return $this->items->count();
+        }
         return $this->items()->count();
     }
 }
