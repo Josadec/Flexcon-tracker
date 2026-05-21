@@ -248,7 +248,7 @@ class ShippingQueue extends Component
             $this->errorMessage = null;
 
             session()->flash('notify', ['type' => 'success', 'message' => "Packing Slip {$packingSlip->ps_number} creado exitosamente en estado Borrador."]);
-            $this->redirect(route('packing-slips.show', $packingSlip), navigate: true);
+            $this->redirect(route('admin.shipping-list.show', $packingSlip), navigate: true);
 
         } catch (\Throwable $e) {
             DB::rollBack();
