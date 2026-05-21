@@ -128,7 +128,7 @@
                             <tr class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30">
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     <a
-                                        href="{{ route('admin.packing-slips.show', $ps) }}"
+                                        href="{{ route('admin.shipping-list.show', $ps) }}"
                                         wire:navigate
                                         class="font-mono text-sm font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                     >
@@ -288,7 +288,7 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 @if ($invoice->packingSlip)
                                     <a
-                                        href="{{ route('admin.packing-slips.show', $invoice->packingSlip) }}"
+                                        href="{{ route('admin.shipping-list.show', $invoice->packingSlip) }}"
                                         wire:navigate
                                         class="font-mono text-sm text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                     >

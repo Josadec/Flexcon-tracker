@@ -32,7 +32,7 @@ class PackingSlipPdfController extends Controller
 
     /**
      * Muestra el PDF del Packing Slip directamente en el navegador (stream).
-     * Ruta: admin.packing-slips.pdf
+     * Ruta: admin.shipping-list.pdf
      */
     public function show(PackingSlip $packingSlip): Response
     {
@@ -52,7 +52,7 @@ class PackingSlipPdfController extends Controller
 
     /**
      * Fuerza la descarga del PDF del Packing Slip.
-     * Ruta: admin.packing-slips.pdf.download
+     * Ruta: admin.shipping-list.pdf.download
      */
     public function download(PackingSlip $packingSlip): Response
     {

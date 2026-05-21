@@ -114,7 +114,7 @@ class Tutorial extends Component
             ],
             'empaques' => [
                 ['label' => 'Dashboard Empaques', 'description' => 'Visualiza el trabajo listo para empacar.', 'href' => route('admin.packaging.index')],
-                ['label' => 'Packing Slips', 'description' => 'Gestiona documentos FPL-10.', 'href' => route('admin.packing-slips.index')],
+                ['label' => 'Packing Slips', 'description' => 'Gestiona documentos FPL-10.', 'href' => route('admin.shipping-list.index')],
                 ['label' => 'Shipping Queue', 'description' => 'Controla la salida final.', 'href' => route('admin.shipping.queue')],
             ],
         ];

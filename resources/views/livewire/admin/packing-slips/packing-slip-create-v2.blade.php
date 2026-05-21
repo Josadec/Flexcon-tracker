@@ -2,16 +2,16 @@
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
             <a
-                href="{{ route('admin.packing-slips.index') }}"
+                href="{{ route('admin.shipping-list.index') }}"
                 wire:navigate
                 class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                Volver a packing slips
+                Volver a Shipping List
             </a>
-            <h1 class="mt-3 text-2xl font-semibold text-gray-900 dark:text-white">Nuevo Packing Slip</h1>
+            <h1 class="mt-3 text-2xl font-semibold text-gray-900 dark:text-white">Nuevo Shipping List</h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Crea un documento de empaque seleccionando lotes disponibles para despacho.
             </p>
@@ -38,7 +38,7 @@
             <div class="space-y-6">
                 <div class="rounded-lg border-2 border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
                     <div class="border-b border-gray-200 px-4 py-4 dark:border-gray-700">
-                        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Informacion del Packing Slip</h2>
+                        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Información del Shipping List</h2>
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                             Datos generales del documento antes de seleccionar lotes.
                         </p>
@@ -56,7 +56,7 @@
                                 <p class="mt-2 text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
                             <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                Si la dejas vacia, se puede capturar despues desde el detalle del packing slip.
+                                Si la dejas vacia, se puede capturar despues desde el detalle del Shipping List.
                             </p>
                         </div>
 
@@ -81,7 +81,7 @@
                         <div>
                             <h2 class="text-base font-semibold text-gray-900 dark:text-white">Lotes disponibles para despacho</h2>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                Selecciona los lotes que deben incluirse en este packing slip.
+                                Selecciona los lotes que deben incluirse en este Shipping List.
                             </p>
                         </div>
                         <span class="inline-flex items-center self-start rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-300">
@@ -164,7 +164,7 @@
                             <div class="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center dark:border-gray-700 dark:bg-gray-900/50">
                                 <p class="text-sm font-medium text-gray-900 dark:text-white">No hay lotes disponibles para despacho</p>
                                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                    Los lotes deben estar listos para shipping y no pertenecer a otro packing slip activo.
+                                    Los lotes deben estar listos para shipping y no pertenecer a otro Shipping List activo.
                                 </p>
                             </div>
                         @endif
@@ -186,7 +186,7 @@
                     <div class="text-xs text-gray-500 dark:text-gray-400">Acciones</div>
                     <div class="mt-4 flex flex-col gap-2">
                         <a
-                            href="{{ route('admin.packing-slips.index') }}"
+                            href="{{ route('admin.shipping-list.index') }}"
                             wire:navigate
                             class="inline-flex items-center justify-center rounded-md border-2 border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700/60"
                         >
@@ -197,7 +197,7 @@
                             class="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
                             @if ($availableLots->count() === 0) disabled @endif
                         >
-                            Crear Packing Slip
+                            Crear Shipping List
                         </button>
                     </div>
                 </div>

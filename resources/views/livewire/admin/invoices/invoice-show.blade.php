@@ -206,7 +206,7 @@
                     <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Packing Slip de origen</p>
                         @if ($invoice->packingSlip)
-                            <a href="{{ route('admin.packing-slips.show', $invoice->packingSlip) }}"
+                            <a href="{{ route('admin.shipping-list.show', $invoice->packingSlip) }}"
                                wire:navigate
                                class="text-base font-mono text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mt-1 block">
                                 {{ $invoice->packingSlip->ps_number }}

@@ -92,7 +92,7 @@
                 </span>
                 @if ($invoice->packingSlip)
                     <a
-                        href="{{ route('admin.packing-slips.show', $invoice->packingSlip) }}"
+                        href="{{ route('admin.shipping-list.show', $invoice->packingSlip) }}"
                         wire:navigate
                         class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:border-blue-700 dark:hover:bg-blue-900/30"
                     >
@@ -241,7 +241,7 @@
             <div class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
                 @if ($invoice->packingSlip)
                     <a
-                        href="{{ route('admin.packing-slips.show', $invoice->packingSlip) }}"
+                        href="{{ route('admin.shipping-list.show', $invoice->packingSlip) }}"
                         wire:navigate
                         class="font-mono text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                     >
@@ -339,7 +339,7 @@
                 <div class="mt-2">
                     @if ($invoice->packingSlip)
                         <a
-                            href="{{ route('admin.packing-slips.show', $invoice->packingSlip) }}"
+                            href="{{ route('admin.shipping-list.show', $invoice->packingSlip) }}"
                             wire:navigate
                             class="font-mono text-sm font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                         >

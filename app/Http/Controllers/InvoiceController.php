@@ -21,7 +21,7 @@ class InvoiceController extends Controller
      * Crea un Invoice FPL-12 a partir de un Packing Slip en estado 'shipped'.
      *
      * POST /admin/packing-slips/{packingSlip}/invoice
-     * Nombre: admin.packing-slips.create-invoice
+     * Nombre: admin.shipping-list.create-invoice
      *
      * En caso de exito redirige al detalle del Invoice creado.
      * En caso de error redirige de vuelta al PS con el mensaje de error.
@@ -40,7 +40,7 @@ class InvoiceController extends Controller
 
         } catch (RuntimeException $e) {
             return redirect()
-                ->route('admin.packing-slips.show', $packingSlip->ps_number)
+                ->route('admin.shipping-list.show', $packingSlip->ps_number)
                 ->with('error', $e->getMessage());
         }
     }
