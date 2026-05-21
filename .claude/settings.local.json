@@ -76,7 +76,9 @@
       "PowerShell(cd \"C:/xampp/htdocs/flexcon-tracker\"; php artisan tinker --execute=\"use Illuminate\\\\Http\\\\Request; \\\\$r = Request::create\\('http://flexcon-tracker.test:8088/test', 'GET'\\); echo \\\\$r->root\\(\\);\" 2>&1)",
       "PowerShell(git *)",
       "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://flexcon-tracker.test:8088/build/assets/app-6f3g5OAx.css\" -UseBasicParsing -TimeoutSec 10; Write-Host \"New CSS Status: $\\($r.StatusCode\\), Size: $\\($r.Content.Length\\)\" } catch { Write-Host \"Error: $\\($_.Exception.Message\\)\" })",
-      "PowerShell(cd \"C:/xampp/htdocs/flexcon-tracker\"; php artisan tinker --execute=\"App\\\\Models\\\\User::where\\('email', 'like', '%jjimenez%'\\)->get\\(['email','name']\\)->each\\(fn\\(\\\\$u\\) => print\\(\\\\$u->email . ' => ' . \\\\$u->name . PHP_EOL\\)\\);\" 2>&1)"
+      "PowerShell(cd \"C:/xampp/htdocs/flexcon-tracker\"; php artisan tinker --execute=\"App\\\\Models\\\\User::where\\('email', 'like', '%jjimenez%'\\)->get\\(['email','name']\\)->each\\(fn\\(\\\\$u\\) => print\\(\\\\$u->email . ' => ' . \\\\$u->name . PHP_EOL\\)\\);\" 2>&1)",
+      "Bash(composer install *)",
+      "Bash(composer update *)"
     ],
     "deny": [],
     "ask": []
