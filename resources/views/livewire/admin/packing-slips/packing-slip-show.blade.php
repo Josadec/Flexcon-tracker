@@ -73,47 +73,39 @@
     <div class="space-y-6">
 
         <!-- Header -->
-        <div>
-            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div class="space-y-3">
-                    <a href="{{ route('admin.shipping-list.index') }}" wire:navigate
-                       class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        Volver a Shipping List
-                    </a>
-                    <div class="flex items-center space-x-3">
-                    <div>
-                        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white font-mono">
-                            {{ $packingSlip->ps_number }}
-                        </h1>
-                        <div class="flex items-center mt-2 space-x-3">
-                            <span class="inline-flex rounded-full border-2 px-3 py-1 text-xs font-medium {{ $statusCardClasses }}">
-                                {{ $packingSlip->statusLabel }}
-                            </span>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Detalle operativo del Shipping List</p>
-                        </div>
-                    </div>
+        <div class="space-y-4">
+            {{-- Fila 1: Título + badge de estado + subtítulo --}}
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-900 dark:text-white font-mono">
+                    {{ $packingSlip->ps_number }}
+                </h1>
+                <div class="flex items-center mt-2 space-x-3">
+                    <span class="inline-flex rounded-full border-2 px-3 py-1 text-xs font-medium {{ $statusCardClasses }}">
+                        {{ $packingSlip->statusLabel }}
+                    </span>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Detalle operativo del Shipping List</p>
                 </div>
+            </div>
 
-                <div class="flex flex-wrap gap-2 items-center xl:max-w-2xl xl:justify-end">
-                    {{-- Selector de estado universal: permite cambiar a cualquier estado libremente --}}
-                    <div class="flex items-center gap-2">
-                        <select wire:model="selectedStatus"
-                                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
-                            @foreach (\App\Models\PackingSlip::STATUSES as $value => $label)
-                                <option value="{{ $value }}" @selected($value === $selectedStatus)>{{ $label }}</option>
-                            @endforeach
-                        </select>
-                        <button wire:click="updateStatus"
-                                class="inline-flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors cursor-pointer">
-                            Guardar estado
-                        </button>
-                    </div>
+            {{-- Fila 2: Acciones — izquierda: estado | derecha: navegación + PDF --}}
+            <div class="flex flex-wrap items-center justify-between gap-3">
+
+                {{-- Lado izquierdo: selector de estado + guardar --}}
+                <div class="flex flex-wrap items-center gap-2">
+                    {{-- Selector de estado universal --}}
+                    <select wire:model="selectedStatus"
+                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        @foreach (\App\Models\PackingSlip::STATUSES as $value => $label)
+                            <option value="{{ $value }}" @selected($value === $selectedStatus)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <button wire:click="updateStatus"
+                            class="inline-flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors cursor-pointer">
+                        Guardar estado
+                    </button>
 
                     @if ($packingSlip->isDraft())
-                        {{-- Botón toggle para el panel de edición de lotes integrado (solo en Borrador) --}}
+                        {{-- Botón toggle para el panel de edición de lotes (solo en Borrador) --}}
                         <button wire:click="toggleEditingLots"
                                 class="inline-flex items-center px-4 py-2 {{ $editingLots ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-600 hover:bg-gray-700' }} text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -122,9 +114,21 @@
                             {{ $editingLots ? 'Cancelar edición' : 'Editar lotes' }}
                         </button>
                     @endif
+                </div>
+
+                {{-- Lado derecho: Volver + Ver PDF + Descargar PDF --}}
+                <div class="flex flex-wrap items-center gap-2">
+                    {{-- Volver a Shipping List — siempre visible --}}
+                    <a href="{{ route('admin.shipping-list.index') }}" wire:navigate
+                       class="inline-flex items-center px-4 py-2 border-2 border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700/60 text-sm font-medium rounded-md transition-colors duration-200">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Volver a Shipping List
+                    </a>
 
                     @if ($packingSlip->isShipped() || $packingSlip->isCancelled())
-                        {{-- Ver PDF en nueva pestana (oculto en Borrador y Pendiente) --}}
+                        {{-- Ver PDF en nueva pestaña (solo en Despachado/Cancelado) --}}
                         <a href="{{ route('admin.shipping-list.pdf', $packingSlip) }}"
                            target="_blank"
                            class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
@@ -134,7 +138,7 @@
                             Ver PDF
                         </a>
 
-                        {{-- Descargar PDF (oculto en Borrador) --}}
+                        {{-- Descargar PDF (solo en Despachado/Cancelado) --}}
                         <a href="{{ route('admin.shipping-list.pdf.download', $packingSlip) }}"
                            class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,15 +147,8 @@
                             Descargar PDF
                         </a>
                     @endif
-
-                    <a href="{{ route('admin.shipping-list.index') }}" wire:navigate
-                       class="inline-flex items-center px-4 py-2 border-2 border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700/60 text-sm font-medium rounded-md transition-colors duration-200">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        Volver a la lista
-                    </a>
                 </div>
+
             </div>
         </div>
 
