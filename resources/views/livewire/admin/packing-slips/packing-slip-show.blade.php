@@ -395,7 +395,7 @@
                                             </td>
                                             {{-- Description --}}
                                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
-                                                {{ $lot->workOrder?->purchaseOrder?->part?->number ?? '-' }}
+                                                {{ $lot->workOrder?->purchaseOrder?->part?->description ?? '-' }}
                                             </td>
                                             {{-- Quantity --}}
                                             <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">
@@ -484,7 +484,7 @@
                                                 {{ $item->lot?->workOrder?->purchaseOrder?->part?->item_number ?? '-' }}
                                             </td>
                                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                                {{ $item->lot?->workOrder?->purchaseOrder?->part?->number ?? '-' }}
+                                                {{ $item->lot?->workOrder?->purchaseOrder?->part?->description ?? '-' }}
                                             </td>
                                             <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
                                                 {{ number_format($item->quantity_packed) }}
