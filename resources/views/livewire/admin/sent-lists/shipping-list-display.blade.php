@@ -2405,6 +2405,32 @@
                             </div>
                         </div>
 
+                        {{-- Acumulado de ciclos de completado previos --}}
+                        @if ($pkgPreviousCyclesPacked > 0)
+                            <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg p-3">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    <span class="text-xs font-semibold text-emerald-800 dark:text-emerald-200">Acumulado de ciclos de completado</span>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 text-center">
+                                    <div class="bg-white/60 dark:bg-gray-800/40 rounded p-2">
+                                        <div class="text-[10px] text-gray-500 dark:text-gray-400">Ciclos anteriores</div>
+                                        <div class="text-base font-bold text-gray-700 dark:text-gray-200">{{ number_format($pkgPreviousCyclesPacked) }}</div>
+                                    </div>
+                                    <div class="bg-white/60 dark:bg-gray-800/40 rounded p-2">
+                                        <div class="text-[10px] text-gray-500 dark:text-gray-400">Empacado este ciclo</div>
+                                        <div class="text-base font-bold text-gray-700 dark:text-gray-200">{{ number_format($pkgAlreadyPacked) }}</div>
+                                    </div>
+                                    <div class="bg-emerald-100 dark:bg-emerald-800/40 rounded p-2">
+                                        <div class="text-[10px] text-emerald-700 dark:text-emerald-300">Total acumulado</div>
+                                        <div class="text-base font-bold text-emerald-700 dark:text-emerald-200">{{ number_format($pkgPreviousCyclesPacked + $pkgAlreadyPacked) }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         {{-- ================================================ --}}
                         {{-- FASE 1: Registrar Empaque --}}
                         {{-- ================================================ --}}
@@ -2711,6 +2737,53 @@
                         <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
                             Faltantes = Total Lote - Empacadas - Sobrantes
                         </p>
+
+                        {{-- Acumulado de todos los ciclos — reconciliación contra el lote original --}}
+                        @if ($decPreviousCyclesPacked > 0)
+                            @php
+                                $accPacked  = $decPreviousCyclesPacked + $decPacked;
+                                $accSurplus = $decPreviousCyclesSurplus + $decSurplus;
+                                $accTotal   = $accPacked + $accSurplus + $decMissing;
+                                $accMatches = $accTotal === (int) $decOriginalQuantity;
+                            @endphp
+                            <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg p-3">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-semibold text-emerald-800 dark:text-emerald-200 flex items-center gap-1.5">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        Acumulado de todos los ciclos
+                                    </span>
+                                    <span class="text-[11px] text-gray-500 dark:text-gray-400">Lote original: <strong class="text-gray-700 dark:text-gray-200">{{ number_format($decOriginalQuantity) }}</strong></span>
+                                </div>
+                                <div class="grid grid-cols-4 gap-2 text-center">
+                                    <div class="bg-white/60 dark:bg-gray-800/40 rounded p-2">
+                                        <div class="text-[10px] text-green-600 dark:text-green-400">Empacado</div>
+                                        <div class="text-base font-bold text-green-700 dark:text-green-300">{{ number_format($accPacked) }}</div>
+                                    </div>
+                                    <div class="bg-white/60 dark:bg-gray-800/40 rounded p-2">
+                                        <div class="text-[10px] text-orange-600 dark:text-orange-400">Sobrantes</div>
+                                        <div class="text-base font-bold text-orange-700 dark:text-orange-300">{{ number_format($accSurplus) }}</div>
+                                    </div>
+                                    <div class="bg-white/60 dark:bg-gray-800/40 rounded p-2">
+                                        <div class="text-[10px] text-red-600 dark:text-red-400">Faltantes</div>
+                                        <div class="text-base font-bold text-red-700 dark:text-red-300">{{ number_format($decMissing) }}</div>
+                                    </div>
+                                    <div class="bg-emerald-100 dark:bg-emerald-800/40 rounded p-2">
+                                        <div class="text-[10px] text-emerald-700 dark:text-emerald-300">Total</div>
+                                        <div class="text-base font-bold text-emerald-700 dark:text-emerald-200">{{ number_format($accTotal) }}</div>
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-center mt-2 {{ $accMatches ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
+                                    Empacado + Sobrantes + Faltantes = {{ number_format($accTotal) }}
+                                    @if ($accMatches)
+                                        &check; coincide con el lote original
+                                    @else
+                                        &#9888; no coincide con el lote original ({{ number_format($decOriginalQuantity) }})
+                                    @endif
+                                </p>
+                            </div>
+                        @endif
 
                         {{-- Decision options (only if no closure decision yet) --}}
                         @if (!$decClosureDecision)

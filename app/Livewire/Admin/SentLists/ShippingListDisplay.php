@@ -120,6 +120,7 @@ class ShippingListDisplay extends Component
     public $pkgProductionPieces = 0;
     public $pkgAvailablePieces = 0;
     public $pkgAlreadyPacked = 0;
+    public $pkgPreviousCyclesPacked = 0; // Piezas empacadas en ciclos de completado anteriores
     public $pkgPendingPieces = 0;
     public $pkgPackedPieces = 0;
     public $pkgSurplusPieces = 0;
@@ -144,6 +145,9 @@ class ShippingListDisplay extends Component
     public $decPacked = 0;
     public $decSurplus = 0;
     public $decMissing = 0;
+    public $decPreviousCyclesPacked = 0;  // Piezas empacadas en ciclos de completado anteriores
+    public $decPreviousCyclesSurplus = 0; // Sobrantes de ciclos de completado anteriores
+    public $decOriginalQuantity = 0;      // Cantidad original del lote (antes del primer completado)
     public $decIsCrimp = false;
     public $decClosureDecision = null;
     public $decSurplusDelivered = false;
@@ -948,7 +952,7 @@ class ShippingListDisplay extends Component
     {
         if (!$this->guardDepartment('packaging')) return;
 
-        $lot = Lot::with(['workOrder.purchaseOrder.part', 'packagingRecords.packedBy', 'qualityWeighings'])->find($lotId);
+        $lot = Lot::with(['workOrder.purchaseOrder.part', 'packagingRecords.packedBy', 'qualityWeighings', 'completionLogs'])->find($lotId);
 
         if (!$lot) {
             session()->flash('error', 'Lote no encontrado.');
@@ -961,6 +965,7 @@ class ShippingListDisplay extends Component
         $this->pkgProductionPieces = $lot->getProductionGoodPieces();
         $this->pkgAvailablePieces = $lot->getPackagingAvailablePieces();
         $this->pkgAlreadyPacked = $lot->getPackagingPackedPieces();
+        $this->pkgPreviousCyclesPacked = (int) $lot->completionLogs->sum('packed_pieces');
         $this->pkgPendingPieces = $lot->getPackagingPendingPieces();
         $this->pkgPackedPieces = 0;
         $this->pkgSurplusPieces = 0;
@@ -1005,6 +1010,7 @@ class ShippingListDisplay extends Component
         $this->pkgProductionPieces = 0;
         $this->pkgAvailablePieces = 0;
         $this->pkgAlreadyPacked = 0;
+        $this->pkgPreviousCyclesPacked = 0;
         $this->pkgPendingPieces = 0;
         $this->pkgPackedPieces = 0;
         $this->pkgSurplusPieces = 0;
@@ -1281,7 +1287,7 @@ class ShippingListDisplay extends Component
     {
         if (!$this->guardDepartment('materials')) return;
 
-        $lot = Lot::with(['workOrder.purchaseOrder.part', 'packagingRecords'])->find($lotId);
+        $lot = Lot::with(['workOrder.purchaseOrder.part', 'packagingRecords', 'completionLogs'])->find($lotId);
 
         if (!$lot) {
             session()->flash('error', 'Lote no encontrado.');
@@ -1295,6 +1301,13 @@ class ShippingListDisplay extends Component
         $this->decPacked = $lot->getPackagingPackedPieces();
         $this->decSurplus = $lot->getPackagingTotalSurplus();
         $this->decMissing = max(0, $this->decLotTotal - $this->decPacked - $this->decSurplus);
+
+        // Acumulado de ciclos de completado previos (ya decididos)
+        $this->decPreviousCyclesPacked = (int) $lot->completionLogs->sum('packed_pieces');
+        $this->decPreviousCyclesSurplus = (int) $lot->completionLogs->sum('surplus_pieces');
+        $firstLog = $lot->completionLogs->sortBy('cycle_number')->first();
+        $this->decOriginalQuantity = $firstLog ? (int) $firstLog->original_quantity : (int) $lot->quantity;
+
         $this->decIsCrimp = (bool) ($lot->workOrder->purchaseOrder->part->is_crimp ?? false);
         $this->decClosureDecision = $lot->closure_decision;
         $this->decSurplusDelivered = (bool) $lot->surplus_delivered;
@@ -1314,6 +1327,9 @@ class ShippingListDisplay extends Component
         $this->decPacked = 0;
         $this->decSurplus = 0;
         $this->decMissing = 0;
+        $this->decPreviousCyclesPacked = 0;
+        $this->decPreviousCyclesSurplus = 0;
+        $this->decOriginalQuantity = 0;
         $this->decIsCrimp = false;
         $this->decClosureDecision = null;
         $this->decSurplusReceived = false;
@@ -2203,10 +2219,14 @@ class ShippingListDisplay extends Component
             'sentList'
         ]);
 
-        // En vista general: solo WOs con al menos un lote.
-        // En vista enfocada: traer todos los WOs aunque aún no tengan lotes.
+        // En vista general: solo WOs con al menos un lote y que NO estén completados.
+        // Un WO marcado como "Completed" desaparece de la lista; al reabrirlo (Open)
+        // vuelve a aparecer. En vista enfocada se muestran todos.
         if (!$isFocusedView) {
             $query->whereHas('lots');
+            $query->whereDoesntHave('status', function ($q) {
+                $q->where('name', 'Completed');
+            });
         }
 
         // Vista enfocada en un único WO
