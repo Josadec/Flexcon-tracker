@@ -103,7 +103,7 @@
                         <select wire:model="selectedStatus"
                                 class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
                             @foreach (\App\Models\PackingSlip::STATUSES as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
+                                <option value="{{ $value }}" @selected($value === $selectedStatus)>{{ $label }}</option>
                             @endforeach
                         </select>
                         <button wire:click="updateStatus"
@@ -123,7 +123,7 @@
                         </button>
                     @endif
 
-                    @if ($packingSlip->document_date && !$packingSlip->isDraft() && !$packingSlip->isPending())
+                    @if ($packingSlip->isShipped() || $packingSlip->isCancelled())
                         {{-- Ver PDF en nueva pestana (oculto en Borrador y Pendiente) --}}
                         <a href="{{ route('admin.shipping-list.pdf', $packingSlip) }}"
                            target="_blank"
