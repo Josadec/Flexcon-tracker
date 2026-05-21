@@ -167,7 +167,7 @@
                         :current="request()->routeIs('admin.shipping-list.*')" wire:navigate>{{ __('Shipping List') }}
                     </flux:navlist.item>
                     <flux:navlist.item icon="truck" :href="route('admin.shipping.queue')"
-                        :current="request()->routeIs('admin.shipping.queue')" wire:navigate>{{ __('WO Listos para PS') }}
+                        :current="request()->routeIs('admin.shipping.queue')" wire:navigate>{{ __('WO Listos para SL') }}
                     </flux:navlist.item>
                     @unless ($authUser->hasRole('admin'))
                     <flux:navlist.item icon="queue-list" :href="route('admin.sent-lists.display')"

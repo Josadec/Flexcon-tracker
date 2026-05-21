@@ -72,7 +72,7 @@
                     :current="request()->routeIs('admin.packaging.manage')" wire:navigate>{{ __('Gestión') }}
                 </flux:navlist.item>
                 <flux:navlist.item icon="queue-list" :href="route('admin.shipping.queue')"
-                    :current="request()->routeIs('admin.shipping.queue')" wire:navigate>{{ __('WO Listos para PS') }}
+                    :current="request()->routeIs('admin.shipping.queue')" wire:navigate>{{ __('WO Listos para SL') }}
                 </flux:navlist.item>
                 <flux:navlist.item icon="document-text" :href="route('admin.shipping-list.index')"
                     :current="request()->routeIs('admin.shipping-list.*')" wire:navigate>{{ __('Shipping List') }}
