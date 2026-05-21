@@ -86,51 +86,6 @@ class PackingSlipShow extends Component
     }
 
     // -----------------------------------------------------------------------
-    // Edición inline de la Fecha del Documento (document_date)
-    // -----------------------------------------------------------------------
-    public function updateDocumentDate(string $value): void
-    {
-        if ($this->packingSlip->isShipped() || $this->packingSlip->isPending() || $this->packingSlip->isCancelled()) {
-            $this->dispatch('notify', [
-                'type'    => 'error',
-                'message' => 'No se puede cambiar la fecha en el estado actual del Packing Slip.',
-            ]);
-            return;
-        }
-
-        $trimmed = trim($value);
-
-        if (empty($trimmed)) {
-            $this->packingSlip->update(['document_date' => null]);
-            $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
-            $this->dispatch('notify', [
-                'type'    => 'success',
-                'message' => 'Fecha del documento eliminada.',
-            ]);
-            return;
-        }
-
-        // Validar formato de fecha
-        try {
-            $date = \Illuminate\Support\Carbon::parse($trimmed);
-        } catch (\Exception $e) {
-            $this->dispatch('notify', [
-                'type'    => 'error',
-                'message' => 'Formato de fecha no válido.',
-            ]);
-            return;
-        }
-
-        $this->packingSlip->update(['document_date' => $date->toDateString()]);
-        $this->packingSlip->refresh()->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'invoice']);
-
-        $this->dispatch('notify', [
-            'type'    => 'success',
-            'message' => 'Fecha del documento actualizada: ' . $date->format('d/m/Y'),
-        ]);
-    }
-
-    // -----------------------------------------------------------------------
     // Edición inline del PS Number
     // -----------------------------------------------------------------------
     public function updatePsNumber(string $value): void

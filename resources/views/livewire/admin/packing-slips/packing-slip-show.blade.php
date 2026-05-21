@@ -235,34 +235,6 @@
                         @endif
                     </div>
                     <div>
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Fecha del Documento</p>
-                        @if ($packingSlip->isDraft())
-                            <div x-data="{ editing: false, value: '{{ $packingSlip->document_date?->format('Y-m-d') ?? now()->format('Y-m-d') }}' }" class="mt-1">
-                                <span x-show="!editing"
-                                      class="text-base text-gray-900 dark:text-white inline-flex items-center gap-1">
-                                    <span x-text="new Date(value + 'T00:00:00').toLocaleDateString('es-MX', {day:'2-digit',month:'2-digit',year:'numeric'})"></span>
-                                    <button type="button" @click="editing = true"
-                                            class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                                            title="Editar Fecha del Documento">
-                                        <svg class="w-3.5 h-3.5 text-gray-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </button>
-                                </span>
-                                <div x-show="editing" x-cloak style="display:none">
-                                    <input x-model="value" type="date"
-                                           class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                           @change="editing = false; $wire.updateDocumentDate(value)"
-                                           @keydown.escape="editing = false"
-                                           x-effect="if (editing) $nextTick(() => $el.focus())">
-                                </div>
-                            </div>
-                        @else
-                            <p class="text-base text-gray-900 dark:text-white mt-1">{{ $packingSlip->document_date?->format('d/m/Y') ?? '-' }}</p>
-                        @endif
-                        <p class="text-xs text-gray-400 dark:text-gray-500">Campo DATE del FPL-10</p>
-                    </div>
-                    <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Creado por</p>
                         <p class="text-base text-gray-900 dark:text-white mt-1">{{ $packingSlip->creator?->name ?? '-' }}</p>
                     </div>
