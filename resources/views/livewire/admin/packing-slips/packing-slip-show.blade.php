@@ -116,17 +116,8 @@
                     @endif
                 </div>
 
-                {{-- Lado derecho: Volver + Ver PDF + Descargar PDF --}}
+                {{-- Lado derecho: Ver PDF + Descargar PDF + Volver --}}
                 <div class="flex flex-wrap items-center gap-2">
-                    {{-- Volver a Shipping List — siempre visible --}}
-                    <a href="{{ route('admin.shipping-list.index') }}" wire:navigate
-                       class="inline-flex items-center px-4 py-2 border-2 border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700/60 text-sm font-medium rounded-md transition-colors duration-200">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        Volver a Shipping List
-                    </a>
-
                     @if ($packingSlip->isShipped() || $packingSlip->isCancelled())
                         {{-- Ver PDF en nueva pestaña (solo en Despachado/Cancelado) --}}
                         <a href="{{ route('admin.shipping-list.pdf', $packingSlip) }}"
@@ -147,6 +138,15 @@
                             Descargar PDF
                         </a>
                     @endif
+
+                    {{-- Volver a Shipping List — siempre visible --}}
+                    <a href="{{ route('admin.shipping-list.index') }}" wire:navigate
+                       class="inline-flex items-center px-4 py-2 border-2 border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700/60 text-sm font-medium rounded-md transition-colors duration-200">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Volver a Shipping List
+                    </a>
                 </div>
 
             </div>
