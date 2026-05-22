@@ -632,6 +632,13 @@
                                             @endif
                                             @if ($lot->completion_count > 0)
                                                 <span class="ml-1 px-1 py-0.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded font-semibold" title="Ciclo de completado {{ $lot->completion_count }}">Completado {{ $lot->completion_count }}</span>
+                                                <button wire:click="openCycleHistoryModal({{ $lot->id }})" type="button"
+                                                    class="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-200 dark:bg-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-300 dark:hover:bg-amber-700 transition"
+                                                    title="Ver historial de ciclos">
+                                                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                    </svg>
+                                                </button>
                                             @endif
 
                                             {{-- Próxima acción pendiente (lifecycle completo) --}}
@@ -1279,6 +1286,16 @@
                                             @endif
                                         </span>
                                     @endif
+                                    @if ($lot->completion_count > 0)
+                                        <button wire:click="openCycleHistoryModal({{ $lot->id }})" type="button"
+                                            class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800 transition"
+                                            title="Ver historial de ciclos">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            Historia
+                                        </button>
+                                    @endif
                                     <span
                                         class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded {{ $statusInfo['bg'] }} {{ $statusInfo['text'] }}">
                                         {{ $statusInfo['label'] }}
@@ -1418,6 +1435,136 @@
         </div>
     </div>
 
+    {{-- Modal de Historial de Ciclos --}}
+    @if ($showCycleHistoryModal && $selectedLotForCycleHistory)
+        @php $lot_h = $selectedLotForCycleHistory; @endphp
+        <div wire:key="modal-cycle-history" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+            <div class="flex items-center justify-center min-h-screen px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-900/60 transition-opacity" wire:click="closeCycleHistoryModal"></div>
+
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl">
+
+                    {{-- Header --}}
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-amber-600">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-base font-semibold text-white">Historial de Ciclos — Lote {{ $lot_h->lot_number }}</h3>
+                                <p class="text-xs text-amber-100 mt-0.5">
+                                    WO: {{ $lot_h->workOrder->purchaseOrder->wo ?? '—' }}
+                                    &nbsp;|&nbsp; Parte: {{ $lot_h->workOrder->purchaseOrder->part->number ?? '—' }}
+                                    &nbsp;|&nbsp; Qty Original: {{ number_format($lot_h->completionLogs->first()?->original_quantity ?? $lot_h->quantity) }}
+                                </p>
+                            </div>
+                            <button wire:click="closeCycleHistoryModal" type="button" class="text-amber-200 hover:text-white">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Tabla de ciclos --}}
+                    <div class="overflow-x-auto">
+                        @if ($lot_h->completionLogs->isNotEmpty())
+                            <table class="min-w-full text-sm">
+                                <thead class="bg-gray-50 dark:bg-gray-900/50">
+                                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Ciclo</th>
+                                        <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Qty Original</th>
+                                        <th class="px-4 py-3 text-right text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase whitespace-nowrap">Empacadas</th>
+                                        <th class="px-4 py-3 text-right text-xs font-semibold text-orange-500 dark:text-orange-400 uppercase whitespace-nowrap">Sobrantes</th>
+                                        <th class="px-4 py-3 text-right text-xs font-semibold text-red-500 dark:text-red-400 uppercase whitespace-nowrap">Faltantes</th>
+                                        <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Prod. Buenas</th>
+                                        <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Cal. Buenas</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Completado por</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                    @foreach ($lot_h->completionLogs->sortBy('cycle_number') as $clog)
+                                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                                                    C{{ $clog->cycle_number }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">{{ number_format($clog->original_quantity) }}</td>
+                                            <td class="px-4 py-3 text-right font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">{{ number_format($clog->packed_pieces) }}</td>
+                                            <td class="px-4 py-3 text-right tabular-nums {{ $clog->surplus_pieces > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500' }}">{{ number_format($clog->surplus_pieces) }}</td>
+                                            <td class="px-4 py-3 text-right tabular-nums {{ $clog->missing_pieces > 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-400 dark:text-gray-500' }}">{{ number_format($clog->missing_pieces) }}</td>
+                                            <td class="px-4 py-3 text-right text-gray-600 dark:text-gray-400 tabular-nums">{{ number_format($clog->production_good_pieces) }}</td>
+                                            <td class="px-4 py-3 text-right text-gray-600 dark:text-gray-400 tabular-nums">{{ number_format($clog->quality_good_pieces) }}</td>
+                                            <td class="px-4 py-3 text-gray-700 dark:text-gray-300 text-xs whitespace-nowrap">{{ $clog->completedByUser?->name ?? '—' }}</td>
+                                            <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">{{ $clog->completed_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot>
+                                    <tr class="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 font-semibold">
+                                        <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 uppercase">Total</td>
+                                        <td class="px-4 py-3 text-right text-xs text-gray-400">—</td>
+                                        <td class="px-4 py-3 text-right text-xs text-emerald-700 dark:text-emerald-400 tabular-nums">{{ number_format($lot_h->completionLogs->sum('packed_pieces')) }}</td>
+                                        <td class="px-4 py-3 text-right text-xs text-orange-600 dark:text-orange-400 tabular-nums">{{ number_format($lot_h->completionLogs->sum('surplus_pieces')) }}</td>
+                                        <td class="px-4 py-3 text-right text-xs text-red-600 dark:text-red-400 tabular-nums">{{ number_format($lot_h->completionLogs->sum('missing_pieces')) }}</td>
+                                        <td colspan="4"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        @else
+                            <p class="text-center text-sm text-gray-500 dark:text-gray-400 py-8">No hay ciclos completados registrados.</p>
+                        @endif
+                    </div>
+
+                    {{-- Footer: rollback solo para admin --}}
+                    @if (auth()->user()->hasRole('admin') && $lot_h->completionLogs->isNotEmpty() && !$lot_h->packingSlipItem)
+                        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-900/10">
+                            <div class="flex items-start gap-3">
+                                <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-semibold text-red-700 dark:text-red-400">Zona de Admin — Reversión de Ciclo</p>
+                                    <p class="text-xs text-red-600 dark:text-red-500 mt-0.5">
+                                        Revierte el <strong>Ciclo {{ $lot_h->completionLogs->sortByDesc('cycle_number')->first()->cycle_number }}</strong>.
+                                        Se eliminarán los registros del ciclo actual y se restaurarán los del ciclo anterior.
+                                        Esta acción <strong>no se puede deshacer</strong>.
+                                    </p>
+                                </div>
+                                <button
+                                    wire:click="rollbackLastCycle({{ $lot_h->id }})"
+                                    wire:confirm="¿Confirmas que deseas revertir el Ciclo {{ $lot_h->completionLogs->sortByDesc('cycle_number')->first()->cycle_number }}? Esta acción eliminará el ciclo actual y restaurará el estado anterior. No se puede deshacer."
+                                    type="button"
+                                    class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                    </svg>
+                                    Revertir C{{ $lot_h->completionLogs->sortByDesc('cycle_number')->first()->cycle_number }}
+                                </button>
+                            </div>
+                        </div>
+                    @elseif (auth()->user()->hasRole('admin') && $lot_h->packingSlipItem)
+                        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                                Reversión bloqueada: este lote ya tiene un Packing Slip generado.
+                            </p>
+                        </div>
+                    @endif
+
+                    {{-- Botón cerrar --}}
+                    <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                        <button wire:click="closeCycleHistoryModal" type="button"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Modal de Gestión de Lotes --}}
     @if ($showLotModal && $selectedWorkOrder)
         <div wire:key="modal-lot" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
@@ -1481,6 +1628,8 @@
                                             </div>
                                         </div>
                                         <button wire:click="removeLot({{ $index }})"
+                                            wire:confirm="¿Eliminar este lote?"
+                                            type="button"
                                             class="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                             title="Eliminar lote">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor"

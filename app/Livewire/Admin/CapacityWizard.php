@@ -557,9 +557,11 @@ class CapacityWizard extends Component
 
     public function removeLotInput(int $lotIndex)
     {
-        if (count($this->tempLots) > 1) {
-            unset($this->tempLots[$lotIndex]);
-            $this->tempLots = array_values($this->tempLots);
+        unset($this->tempLots[$lotIndex]);
+        $this->tempLots = array_values($this->tempLots);
+
+        if (empty($this->tempLots)) {
+            $this->tempLots = [['number' => '', 'quantity' => '']];
         }
     }
 
@@ -651,9 +653,11 @@ class CapacityWizard extends Component
 
     public function removeKitInput(int $kitIndex)
     {
-        if (count($this->tempKits) > 1) {
-            unset($this->tempKits[$kitIndex]);
-            $this->tempKits = array_values($this->tempKits);
+        unset($this->tempKits[$kitIndex]);
+        $this->tempKits = array_values($this->tempKits);
+
+        if (empty($this->tempKits)) {
+            $this->tempKits = [['number' => '', 'quantity' => '']];
         }
     }
 
