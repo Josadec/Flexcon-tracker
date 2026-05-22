@@ -3,7 +3,6 @@
 namespace App\Livewire\Admin\PackingSlips;
 
 use App\Models\PackingSlip;
-use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -11,8 +10,7 @@ class PackingSlipList extends Component
 {
     use WithPagination;
 
-    /** Tab activo: 'queue' (WO Listos para SL) o 'list' (Shipping List). Se persiste en la URL como ?tab=. */
-    #[Url(as: 'tab')]
+    /** Tab activo: 'queue' (WO Listos para SL) o 'list' (Shipping List). Solo en memoria, no persiste en la URL. */
     public string $activeTab = 'queue';
 
     public string $search = '';

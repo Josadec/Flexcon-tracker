@@ -71,7 +71,7 @@
                 <flux:navlist.item icon="archive-box" :href="route('admin.packaging.manage')"
                     :current="request()->routeIs('admin.packaging.manage')" wire:navigate>{{ __('Gestión') }}
                 </flux:navlist.item>
-                <flux:navlist.item icon="document-text" :href="route('admin.shipping-list.index', ['tab' => 'queue'])"
+                <flux:navlist.item icon="document-text" :href="route('admin.shipping-list.index')"
                     :current="request()->routeIs('admin.shipping-list.index') || request()->routeIs('admin.shipping.queue') || request()->routeIs('admin.shipping-list.*')" wire:navigate>{{ __('Shipping List') }}
                 </flux:navlist.item>
             </flux:navlist.group>
