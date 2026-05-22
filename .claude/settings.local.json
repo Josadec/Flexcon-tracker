@@ -79,7 +79,10 @@
       "PowerShell(cd \"C:/xampp/htdocs/flexcon-tracker\"; php artisan tinker --execute=\"App\\\\Models\\\\User::where\\('email', 'like', '%jjimenez%'\\)->get\\(['email','name']\\)->each\\(fn\\(\\\\$u\\) => print\\(\\\\$u->email . ' => ' . \\\\$u->name . PHP_EOL\\)\\);\" 2>&1)",
       "Bash(composer install *)",
       "Bash(composer update *)",
-      "mcp__playwright__browser_tabs"
+      "mcp__playwright__browser_tabs",
+      "mcp__playwright__browser_close",
+      "PowerShell(Get-Process *)",
+      "Bash(del *)"
     ],
     "deny": [],
     "ask": []

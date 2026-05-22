@@ -361,12 +361,14 @@ class InvoiceShow extends Component
 
     /**
      * Cancela el Invoice.
-     * Solo permitido desde draft.
+     * Permitido desde draft e issued.
+     * Un invoice emitido puede cancelarse para invalidarlo; el PS queda
+     * libre para generar una factura corregida si se elimina el invoice.
      */
     public function cancelInvoice(): void
     {
-        if (! $this->invoice->isDraft()) {
-            $this->dispatch('notify', ['type' => 'error', 'message' => 'Solo se puede cancelar un Invoice en estado borrador.']);
+        if (! $this->invoice->isDraft() && ! $this->invoice->isIssued()) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => 'Solo se puede cancelar un Invoice en estado borrador o emitido.']);
             $this->confirmingCancel = false;
 
             return;

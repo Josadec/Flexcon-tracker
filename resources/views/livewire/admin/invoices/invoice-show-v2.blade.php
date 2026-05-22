@@ -178,6 +178,9 @@
                     </svg>
                     Emitir invoice
                 </button>
+            @endif
+
+            @if ($invoice->isDraft() || $invoice->isIssued())
                 <button
                     wire:click="confirmCancel"
                     type="button"
@@ -748,8 +751,17 @@
                     </div>
                 </div>
 
-                <div class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">
-                    <p>Esta accion evita que el invoice siga adelante en el flujo operativo.</p>
+                <div class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300 space-y-2">
+                    @if ($invoice->isIssued())
+                        <div class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                            <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <span>Este invoice ya fue <strong>emitido</strong>. Al cancelarlo quedara en modo solo lectura. Si deseas corregirlo, podras eliminarlo y generar uno nuevo desde el Packing Slip.</span>
+                        </div>
+                    @else
+                        <p>Esta accion evita que el invoice siga adelante en el flujo operativo.</p>
+                    @endif
                 </div>
 
                 <div class="flex flex-col-reverse gap-2 border-t border-gray-200 px-5 py-4 dark:border-gray-700 sm:flex-row sm:justify-end">
