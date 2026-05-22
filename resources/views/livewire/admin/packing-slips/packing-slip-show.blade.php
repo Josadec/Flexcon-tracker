@@ -92,17 +92,37 @@
 
                 {{-- Lado izquierdo: selector de estado + guardar --}}
                 <div class="flex flex-wrap items-center gap-2">
-                    {{-- Selector de estado universal --}}
-                    <select wire:model="selectedStatus"
-                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
-                        @foreach (\App\Models\PackingSlip::STATUSES as $value => $label)
-                            <option value="{{ $value }}" @selected($value === $selectedStatus)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                    <button wire:click="updateStatus"
-                            class="inline-flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors cursor-pointer">
-                        Guardar estado
-                    </button>
+                    {{-- Selector de estado universal + botón en un form para garantizar
+                         sincronización de wire:model en el mismo request del submit.
+                         Sin el <form>, wire:click envía la petición antes de que el
+                         valor del <select> llegue al servidor (doble-click bug). --}}
+                    <form wire:submit="updateStatus" class="flex items-center gap-2 shrink-0">
+                        {{-- Wrapper relativo para posicionar la flecha SVG sobre el select nativo --}}
+                        <div class="relative">
+                            <select wire:model="selectedStatus"
+                                    data-no-ts
+                                    class="w-48 appearance-none rounded-lg border border-gray-300 bg-white pl-3 pr-9 py-2 text-sm text-gray-700 shadow-sm
+                                           transition-colors duration-150 cursor-pointer
+                                           hover:border-indigo-400
+                                           focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/25
+                                           dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:border-indigo-400
+                                           dark:focus:border-indigo-400 dark:focus:ring-indigo-400/25">
+                                @foreach (\App\Models\PackingSlip::STATUSES as $value => $label)
+                                    <option value="{{ $value }}" @selected($value === $selectedStatus)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            {{-- Flecha indicadora (pointer-events-none para no bloquear clicks) --}}
+                            <span class="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-gray-400 dark:text-gray-400">
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/>
+                                </svg>
+                            </span>
+                        </div>
+                        <button type="submit"
+                                class="inline-flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors cursor-pointer">
+                            Guardar estado
+                        </button>
+                    </form>
 
                     @if ($packingSlip->isDraft())
                         {{-- Botón toggle para el panel de edición de lotes (solo en Borrador) --}}

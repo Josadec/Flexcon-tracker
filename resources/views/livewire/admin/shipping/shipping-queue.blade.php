@@ -201,10 +201,10 @@
                                         @endif
                                     </td>
 
-                                    {{-- Qty empacada --}}
+                                    {{-- Qty empacada (PZ COMPLETADAS: suma de todos los ciclos de completado) --}}
                                     <td class="px-4 py-3 text-right">
                                         <span class="font-semibold text-gray-900 dark:text-white">
-                                            {{ number_format($lot->quantity_packed_final ?? 0) }}
+                                            {{ number_format($lot->getTotalCompletedPieces()) }}
                                         </span>
                                         <span class="text-xs text-gray-400 ml-1">pzs</span>
                                     </td>
@@ -312,7 +312,7 @@
                                 <div>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Qty empacada</p>
                                     <p class="font-semibold text-gray-900 dark:text-white">
-                                        {{ number_format($returningLot->quantity_packed_final ?? 0) }}
+                                        {{ number_format($returningLot->getTotalCompletedPieces()) }}
                                         <span class="text-xs text-gray-400 font-normal">pzs</span>
                                     </p>
                                 </div>
@@ -444,7 +444,7 @@
                                                 {{ $lot->workOrder?->purchaseOrder?->part?->number ?? '—' }}
                                             </td>
                                             <td class="px-4 py-2.5 text-right text-gray-900 dark:text-white font-medium text-xs">
-                                                {{ number_format($lot->quantity_packed_final ?? 0) }}
+                                                {{ number_format($lot->getTotalCompletedPieces()) }}
                                             </td>
                                             <td class="px-4 py-2.5">
                                                 <span class="text-xs font-mono text-gray-700 dark:text-gray-300">

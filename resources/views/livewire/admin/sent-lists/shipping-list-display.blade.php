@@ -243,9 +243,6 @@
                                     class="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                     Cant. Pendiente</th>
                                 <th
-                                    class="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                    Cant. a Enviar</th>
-                                <th
                                     class="px-4 py-3 text-right text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">
                                     Pz Sobrantes</th>
                                 <th
@@ -275,8 +272,7 @@
                                     $totalSent = $completedLots->sum('quantity');
                                     $cantWO = $wo->original_quantity; // Cantidad total del WO
                                     $pzEnviadas = $wo->sent_pieces; // Piezas enviadas
-                                    $cantAEnviar = $cantWO - $pzEnviadas; // Cant. a Enviar = Cant. WO - Pz Enviadas
-                                    $toSend = $cantAEnviar;
+                                    $cantAEnviar = $cantWO - $pzEnviadas; // Cant. Pendiente = Cant. WO - Pz Enviadas
 
                                     // Piezas sobrantes: solo surplus real de empaque (rechazadas de calidad = descarte, no sobrantes)
                                     $woSobrantes = $allLots->sum(function ($l) {
@@ -560,9 +556,6 @@
                                         {{ number_format($pzEnviadas) }}</td>
                                     <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">
                                         {{ number_format($cantAEnviar) }}</td>
-                                    <td
-                                        class="px-4 py-3 text-right font-semibold bg-yellow-50 dark:bg-yellow-900/20 text-yellow-900 dark:text-yellow-200">
-                                        {{ number_format($toSend) }}</td>
                                     <td class="px-4 py-3 text-right font-semibold {{ $woSobrantes > 0 ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20' : 'text-gray-400 dark:text-gray-500' }}">
                                         {{ number_format($woSobrantes) }}</td>
                                     {{-- Pz Completadas (acumulado de todas las decisiones de los lotes del WO) --}}
@@ -1078,8 +1071,7 @@
                             $completedLots = $wo->lots->where('status', \App\Models\Lot::STATUS_COMPLETED);
                             $cantWO = $wo->original_quantity; // Cantidad total del WO
                             $pzEnviadas = $wo->sent_pieces; // Piezas enviadas
-                            $cantAEnviar = $cantWO - $pzEnviadas; // Cant. a Enviar = Cant. WO - Pz Enviadas
-                            $toSend = $cantAEnviar;
+                            $cantAEnviar = $cantWO - $pzEnviadas; // Cant. Pendiente = Cant. WO - Pz Enviadas
 
                             $woSobrantesMobile = $allLots->sum(function ($l) {
                                 if ($l->isSurplusReceived()) return 0;
@@ -1125,12 +1117,6 @@
                                     <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Cant. Pendiente</div>
                                     <div class="text-sm font-semibold text-gray-900 dark:text-white">
                                         {{ number_format($cantAEnviar) }}</div>
-                                </div>
-                                <div class="bg-yellow-50 dark:bg-yellow-900/20 p-2">
-                                    <div class="text-xs text-yellow-700 dark:text-yellow-300 mb-1 font-medium">Cant. a
-                                        Enviar</div>
-                                    <div class="text-sm font-semibold text-yellow-900 dark:text-yellow-200">
-                                        {{ number_format($toSend) }}</div>
                                 </div>
                                 <div class="{{ $woSobrantesMobile > 0 ? 'bg-orange-50 dark:bg-orange-900/20' : '' }} p-2">
                                     <div class="text-xs {{ $woSobrantesMobile > 0 ? 'text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-500 dark:text-gray-400' }} mb-1">Pz Sobrantes</div>

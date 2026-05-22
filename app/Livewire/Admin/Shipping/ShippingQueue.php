@@ -173,7 +173,7 @@ class ShippingQueue extends Component
         }
 
         // Cargar lotes con sus relaciones necesarias
-        $lots = Lot::with(['workOrder', 'packagingRecords'])
+        $lots = Lot::with(['workOrder', 'packagingRecords', 'completionLogs'])
             ->whereIn('id', $this->selectedLotIds)
             ->where('ready_for_shipping', true)
             ->whereDoesntHave('packingSlipItem')
@@ -221,7 +221,7 @@ class ShippingQueue extends Component
                 PackingSlipItem::create([
                     'packing_slip_id' => $packingSlip->id,
                     'lot_id'          => $lot->id,
-                    'quantity_packed' => $lot->quantity_packed_final ?? $lot->getPackagingPackedPieces(),
+                    'quantity_packed' => $lot->getTotalCompletedPieces(),
                     'wo_number_ps'    => $woNumberPs,
                     'lot_date_code'   => $lotDateCode,
                     'label_spec'      => $this->labelSpecs[$lot->id] ?? null,
@@ -449,6 +449,8 @@ class ShippingQueue extends Component
         $query = Lot::readyForShipping()
             ->with([
                 'workOrder.purchaseOrder.part',
+                'completionLogs',
+                'packagingRecords',
             ]);
 
         // Filtro de busqueda por lot_number o numero de parte
@@ -487,7 +489,7 @@ class ShippingQueue extends Component
         // Lote actualmente en proceso de retorno (para el modal)
         $returningLot = null;
         if ($this->returningLotId) {
-            $returningLot = Lot::with(['workOrder.purchaseOrder.part'])->find($this->returningLotId);
+            $returningLot = Lot::with(['workOrder.purchaseOrder.part', 'completionLogs', 'packagingRecords'])->find($this->returningLotId);
         }
 
         return view('livewire.admin.shipping.shipping-queue', [

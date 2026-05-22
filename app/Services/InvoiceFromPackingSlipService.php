@@ -173,7 +173,7 @@ class InvoiceFromPackingSlipService
                     'purchase_order_id'    => $po?->id,
                     'part_id'              => $part?->id,
                     // Snapshot inmutable
-                    'description'          => $part?->number ?? '-',
+                    'description'          => $part?->description ?? '-',
                     'item_number'          => $part?->item_number ?? null,
                     'lot_number'           => $itemLotNumber,
                     'po_number'            => $po?->po_number ?? null,
