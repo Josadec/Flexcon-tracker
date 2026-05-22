@@ -86,24 +86,6 @@
                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">ID (Interno)</dt>
                         <dd class="mt-1 text-sm text-gray-900 dark:text-white font-semibold">{{ $workOrder->wo_number }}</dd>
                     </div>
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            WO Externo
-                            <span class="ml-1 text-xs font-normal text-gray-400">(FPL-10)</span>
-                        </dt>
-                        <dd class="mt-1">
-                            @if($workOrder->external_wo_number)
-                                <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ $workOrder->external_wo_number }}</span>
-                            @else
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                                    <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    No configurado
-                                </span>
-                            @endif
-                        </dd>
-                    </div>
                     @if($workOrder->purchaseOrder?->wo)
                     <div class="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg -m-1">
                         <dt class="text-sm font-medium text-indigo-600 dark:text-indigo-400">WO (Cliente)</dt>
@@ -174,6 +156,32 @@
             </div>
 
             <div class="space-y-6">
+                {{-- Cambiar Estado --}}
+                <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Cambiar Estado</h2>
+                    <div class="flex flex-col gap-2">
+                        @foreach($statuses as $status)
+                            @if($status->id === $workOrder->status_id)
+                                <div class="flex items-center gap-2 px-3 py-2 rounded-md border-2" style="border-color: {{ $status->color }}">
+                                    <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: {{ $status->color }}"></span>
+                                    <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ $status->name }}</span>
+                                    <span class="ml-auto text-xs font-medium text-gray-400 dark:text-gray-500">Actual</span>
+                                </div>
+                            @else
+                                <button type="button" wire:click="updateStatus({{ $status->id }})"
+                                    wire:confirm="¿Cambiar el estado del WO a '{{ $status->name }}'?"
+                                    class="flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left cursor-pointer">
+                                    <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: {{ $status->color }}"></span>
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ $status->name }}</span>
+                                </button>
+                            @endif
+                        @endforeach
+                    </div>
+                    <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">
+                        Al marcar <span class="font-medium">Completed</span> el WO desaparece de la Lista de Envío.
+                        Reábrelo con <span class="font-medium">Open</span> para que vuelva a aparecer en Capacidad y en la Lista de Envío.
+                    </p>
+                </div>
                 {{-- Progress --}}
                 <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Progreso</h2>

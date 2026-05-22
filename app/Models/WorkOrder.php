@@ -271,13 +271,24 @@ class WorkOrder extends Model
 
     /**
      * Update sent_pieces based on completed lots.
+     *
+     * Para lotes que pasaron por ciclos de "Completar Lote" la cantidad actual
+     * del lote es sólo la del último ciclo; se debe usar el acumulado real de
+     * piezas cerradas en todos los ciclos (getTotalCompletedPieces()).
      */
     public function updateSentPieces(): void
     {
         $completedQuantity = $this->lots()
             ->where('status', Lot::STATUS_COMPLETED)
-            ->sum('quantity');
-        
+            ->with(['completionLogs', 'packagingRecords'])
+            ->get()
+            ->sum(function (Lot $lot) {
+                // Lote con ciclos de completado/cierre → acumulado real empacado.
+                // Lote completado de forma simple (sin flujo de empaque) → su cantidad.
+                $hasLifecycle = $lot->closure_decision !== null || $lot->completionLogs->isNotEmpty();
+                return $hasLifecycle ? $lot->getTotalCompletedPieces() : $lot->quantity;
+            });
+
         $this->update(['sent_pieces' => $completedQuantity]);
     }
 
