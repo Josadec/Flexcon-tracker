@@ -3,7 +3,7 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
-use App\Models\{Shift, SentList, User, Lot, Kit};
+use App\Models\{Shift, SentList, User, Lot, Kit, Part};
 use App\Services\CapacityCalculatorService;
 use App\Services\CarryoverService;
 use Carbon\Carbon;
@@ -971,6 +971,7 @@ class CapacityWizard extends Component
     {
         return view('livewire.admin.capacity-wizard', [
             'shifts' => Shift::active()->get(),
+            'parts'  => Part::whereHas('standards', fn($q) => $q->where('active', true))->get(),
         ]);
     }
 }
