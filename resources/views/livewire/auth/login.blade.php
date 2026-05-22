@@ -52,7 +52,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
         } elseif ($user->hasRole('Calidad') && !$user->hasRole('admin')) {
             $this->redirectIntended(default: route('admin.quality.index', absolute: false), navigate: true);
         } else {
-            $this->redirectIntended(default: route('admin.dashboard', absolute: false), navigate: true);
+            $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
         }
     }
 

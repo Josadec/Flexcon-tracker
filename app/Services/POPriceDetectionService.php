@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Part;
 use App\Models\Price;
 use App\Models\PurchaseOrder;
 use App\Models\Standard;
@@ -22,14 +23,11 @@ class POPriceDetectionService
      * Prioridad:
      *   1) $po->workstation_type (si el admin lo eligió manualmente en el PO)
      *   2) workstation_type derivado del Standard de la parte (fallback)
-     *
-     * @param PurchaseOrder $po
-     * @return PriceDetectionResult
      */
     public function detectPrice(PurchaseOrder $po): PriceDetectionResult
     {
         // Verificar que el PO tenga un part_id
-        if (!$po->part_id) {
+        if (! $po->part_id) {
             return new PriceDetectionResult(
                 price: null,
                 workstationType: '',
@@ -39,7 +37,7 @@ class POPriceDetectionService
         }
 
         // Cargar la relación part si no está cargada
-        if (!$po->relationLoaded('part')) {
+        if (! $po->relationLoaded('part')) {
             $po->load('part');
         }
 
@@ -47,10 +45,10 @@ class POPriceDetectionService
         $workstationType = $po->workstation_type ?: null;
 
         // 2) Fallback: resolver del Standard de la parte
-        if (!$workstationType) {
+        if (! $workstationType) {
             $standard = $po->part->standards()->active()->first();
 
-            if (!$standard) {
+            if (! $standard) {
                 return new PriceDetectionResult(
                     price: null,
                     workstationType: '',
@@ -61,7 +59,7 @@ class POPriceDetectionService
 
             $workstationType = $this->getWorkstationTypeFromStandard($standard);
 
-            if (!$workstationType) {
+            if (! $workstationType) {
                 return new PriceDetectionResult(
                     price: null,
                     workstationType: '',
@@ -74,8 +72,9 @@ class POPriceDetectionService
         // Buscar el precio activo para el workstation_type
         $price = $po->part->activePriceForWorkstationType($workstationType);
 
-        if (!$price) {
+        if (! $price) {
             $typeLabel = Price::WORKSTATION_TYPES[$workstationType] ?? $workstationType;
+
             return new PriceDetectionResult(
                 price: null,
                 workstationType: $workstationType,
@@ -95,16 +94,12 @@ class POPriceDetectionService
     /**
      * Detecta el precio correcto basado en part_id y quantity
      * Útil para formularios donde aún no existe el PO
-     * 
-     * @param int $partId
-     * @param int $quantity
-     * @return PriceDetectionResult
      */
     public function detectPriceForPart(int $partId, int $quantity): PriceDetectionResult
     {
-        $part = \App\Models\Part::find($partId);
+        $part = Part::find($partId);
 
-        if (!$part) {
+        if (! $part) {
             return new PriceDetectionResult(
                 price: null,
                 workstationType: '',
@@ -116,7 +111,7 @@ class POPriceDetectionService
         // Obtener el Standard activo para la parte
         $standard = $part->standards()->active()->first();
 
-        if (!$standard) {
+        if (! $standard) {
             return new PriceDetectionResult(
                 price: null,
                 workstationType: '',
@@ -128,7 +123,7 @@ class POPriceDetectionService
         // Obtener el workstation_type del Standard
         $workstationType = $this->getWorkstationTypeFromStandard($standard);
 
-        if (!$workstationType) {
+        if (! $workstationType) {
             return new PriceDetectionResult(
                 price: null,
                 workstationType: '',
@@ -140,8 +135,9 @@ class POPriceDetectionService
         // Buscar el precio activo para el workstation_type
         $price = $part->activePriceForWorkstationType($workstationType);
 
-        if (!$price) {
+        if (! $price) {
             $typeLabel = Price::WORKSTATION_TYPES[$workstationType] ?? $workstationType;
+
             return new PriceDetectionResult(
                 price: null,
                 workstationType: $workstationType,
@@ -160,15 +156,12 @@ class POPriceDetectionService
 
     /**
      * Valida que el precio del PO sea correcto antes de aprobar
-     * 
-     * @param PurchaseOrder $po
-     * @return ValidationResult
      */
     public function validatePOPrice(PurchaseOrder $po): ValidationResult
     {
         $detection = $this->detectPrice($po);
 
-        if (!$detection->found) {
+        if (! $detection->found) {
             return new ValidationResult(
                 isValid: false,
                 errors: [$detection->error],
@@ -176,17 +169,28 @@ class POPriceDetectionService
             );
         }
 
-        // Comparar el precio del PO con el precio detectado
-        $expectedPrice = $detection->price->sample_price;
-        $actualPrice = $po->unit_price;
+        // El precio esperado depende del tier de la cantidad del PO, no del
+        // sample_price — consistente con PurchaseOrderService::validatePrice().
+        $expectedPrice = $detection->price->getPriceForQuantity((int) $po->quantity);
+
+        if ($expectedPrice === null) {
+            return new ValidationResult(
+                isValid: false,
+                errors: ['No se pudo determinar el precio para la cantidad especificada.'],
+                conflictingPrice: $detection->price
+            );
+        }
+
+        $actualPrice = (float) $po->unit_price;
 
         // Usar comparación con tolerancia para decimales
         if (abs($expectedPrice - $actualPrice) > 0.0001) {
             $typeLabel = Price::WORKSTATION_TYPES[$detection->workstationType] ?? $detection->workstationType;
+
             return new ValidationResult(
                 isValid: false,
                 errors: [
-                    "El precio del PO ({$actualPrice}) no coincide con el precio activo ({$expectedPrice}) para el tipo de estación {$typeLabel}"
+                    "El precio del PO ({$actualPrice}) no coincide con el precio activo ({$expectedPrice}) para el tipo de estación {$typeLabel}",
                 ],
                 conflictingPrice: $detection->price
             );
@@ -201,15 +205,12 @@ class POPriceDetectionService
 
     /**
      * Obtiene el workstation_type del Standard asociado al Part
-     * 
-     * @param Standard $standard
-     * @return string|null
      */
     private function getWorkstationTypeFromStandard(Standard $standard): ?string
     {
         $assemblyMode = $standard->getAssemblyMode();
 
-        if (!$assemblyMode) {
+        if (! $assemblyMode) {
             return null;
         }
 
@@ -218,9 +219,6 @@ class POPriceDetectionService
 
     /**
      * Mapea assembly_mode a workstation_type
-     * 
-     * @param string $assemblyMode
-     * @return string|null
      */
     private function mapAssemblyModeToWorkstationType(string $assemblyMode): ?string
     {

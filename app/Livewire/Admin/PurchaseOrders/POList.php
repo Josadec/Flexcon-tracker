@@ -12,9 +12,13 @@ class POList extends Component
     use WithPagination;
 
     public string $search = '';
+
     public string $sortField = 'po_date';
+
     public string $sortDirection = 'desc';
+
     public int $perPage = 10;
+
     public string $filterStatus = 'all';
 
     protected PurchaseOrderService $purchaseOrderService;
@@ -48,12 +52,22 @@ class POList extends Component
     public function deletePO(int $id): void
     {
         $po = PurchaseOrder::findOrFail($id);
+
+        // Defensa en profundidad: revalidar en el backend aunque la UI ya
+        // oculte el botón para POs que entraron a producción.
+        $blockReason = $po->getDeletionBlockReason();
+        if ($blockReason !== null) {
+            session()->flash('error', "No se puede eliminar la orden de compra {$po->po_number}: {$blockReason}");
+
+            return;
+        }
+
         try {
             $po->forceDeleteWithRelations();
             session()->flash('flash.banner', 'Orden de compra y registros relacionados eliminados correctamente.');
             session()->flash('flash.bannerStyle', 'success');
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al eliminar la orden de compra: ' . $e->getMessage());
+            session()->flash('error', 'Error al eliminar la orden de compra: '.$e->getMessage());
         }
     }
 
@@ -81,7 +95,7 @@ class POList extends Component
 
     public function render()
     {
-        $query = PurchaseOrder::with('part')
+        $query = PurchaseOrder::with(['part', 'workOrder'])
             ->search($this->search)
             ->filterByStatus($this->filterStatus);
 

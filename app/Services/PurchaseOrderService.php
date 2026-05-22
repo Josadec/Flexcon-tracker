@@ -5,8 +5,9 @@ namespace App\Services;
 use App\Models\Price;
 use App\Models\PurchaseOrder;
 use App\Models\StatusWO;
-use App\Models\WOStatusLog;
 use App\Models\WorkOrder;
+use App\Models\WOStatusLog;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +16,7 @@ class PurchaseOrderService
 {
     /**
      * Validate the price of a purchase order against the registered price.
-     * 
-     * @param PurchaseOrder $purchaseOrder
+     *
      * @return array{valid: bool, expected_price: float|null, message: string}
      */
     public function validatePrice(PurchaseOrder $purchaseOrder): array
@@ -25,7 +25,7 @@ class PurchaseOrderService
         $priceDetectionService = app(POPriceDetectionService::class);
         $detection = $priceDetectionService->detectPrice($purchaseOrder);
 
-        if (!$detection->found) {
+        if (! $detection->found) {
             return [
                 'valid' => false,
                 'expected_price' => null,
@@ -57,6 +57,7 @@ class PurchaseOrderService
         }
 
         $typeLabel = Price::WORKSTATION_TYPES[$detection->workstationType] ?? $detection->workstationType;
+
         return [
             'valid' => false,
             'expected_price' => $expectedPrice,
@@ -71,10 +72,6 @@ class PurchaseOrderService
 
     /**
      * Mark a purchase order as pending price correction.
-     * 
-     * @param PurchaseOrder $purchaseOrder
-     * @param string $reason
-     * @return PurchaseOrder
      */
     public function markAsPendingCorrection(PurchaseOrder $purchaseOrder, string $reason): PurchaseOrder
     {
@@ -88,8 +85,7 @@ class PurchaseOrderService
 
     /**
      * Approve a purchase order after price validation.
-     * 
-     * @param PurchaseOrder $purchaseOrder
+     *
      * @return array{success: bool, message: string, purchase_order: PurchaseOrder}
      */
     public function approve(PurchaseOrder $purchaseOrder): array
@@ -97,7 +93,7 @@ class PurchaseOrderService
         // First validate the price
         $validation = $this->validatePrice($purchaseOrder);
 
-        if (!$validation['valid']) {
+        if (! $validation['valid']) {
             // Mark as pending correction
             $this->markAsPendingCorrection($purchaseOrder, $validation['message']);
 
@@ -122,10 +118,6 @@ class PurchaseOrderService
 
     /**
      * Reject a purchase order.
-     * 
-     * @param PurchaseOrder $purchaseOrder
-     * @param string|null $reason
-     * @return PurchaseOrder
      */
     public function reject(PurchaseOrder $purchaseOrder, ?string $reason = null): PurchaseOrder
     {
@@ -139,17 +131,13 @@ class PurchaseOrderService
 
     /**
      * Get the expected price for a purchase order based on quantity.
-     * 
-     * @param int $partId
-     * @param int $quantity
-     * @return float|null
      */
     public function getExpectedPrice(int $partId, int $quantity): ?float
     {
         $priceDetectionService = app(POPriceDetectionService::class);
         $detection = $priceDetectionService->detectPriceForPart($partId, $quantity);
 
-        if (!$detection->found) {
+        if (! $detection->found) {
             return null;
         }
 
@@ -158,8 +146,7 @@ class PurchaseOrderService
 
     /**
      * Create a Work Order from an approved Purchase Order.
-     * 
-     * @param PurchaseOrder $purchaseOrder
+     *
      * @return array{success: bool, message: string, work_order: WorkOrder|null}
      */
     public function createFromPO(PurchaseOrder $purchaseOrder): array
@@ -185,7 +172,7 @@ class PurchaseOrderService
         // Get the "Open" status
         $openStatus = StatusWO::where('name', 'Open')->first();
 
-        if (!$openStatus) {
+        if (! $openStatus) {
             return [
                 'success' => false,
                 'message' => 'No se encontró el estado "Open" para Work Orders.',
@@ -193,77 +180,141 @@ class PurchaseOrderService
             ];
         }
 
-        return DB::transaction(function () use ($purchaseOrder, $openStatus) {
-            // Generate WO number
-            $woNumber = WorkOrder::generateWONumber();
-
-            // Create the Work Order
-            $workOrder = WorkOrder::create([
-                'wo_number' => $woNumber,
-                'purchase_order_id' => $purchaseOrder->id,
-                'status_id' => $openStatus->id,
-                'sent_pieces' => 0,
-                'scheduled_send_date' => $purchaseOrder->due_date,
-                'opened_date' => Carbon::now(),
-            ]);
-
-            // Log the initial status
-            WOStatusLog::create([
-                'work_order_id' => $workOrder->id,
-                'from_status_id' => null,
-                'to_status_id' => $openStatus->id,
-                'user_id' => Auth::id(),
-                'comments' => 'Work Order creada desde PO ' . $purchaseOrder->po_number,
-            ]);
-
-            return [
-                'success' => true,
-                'message' => 'Work Order creada correctamente.',
-                'work_order' => $workOrder,
-            ];
+        $workOrder = DB::transaction(function () use ($purchaseOrder, $openStatus) {
+            return $this->createWorkOrderRecord($purchaseOrder, $openStatus);
         });
+
+        return [
+            'success' => true,
+            'message' => 'Work Order creada correctamente.',
+            'work_order' => $workOrder,
+        ];
     }
 
     /**
-     * Approve a PO and automatically create a Work Order.
-     * 
-     * @param PurchaseOrder $purchaseOrder
+     * Create the WorkOrder record plus its initial status log.
+     *
+     * Retries on wo_number collisions: generateWONumber() is a read-then-insert
+     * sequence, so two concurrent callers could pick the same number. Must run
+     * inside a DB transaction.
+     */
+    private function createWorkOrderRecord(PurchaseOrder $purchaseOrder, StatusWO $openStatus): WorkOrder
+    {
+        $attempts = 0;
+
+        while (true) {
+            try {
+                $workOrder = WorkOrder::create([
+                    'wo_number' => WorkOrder::generateWONumber(),
+                    'purchase_order_id' => $purchaseOrder->id,
+                    'status_id' => $openStatus->id,
+                    'sent_pieces' => 0,
+                    'scheduled_send_date' => $purchaseOrder->due_date,
+                    'opened_date' => Carbon::now(),
+                ]);
+
+                WOStatusLog::create([
+                    'work_order_id' => $workOrder->id,
+                    'from_status_id' => null,
+                    'to_status_id' => $openStatus->id,
+                    'user_id' => Auth::id(),
+                    'comments' => 'Work Order creada desde PO '.$purchaseOrder->po_number,
+                ]);
+
+                return $workOrder;
+            } catch (UniqueConstraintViolationException $e) {
+                // Another caller took the same wo_number — regenerate and retry.
+                if (++$attempts >= 3) {
+                    throw $e;
+                }
+            }
+        }
+    }
+
+    /**
+     * Approve a PO and atomically create its Work Order.
+     *
+     * The status change and the WO creation run inside a single transaction:
+     * if anything fails, the PO keeps its original status (no "approved
+     * without WorkOrder" limbo state).
+     *
      * @return array{success: bool, message: string, purchase_order: PurchaseOrder, work_order: WorkOrder|null}
      */
     public function approveAndCreateWO(PurchaseOrder $purchaseOrder): array
     {
-        // First approve the PO
-        $approvalResult = $this->approve($purchaseOrder);
-
-        if (!$approvalResult['success']) {
+        // Guard: only pending / pending-correction POs may be approved.
+        // Prevents re-approving a rejected or already-approved PO.
+        if (! in_array($purchaseOrder->status, [
+            PurchaseOrder::STATUS_PENDING,
+            PurchaseOrder::STATUS_PENDING_CORRECTION,
+        ], true)) {
             return [
                 'success' => false,
-                'message' => $approvalResult['message'],
-                'purchase_order' => $approvalResult['purchase_order'],
+                'message' => 'Solo se pueden aprobar órdenes de compra pendientes o en corrección de precio.',
+                'purchase_order' => $purchaseOrder->fresh(),
                 'work_order' => null,
             ];
         }
 
-        // Then create the Work Order
-        $woResult = $this->createFromPO($approvalResult['purchase_order']);
+        // Validate the price before writing anything
+        $validation = $this->validatePrice($purchaseOrder);
+
+        if (! $validation['valid']) {
+            $this->markAsPendingCorrection($purchaseOrder, $validation['message']);
+
+            return [
+                'success' => false,
+                'message' => $validation['message'],
+                'purchase_order' => $purchaseOrder->fresh(),
+                'work_order' => null,
+            ];
+        }
+
+        // The "Open" status must exist before opening the transaction
+        $openStatus = StatusWO::where('name', 'Open')->first();
+
+        if (! $openStatus) {
+            return [
+                'success' => false,
+                'message' => 'No se encontró el estado "Open" para Work Orders. La PO no fue aprobada.',
+                'purchase_order' => $purchaseOrder->fresh(),
+                'work_order' => null,
+            ];
+        }
+
+        try {
+            $workOrder = DB::transaction(function () use ($purchaseOrder, $openStatus) {
+                // Approve the PO
+                $purchaseOrder->update(['status' => PurchaseOrder::STATUS_APPROVED]);
+
+                // Idempotency: do not create a second WO if one already exists
+                $existing = $purchaseOrder->workOrder()->first();
+                if ($existing) {
+                    return $existing;
+                }
+
+                return $this->createWorkOrderRecord($purchaseOrder, $openStatus);
+            });
+        } catch (\Throwable $e) {
+            // Full rollback — the PO keeps its original status
+            return [
+                'success' => false,
+                'message' => 'No se pudo completar la aprobación: '.$e->getMessage(),
+                'purchase_order' => $purchaseOrder->fresh(),
+                'work_order' => null,
+            ];
+        }
 
         return [
-            'success' => $woResult['success'],
-            'message' => $woResult['success'] 
-                ? 'PO aprobada y Work Order creada correctamente.'
-                : $woResult['message'],
-            'purchase_order' => $approvalResult['purchase_order'],
-            'work_order' => $woResult['work_order'],
+            'success' => true,
+            'message' => 'PO aprobada y Work Order creada correctamente.',
+            'purchase_order' => $purchaseOrder->fresh(),
+            'work_order' => $workOrder,
         ];
     }
 
     /**
      * Update Work Order status with logging.
-     * 
-     * @param WorkOrder $workOrder
-     * @param int $newStatusId
-     * @param string|null $comments
-     * @return WorkOrder
      */
     public function updateWorkOrderStatus(WorkOrder $workOrder, int $newStatusId, ?string $comments = null): WorkOrder
     {

@@ -15,13 +15,13 @@ return new class extends Migration
         Schema::create('prices', function (Blueprint $table) {
             $table->id();
             $table->foreignId('part_id')->constrained()->onDelete('cascade');
-            
+
             // Precio de muestra (antes unit_price)
             $table->decimal('sample_price', 10, 4);
-            
+
             // Tipo de estación de trabajo
             $table->enum('workstation_type', ['table', 'machine', 'semi_automatic'])->default('table');
-            
+
             $table->date('effective_date');
             $table->boolean('active')->default(true);
             $table->text('comments')->nullable();
@@ -43,44 +43,49 @@ return new class extends Migration
             $table->unique(['price_id', 'min_quantity', 'max_quantity'], 'price_tier_unique');
         });
 
-        DB::unprepared("
-            CREATE TRIGGER check_unique_active_price_before_insert
-            BEFORE INSERT ON prices
-            FOR EACH ROW
-            BEGIN
-                IF NEW.active = 1 THEN
-                    IF EXISTS (
-                        SELECT 1 FROM prices
-                        WHERE part_id = NEW.part_id
-                          AND workstation_type = NEW.workstation_type
-                          AND active = 1
-                    ) THEN
-                        SIGNAL SQLSTATE '45000'
-                        SET MESSAGE_TEXT = 'An active price already exists for this workstation type';
+        // The IF/SIGNAL syntax below is MySQL/MariaDB-only. Skip it on other
+        // drivers (e.g. SQLite used for the test suite); the same uniqueness
+        // rule is also enforced in code via Price::validateUniqueness().
+        if (in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
+            DB::unprepared("
+                CREATE TRIGGER check_unique_active_price_before_insert
+                BEFORE INSERT ON prices
+                FOR EACH ROW
+                BEGIN
+                    IF NEW.active = 1 THEN
+                        IF EXISTS (
+                            SELECT 1 FROM prices
+                            WHERE part_id = NEW.part_id
+                              AND workstation_type = NEW.workstation_type
+                              AND active = 1
+                        ) THEN
+                            SIGNAL SQLSTATE '45000'
+                            SET MESSAGE_TEXT = 'An active price already exists for this workstation type';
+                        END IF;
                     END IF;
-                END IF;
-            END
-        ");
+                END
+            ");
 
-        DB::unprepared("
-            CREATE TRIGGER check_unique_active_price_before_update
-            BEFORE UPDATE ON prices
-            FOR EACH ROW
-            BEGIN
-                IF NEW.active = 1 THEN
-                    IF EXISTS (
-                        SELECT 1 FROM prices
-                        WHERE part_id = NEW.part_id
-                          AND workstation_type = NEW.workstation_type
-                          AND active = 1
-                          AND id != NEW.id
-                    ) THEN
-                        SIGNAL SQLSTATE '45000'
-                        SET MESSAGE_TEXT = 'An active price already exists for this workstation type';
+            DB::unprepared("
+                CREATE TRIGGER check_unique_active_price_before_update
+                BEFORE UPDATE ON prices
+                FOR EACH ROW
+                BEGIN
+                    IF NEW.active = 1 THEN
+                        IF EXISTS (
+                            SELECT 1 FROM prices
+                            WHERE part_id = NEW.part_id
+                              AND workstation_type = NEW.workstation_type
+                              AND active = 1
+                              AND id != NEW.id
+                        ) THEN
+                            SIGNAL SQLSTATE '45000'
+                            SET MESSAGE_TEXT = 'An active price already exists for this workstation type';
+                        END IF;
                     END IF;
-                END IF;
-            END
-        ");
+                END
+            ");
+        }
     }
 
     /**
@@ -88,8 +93,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::unprepared('DROP TRIGGER IF EXISTS check_unique_active_price_before_insert');
-        DB::unprepared('DROP TRIGGER IF EXISTS check_unique_active_price_before_update');
+        if (in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
+            DB::unprepared('DROP TRIGGER IF EXISTS check_unique_active_price_before_insert');
+            DB::unprepared('DROP TRIGGER IF EXISTS check_unique_active_price_before_update');
+        }
         Schema::dropIfExists('price_tiers');
         Schema::dropIfExists('prices');
     }

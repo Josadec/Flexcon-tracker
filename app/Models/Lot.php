@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Builder;
-use App\Models\Kit;
-use App\Models\QualityWeighing;
-use App\Models\PackagingRecord;
 
 class Lot extends Model
 {
@@ -80,15 +81,20 @@ class Lot extends Model
      * Status constants
      */
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_IN_PROGRESS = 'in_progress';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     /**
      * Inspection Status constants
      */
     public const INSPECTION_PENDING = 'pending';
+
     public const INSPECTION_APPROVED = 'approved';
+
     public const INSPECTION_REJECTED = 'rejected';
 
     /**
@@ -108,28 +114,28 @@ class Lot extends Model
         // When a lot is created with completed status, update the work order's sent_pieces
         static::created(function ($lot) {
             if ($lot->status === self::STATUS_COMPLETED) {
-                $lot->workOrder->updateSentPieces();
+                $lot->workOrder?->updateSentPieces();
             }
         });
 
         // When a lot status changes, update the work order's sent_pieces
         static::updated(function ($lot) {
             if ($lot->isDirty('status')) {
-                $lot->workOrder->updateSentPieces();
+                $lot->workOrder?->updateSentPieces();
             }
         });
 
         // When a lot is deleted, update the work order's sent_pieces
         static::deleted(function ($lot) {
             if ($lot->status === self::STATUS_COMPLETED) {
-                $lot->workOrder->updateSentPieces();
+                $lot->workOrder?->updateSentPieces();
             }
         });
 
         // When a lot is restored, update the work order's sent_pieces
         static::restored(function ($lot) {
             if ($lot->status === self::STATUS_COMPLETED) {
-                $lot->workOrder->updateSentPieces();
+                $lot->workOrder?->updateSentPieces();
             }
         });
     }
@@ -145,7 +151,7 @@ class Lot extends Model
     /**
      * Get the kits that were created from this lot.
      */
-    public function kits(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function kits(): BelongsToMany
     {
         return $this->belongsToMany(Kit::class, 'kit_lot')->withPivot('created_at');
     }
@@ -153,7 +159,7 @@ class Lot extends Model
     /**
      * Get the weighings (pesadas) for this lot.
      */
-    public function weighings(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function weighings(): HasMany
     {
         return $this->hasMany(Weighing::class);
     }
@@ -161,7 +167,7 @@ class Lot extends Model
     /**
      * Get the quality weighings for this lot.
      */
-    public function qualityWeighings(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function qualityWeighings(): HasMany
     {
         return $this->hasMany(QualityWeighing::class);
     }
@@ -169,7 +175,7 @@ class Lot extends Model
     /**
      * Get the audit trail for this lot.
      */
-    public function auditTrail(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    public function auditTrail(): MorphMany
     {
         return $this->morphMany(AuditTrail::class, 'auditable');
     }
@@ -195,7 +201,7 @@ class Lot extends Model
     public function scopeReadyForShipping(Builder $query): Builder
     {
         return $query->where('ready_for_shipping', true)
-                     ->whereDoesntHave('packingSlipItem');
+            ->whereDoesntHave('packingSlipItem');
     }
 
     /**
@@ -215,7 +221,7 @@ class Lot extends Model
      * El item de Packing Slip donde fue incluido este lote (si aplica).
      * Un lote solo puede estar en un PS a la vez (constraint unique en BD).
      */
-    public function packingSlipItem(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function packingSlipItem(): HasOne
     {
         return $this->hasOne(PackingSlipItem::class);
     }
@@ -223,7 +229,7 @@ class Lot extends Model
     /**
      * El Packing Slip al que pertenece este lote (acceso directo via item).
      */
-    public function packingSlip(): \Illuminate\Database\Eloquent\Relations\HasOneThrough
+    public function packingSlip(): HasOneThrough
     {
         return $this->hasOneThrough(PackingSlip::class, PackingSlipItem::class, 'lot_id', 'id', 'id', 'packing_slip_id');
     }
@@ -283,10 +289,10 @@ class Lot extends Model
 
         return $query->where(function ($q) use ($search) {
             $q->where('lot_number', 'like', "%{$search}%")
-              ->orWhere('description', 'like', "%{$search}%")
-              ->orWhereHas('workOrder', function ($woQuery) use ($search) {
-                  $woQuery->where('wo_number', 'like', "%{$search}%");
-              });
+                ->orWhere('description', 'like', "%{$search}%")
+                ->orWhereHas('workOrder', function ($woQuery) use ($search) {
+                    $woQuery->where('wo_number', 'like', "%{$search}%");
+                });
         });
     }
 
@@ -333,7 +339,7 @@ class Lot extends Model
         $count = self::withTrashed()
             ->where('work_order_id', $workOrderId)
             ->count() + 1;
-        
+
         return sprintf('%03d', $count);
     }
 
@@ -418,7 +424,7 @@ class Lot extends Model
             'quantity' => $this->quantity,
             'status' => $this->status,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
-            'kits' => $this->kits->map(fn($kit) => [
+            'kits' => $this->kits->map(fn ($kit) => [
                 'kit_number' => $kit->kit_number,
                 'status' => $kit->status,
             ])->toArray(),
@@ -430,7 +436,7 @@ class Lot extends Model
      */
     public function isExpired(): bool
     {
-        if (!$this->expiration_date) {
+        if (! $this->expiration_date) {
             return false;
         }
 
@@ -479,7 +485,7 @@ class Lot extends Model
     {
         $isCrimp = (bool) ($this->workOrder->purchaseOrder->part->is_crimp ?? true);
 
-        if (!$isCrimp) {
+        if (! $isCrimp) {
             // Non-crimp: lote = kit, allow inspection if material approved
             return ($this->material_status ?? 'pending') === 'released';
         }
@@ -510,8 +516,9 @@ class Lot extends Model
 
         $isCrimp = (bool) ($this->workOrder->purchaseOrder->part->is_crimp ?? true);
 
-        if (!$isCrimp) {
+        if (! $isCrimp) {
             $matStatus = $this->material_status ?? 'pending';
+
             return match ($matStatus) {
                 'pending' => 'El material de este lote aun no ha sido aprobado. Materiales debe aprobar el material primero.',
                 'rejected' => 'El material de este lote fue rechazado. Materiales debe corregir y aprobar el material.',
@@ -521,7 +528,7 @@ class Lot extends Model
 
         $kit = $this->kits()->first();
 
-        if (!$kit) {
+        if (! $kit) {
             return 'Este lote no tiene un kit asociado. Materiales debe crear un kit primero.';
         }
 
@@ -743,11 +750,11 @@ class Lot extends Model
         }
 
         // Ciclo final: el lote llegó a una decisión de cierre y aún no está en LotCompletionLog.
-        if (!is_null($this->closure_decision)) {
+        if (! is_null($this->closure_decision)) {
             $finalCycle = ($this->completion_count ?? 0) + 1;
             $alreadyLogged = $this->completionLogs->contains('cycle_number', $finalCycle);
 
-            if (!$alreadyLogged) {
+            if (! $alreadyLogged) {
                 $finalPacked = (int) $this->packagingRecords->sum('packed_pieces');
                 if ($finalPacked > 0) {
                     $cycles[] = ['cycle' => $finalCycle, 'pieces' => $finalPacked];
@@ -853,7 +860,7 @@ class Lot extends Model
      */
     public function hasClosureDecision(): bool
     {
-        return !is_null($this->closure_decision);
+        return ! is_null($this->closure_decision);
     }
 
     /**
@@ -883,7 +890,7 @@ class Lot extends Model
             return 'green';
         }
 
-        if (in_array($this->closure_decision, ['close_as_is', 'new_lot']) && !$this->isSurplusReceived()) {
+        if (in_array($this->closure_decision, ['close_as_is', 'new_lot']) && ! $this->isSurplusReceived()) {
             return 'orange';
         }
 
@@ -900,7 +907,7 @@ class Lot extends Model
             return 'yellow';
         }
 
-        if ($packed >= $available && !$this->isViajeroReceived()) {
+        if ($packed >= $available && ! $this->isViajeroReceived()) {
             return 'yellow';
         }
 
@@ -911,7 +918,9 @@ class Lot extends Model
      * Closure decision constants.
      */
     public const CLOSURE_COMPLETE_LOT = 'complete_lot';
+
     public const CLOSURE_NEW_LOT = 'new_lot';
+
     public const CLOSURE_CLOSE_AS_IS = 'close_as_is';
 
     /**
@@ -923,14 +932,14 @@ class Lot extends Model
      */
     public function getPostQualityLifecycle(): array
     {
-        $hasAvailable      = $this->getPackagingAvailablePieces() > 0;
-        $hasPacked         = $this->getPackagingPackedPieces() > 0;
-        $viajeroReceived   = $this->isViajeroReceived();
-        $hasDecision       = $this->hasClosureDecision();
-        $surplus           = $this->getPackagingTotalSurplus();
-        $hasSurplus        = $surplus > 0;
-        $surplusDelivered  = (bool) $this->surplus_delivered;
-        $surplusReceived   = $this->isSurplusReceived();
+        $hasAvailable = $this->getPackagingAvailablePieces() > 0;
+        $hasPacked = $this->getPackagingPackedPieces() > 0;
+        $viajeroReceived = $this->isViajeroReceived();
+        $hasDecision = $this->hasClosureDecision();
+        $surplus = $this->getPackagingTotalSurplus();
+        $hasSurplus = $surplus > 0;
+        $surplusDelivered = (bool) $this->surplus_delivered;
+        $surplusReceived = $this->isSurplusReceived();
 
         // ── Viajero ────────────────────────────────────────────────
         if ($viajeroReceived) {
@@ -945,9 +954,9 @@ class Lot extends Model
         if ($hasDecision) {
             $decLabel = match ($this->closure_decision) {
                 self::CLOSURE_COMPLETE_LOT => 'Decisión: Completar Lote',
-                self::CLOSURE_NEW_LOT      => 'Decisión: Nuevo Lote',
-                self::CLOSURE_CLOSE_AS_IS  => 'Decisión: Cerrar Lote',
-                default                    => 'Decisión tomada',
+                self::CLOSURE_NEW_LOT => 'Decisión: Nuevo Lote',
+                self::CLOSURE_CLOSE_AS_IS => 'Decisión: Cerrar Lote',
+                default => 'Decisión tomada',
             };
             $decision = ['state' => 'done', 'actor' => null, 'label' => $decLabel];
         } elseif ($viajeroReceived) {
@@ -962,15 +971,15 @@ class Lot extends Model
                 'state' => 'done',
                 'actor' => null,
                 'label' => $hasSurplus
-                    ? 'Material sobrante recibido (' . number_format($surplus) . ' pz)'
+                    ? 'Material sobrante recibido ('.number_format($surplus).' pz)'
                     : 'Recepción de material confirmada',
             ];
         } elseif ($hasDecision) {
             if ($hasSurplus) {
-                if (!$surplusDelivered) {
-                    $material = ['state' => 'pending', 'actor' => 'Empaque', 'label' => 'Empaque debe entregar ' . number_format($surplus) . ' pz sobrantes'];
+                if (! $surplusDelivered) {
+                    $material = ['state' => 'pending', 'actor' => 'Empaque', 'label' => 'Empaque debe entregar '.number_format($surplus).' pz sobrantes'];
                 } else {
-                    $material = ['state' => 'in_progress', 'actor' => 'Materiales', 'label' => 'Materiales debe recibir ' . number_format($surplus) . ' pz sobrantes'];
+                    $material = ['state' => 'in_progress', 'actor' => 'Materiales', 'label' => 'Materiales debe recibir '.number_format($surplus).' pz sobrantes'];
                 }
             } else {
                 $material = ['state' => 'pending', 'actor' => 'Materiales', 'label' => 'Materiales debe confirmar recepción'];
@@ -995,7 +1004,43 @@ class Lot extends Model
                 return ['phase' => $phase] + $info;
             }
         }
+
         return null;
+    }
+
+    /**
+     * High-level progress summary of the lot across the whole flow, for list UI.
+     * Phases: pending → production → quality → packaging → closed → shipping.
+     *
+     * @return array{phase:string, label:string, color:string, percent:int, done:bool}
+     */
+    public function getProgressSummary(): array
+    {
+        if ($this->status === self::STATUS_CANCELLED) {
+            return ['phase' => 'cancelled', 'label' => 'Cancelado', 'color' => 'red', 'percent' => 0, 'done' => false];
+        }
+
+        if ($this->ready_for_shipping) {
+            return ['phase' => 'shipping', 'label' => 'Listo para envío', 'color' => 'green', 'percent' => 100, 'done' => true];
+        }
+
+        if ($this->hasClosureDecision()) {
+            return ['phase' => 'closed', 'label' => 'Cerrado por empaque', 'color' => 'emerald', 'percent' => 90, 'done' => false];
+        }
+
+        if ($this->getPackagingPackedPieces() > 0) {
+            return ['phase' => 'packaging', 'label' => 'En empaque', 'color' => 'blue', 'percent' => 75, 'done' => false];
+        }
+
+        if ($this->getQualityGoodPieces() > 0 || $this->getQualityPendingPieces() > 0) {
+            return ['phase' => 'quality', 'label' => 'En calidad', 'color' => 'cyan', 'percent' => 50, 'done' => false];
+        }
+
+        if ($this->getProductionTotalWeighed() > 0) {
+            return ['phase' => 'production', 'label' => 'En producción', 'color' => 'amber', 'percent' => 25, 'done' => false];
+        }
+
+        return ['phase' => 'pending', 'label' => 'Pendiente', 'color' => 'zinc', 'percent' => 0, 'done' => false];
     }
 
     // =====================================================
@@ -1015,6 +1060,6 @@ class Lot extends Model
      */
     public function wasReturnedToPackaging(): bool
     {
-        return !is_null($this->returned_to_packaging_at);
+        return ! is_null($this->returned_to_packaging_at);
     }
 }

@@ -31,7 +31,7 @@ new #[Layout('components.layouts.employee')] class extends Component {
 
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['nullable', 'string', 'max:255'],
             'email' => [
                 'required',
                 'string',
@@ -81,7 +81,7 @@ new #[Layout('components.layouts.employee')] class extends Component {
         <form wire:submit="updateProfileInformation" class="space-y-6">
             <flux:input wire:model="name" label="Nombre" type="text" required autofocus autocomplete="name" />
             
-            <flux:input wire:model="last_name" label="Apellido" type="text" required autocomplete="family-name" />
+            <flux:input wire:model="last_name" label="Apellido" type="text" autocomplete="family-name" />
 
             <div>
                 <flux:input wire:model="email" label="Correo Electrónico" type="email" required autocomplete="email" />

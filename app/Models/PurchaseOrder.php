@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Builder;
 
 class PurchaseOrder extends Model
 {
@@ -40,8 +41,11 @@ class PurchaseOrder extends Model
      * Status constants
      */
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
+
     public const STATUS_PENDING_CORRECTION = 'pending_correction';
 
     /**
@@ -63,7 +67,7 @@ class PurchaseOrder extends Model
     /**
      * Get the sent lists that include this purchase order (many-to-many).
      */
-    public function sentLists(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function sentLists(): BelongsToMany
     {
         return $this->belongsToMany(SentList::class, 'sent_list_purchase_orders')
             ->withPivot([
@@ -155,7 +159,7 @@ class PurchaseOrder extends Model
     public function hasActiveCarryover(): bool
     {
         return $this->workOrder !== null
-            && !$this->workOrder->isComplete()
+            && ! $this->workOrder->isComplete()
             && $this->workOrder->sent_pieces > 0;
     }
 
@@ -170,10 +174,10 @@ class PurchaseOrder extends Model
 
         return $query->where(function ($q) use ($search) {
             $q->where('po_number', 'like', "%{$search}%")
-              ->orWhereHas('part', function ($partQuery) use ($search) {
-                  $partQuery->where('number', 'like', "%{$search}%")
-                            ->orWhere('description', 'like', "%{$search}%");
-              });
+                ->orWhereHas('part', function ($partQuery) use ($search) {
+                    $partQuery->where('number', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
         });
     }
 
@@ -206,13 +210,48 @@ class PurchaseOrder extends Model
     }
 
     /**
+     * Returns the reason this PO cannot be deleted, or null when deletion is safe.
+     *
+     * A PO is locked once it has entered production: included in an active
+     * SentList, or its WorkOrder already has shipped pieces, lots or kits.
+     * Deleting in that state would force-delete production records permanently.
+     */
+    public function getDeletionBlockReason(): ?string
+    {
+        $inActiveList = $this->sentLists()
+            ->whereIn('status', [SentList::STATUS_PENDING, SentList::STATUS_CONFIRMED])
+            ->exists();
+
+        if ($inActiveList) {
+            return 'está incluida en una lista de envío activa.';
+        }
+
+        $workOrder = $this->workOrder;
+
+        if ($workOrder) {
+            if ($workOrder->sent_pieces > 0) {
+                return "su Work Order ya tiene {$workOrder->sent_pieces} pieza(s) enviada(s).";
+            }
+
+            if ($workOrder->lots()->exists()) {
+                return 'su Work Order tiene lotes en producción.';
+            }
+
+            if ($workOrder->kits()->exists()) {
+                return 'su Work Order tiene kits asociados.';
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Check if this purchase order can be deleted.
-     * Now allows deletion even with work orders (will cascade delete).
+     * Blocks deletion once the PO has entered the production flow.
      */
     public function canBeDeleted(): bool
     {
-        // Allow deletion always, but will cascade to work orders
-        return true;
+        return $this->getDeletionBlockReason() === null;
     }
 
     /**
@@ -220,9 +259,12 @@ class PurchaseOrder extends Model
      */
     public function forceDeleteWithRelations(): bool
     {
-        // Force delete related work orders first
-        if ($this->hasWorkOrder()) {
-            $this->workOrder->forceDeleteWithRelations();
+        // Force delete the related work order first — include soft-deleted rows,
+        // otherwise the work_orders.purchase_order_id FK (onDelete restrict)
+        // would block this PO's deletion forever.
+        $workOrder = $this->workOrder()->withTrashed()->first();
+        if ($workOrder) {
+            $workOrder->forceDeleteWithRelations();
         }
 
         // Delete signatures
