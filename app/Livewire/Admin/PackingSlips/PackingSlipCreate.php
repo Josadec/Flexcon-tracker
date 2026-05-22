@@ -105,7 +105,7 @@ class PackingSlipCreate extends Component
         session()->flash('flash.banner', "Packing Slip {$packingSlip->ps_number} creado correctamente.");
         session()->flash('flash.bannerStyle', 'success');
 
-        $this->redirect(route('admin.packing-slips.show', $packingSlip), navigate: true);
+        $this->redirect(route('admin.shipping-list.show', $packingSlip), navigate: true);
     }
 
     public function render()

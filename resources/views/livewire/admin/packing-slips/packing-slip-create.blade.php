@@ -5,13 +5,13 @@
         <div class="mb-8">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Nuevo Packing Slip</h1>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Nuevo Shipping List</h1>
                     <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                         Crea un nuevo documento de empaque seleccionando los lotes disponibles
                     </p>
                 </div>
                 <div class="mt-4 sm:mt-0">
-                    <a href="{{ route('admin.packing-slips.index') }}" wire:navigate
+                    <a href="{{ route('admin.shipping-list.index') }}" wire:navigate
                        class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
@@ -26,7 +26,7 @@
             <!-- Notas y Fecha del Documento -->
             <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
                 <div class="p-6">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información del Packing Slip</h2>
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información del Shipping List</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label for="document_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -170,7 +170,7 @@
 
             <!-- Acciones -->
             <div class="flex justify-end gap-3">
-                <a href="{{ route('admin.packing-slips.index') }}" wire:navigate
+                <a href="{{ route('admin.shipping-list.index') }}" wire:navigate
                    class="inline-flex items-center px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
                     Cancelar
                 </a>
@@ -182,7 +182,7 @@
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    Crear Packing Slip
+                    Crear Shipping List
                 </button>
             </div>
         </form>

@@ -174,7 +174,7 @@
                                 @foreach ($pendingPackingSlips as $ps)
                                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
                                         <td class="px-4 py-3 whitespace-nowrap">
-                                            <a href="{{ route('admin.packing-slips.show', $ps) }}"
+                                            <a href="{{ route('admin.shipping-list.show', $ps) }}"
                                                wire:navigate
                                                class="text-sm font-mono font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
                                                 {{ $ps->ps_number }}
@@ -314,7 +314,7 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @if ($invoice->packingSlip)
-                                            <a href="{{ route('admin.packing-slips.show', $invoice->packingSlip) }}"
+                                            <a href="{{ route('admin.shipping-list.show', $invoice->packingSlip) }}"
                                                wire:navigate
                                                class="text-sm font-mono text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
                                                 {{ $invoice->packingSlip->ps_number }}

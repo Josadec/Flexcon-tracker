@@ -1,21 +1,21 @@
 <div class="space-y-6">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Packing Slips</h1>
+            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Shipping List</h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Gestion de documentos de empaque, seguimiento operativo y salida a embarque.
             </p>
         </div>
 
         <a
-            href="{{ route('admin.packing-slips.create') }}"
+            href="{{ route('admin.shipping-list.create') }}"
             wire:navigate
             class="inline-flex items-center gap-2 self-start rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
         >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            Nuevo Packing Slip
+            Nuevo Shipping List
         </a>
     </div>
 
@@ -162,7 +162,7 @@
                         <tr class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <a
-                                    href="{{ route('admin.packing-slips.show', $ps) }}"
+                                    href="{{ route('admin.shipping-list.show', $ps) }}"
                                     wire:navigate
                                     class="font-mono text-sm font-semibold text-gray-900 transition-colors hover:text-blue-600 dark:text-white dark:hover:text-blue-400"
                                 >
@@ -202,11 +202,24 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right">
                                 <div class="flex items-center justify-end gap-2">
+                                    @if ($ps->status === 'shipped' || $ps->status === 'cancelled')
+                                        <a
+                                            href="{{ route('admin.shipping-list.pdf', $ps) }}"
+                                            target="_blank"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border-2 border-transparent text-red-600 transition-colors hover:border-red-300 hover:bg-red-50 dark:text-red-400 dark:hover:border-red-700 dark:hover:bg-red-900/20"
+                                            title="Ver PDF"
+                                        >
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6M9 17h4" />
+                                            </svg>
+                                        </a>
+                                    @endif
                                     <a
-                                        href="{{ route('admin.packing-slips.show', $ps) }}"
+                                        href="{{ route('admin.shipping-list.show', $ps) }}"
                                         wire:navigate
                                         class="inline-flex h-8 w-8 items-center justify-center rounded-md border-2 border-transparent text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:hover:border-blue-700 dark:hover:bg-blue-900/20"
-                                        title="Ver packing slip"
+                                        title="Ver Shipping List"
                                     >
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -217,7 +230,7 @@
                                         wire:click="confirmDeletion({{ $ps->id }})"
                                         type="button"
                                         class="inline-flex h-8 w-8 items-center justify-center rounded-md border-2 border-transparent text-red-600 transition-colors hover:border-red-300 hover:bg-red-50 dark:text-red-400 dark:hover:border-red-700 dark:hover:bg-red-900/20"
-                                        title="Eliminar packing slip"
+                                        title="Eliminar Shipping List"
                                     >
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -235,7 +248,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
                                     </div>
-                                    <h3 class="text-base font-medium text-gray-900 dark:text-white">No se encontraron packing slips</h3>
+                                    <h3 class="text-base font-medium text-gray-900 dark:text-white">No se encontraron Shipping Lists</h3>
                                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Ajusta los filtros o crea un nuevo documento de empaque.</p>
                                 </div>
                             </td>
@@ -263,7 +276,7 @@
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Eliminar Packing Slip</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Eliminar Shipping List</h3>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 Esta accion no se puede deshacer y los lotes asociados volveran a quedar disponibles.
                             </p>

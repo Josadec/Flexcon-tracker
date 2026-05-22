@@ -73,47 +73,39 @@
     <div class="space-y-6">
 
         <!-- Header -->
-        <div>
-            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div class="space-y-3">
-                    <a href="{{ route('admin.packing-slips.index') }}" wire:navigate
-                       class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        Volver a packing slips
-                    </a>
-                    <div class="flex items-center space-x-3">
-                    <div>
-                        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white font-mono">
-                            {{ $packingSlip->ps_number }}
-                        </h1>
-                        <div class="flex items-center mt-2 space-x-3">
-                            <span class="inline-flex rounded-full border-2 px-3 py-1 text-xs font-medium {{ $statusCardClasses }}">
-                                {{ $packingSlip->statusLabel }}
-                            </span>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Detalle operativo del Packing Slip</p>
-                        </div>
-                    </div>
+        <div class="space-y-4">
+            {{-- Fila 1: Título + badge de estado + subtítulo --}}
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-900 dark:text-white font-mono">
+                    {{ $packingSlip->ps_number }}
+                </h1>
+                <div class="flex items-center mt-2 space-x-3">
+                    <span class="inline-flex rounded-full border-2 px-3 py-1 text-xs font-medium {{ $statusCardClasses }}">
+                        {{ $packingSlip->statusLabel }}
+                    </span>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Detalle operativo del Shipping List</p>
                 </div>
+            </div>
 
-                <div class="flex flex-wrap gap-2 items-center xl:max-w-2xl xl:justify-end">
-                    {{-- Selector de estado universal: permite cambiar a cualquier estado libremente --}}
-                    <div class="flex items-center gap-2">
-                        <select wire:model="selectedStatus"
-                                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
-                            @foreach (\App\Models\PackingSlip::STATUSES as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                        <button wire:click="updateStatus"
-                                class="inline-flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors cursor-pointer">
-                            Guardar estado
-                        </button>
-                    </div>
+            {{-- Fila 2: Acciones — izquierda: estado | derecha: navegación + PDF --}}
+            <div class="flex flex-wrap items-center justify-between gap-3">
+
+                {{-- Lado izquierdo: selector de estado + guardar --}}
+                <div class="flex flex-wrap items-center gap-2">
+                    {{-- Selector de estado universal --}}
+                    <select wire:model="selectedStatus"
+                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        @foreach (\App\Models\PackingSlip::STATUSES as $value => $label)
+                            <option value="{{ $value }}" @selected($value === $selectedStatus)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <button wire:click="updateStatus"
+                            class="inline-flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors cursor-pointer">
+                        Guardar estado
+                    </button>
 
                     @if ($packingSlip->isDraft())
-                        {{-- Botón toggle para el panel de edición de lotes integrado (solo en Borrador) --}}
+                        {{-- Botón toggle para el panel de edición de lotes (solo en Borrador) --}}
                         <button wire:click="toggleEditingLots"
                                 class="inline-flex items-center px-4 py-2 {{ $editingLots ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-600 hover:bg-gray-700' }} text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -122,10 +114,13 @@
                             {{ $editingLots ? 'Cancelar edición' : 'Editar lotes' }}
                         </button>
                     @endif
+                </div>
 
-                    @if ($packingSlip->document_date && !$packingSlip->isDraft() && !$packingSlip->isPending())
-                        {{-- Ver PDF en nueva pestana (oculto en Borrador y Pendiente) --}}
-                        <a href="{{ route('admin.packing-slips.pdf', $packingSlip) }}"
+                {{-- Lado derecho: Ver PDF + Descargar PDF + Volver --}}
+                <div class="flex flex-wrap items-center gap-2">
+                    @if ($packingSlip->isShipped() || $packingSlip->isCancelled())
+                        {{-- Ver PDF en nueva pestaña (solo en Despachado/Cancelado) --}}
+                        <a href="{{ route('admin.shipping-list.pdf', $packingSlip) }}"
                            target="_blank"
                            class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,8 +129,8 @@
                             Ver PDF
                         </a>
 
-                        {{-- Descargar PDF (oculto en Borrador) --}}
-                        <a href="{{ route('admin.packing-slips.pdf.download', $packingSlip) }}"
+                        {{-- Descargar PDF (solo en Despachado/Cancelado) --}}
+                        <a href="{{ route('admin.shipping-list.pdf.download', $packingSlip) }}"
                            class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
@@ -144,14 +139,16 @@
                         </a>
                     @endif
 
-                    <a href="{{ route('admin.packing-slips.index') }}" wire:navigate
+                    {{-- Volver a Shipping List — siempre visible --}}
+                    <a href="{{ route('admin.shipping-list.index') }}" wire:navigate
                        class="inline-flex items-center px-4 py-2 border-2 border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700/60 text-sm font-medium rounded-md transition-colors duration-200">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>
-                        Volver a la lista
+                        Volver a Shipping List
                     </a>
                 </div>
+
             </div>
         </div>
 
@@ -238,34 +235,6 @@
                         @endif
                     </div>
                     <div>
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Fecha del Documento</p>
-                        @if ($packingSlip->isDraft())
-                            <div x-data="{ editing: false, value: '{{ $packingSlip->document_date?->format('Y-m-d') ?? now()->format('Y-m-d') }}' }" class="mt-1">
-                                <span x-show="!editing"
-                                      class="text-base text-gray-900 dark:text-white inline-flex items-center gap-1">
-                                    <span x-text="new Date(value + 'T00:00:00').toLocaleDateString('es-MX', {day:'2-digit',month:'2-digit',year:'numeric'})"></span>
-                                    <button type="button" @click="editing = true"
-                                            class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                                            title="Editar Fecha del Documento">
-                                        <svg class="w-3.5 h-3.5 text-gray-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </button>
-                                </span>
-                                <div x-show="editing" x-cloak style="display:none">
-                                    <input x-model="value" type="date"
-                                           class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                           @change="editing = false; $wire.updateDocumentDate(value)"
-                                           @keydown.escape="editing = false"
-                                           x-effect="if (editing) $nextTick(() => $el.focus())">
-                                </div>
-                            </div>
-                        @else
-                            <p class="text-base text-gray-900 dark:text-white mt-1">{{ $packingSlip->document_date?->format('d/m/Y') ?? '-' }}</p>
-                        @endif
-                        <p class="text-xs text-gray-400 dark:text-gray-500">Campo DATE del FPL-10</p>
-                    </div>
-                    <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Creado por</p>
                         <p class="text-base text-gray-900 dark:text-white mt-1">{{ $packingSlip->creator?->name ?? '-' }}</p>
                     </div>
@@ -328,7 +297,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
                             <h2 class="text-lg font-semibold text-amber-900 dark:text-amber-200">
-                                Editar Lotes del Packing Slip
+                                Editar Lotes del Shipping List
                             </h2>
                         </div>
                         <span class="text-sm text-amber-700 dark:text-amber-300">
@@ -395,7 +364,7 @@
                                             </td>
                                             {{-- Description --}}
                                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
-                                                {{ $lot->workOrder?->purchaseOrder?->part?->number ?? '-' }}
+                                                {{ $lot->workOrder?->purchaseOrder?->part?->description ?? '-' }}
                                             </td>
                                             {{-- Quantity --}}
                                             <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">
@@ -449,7 +418,7 @@
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        Items del Packing Slip
+                        Items del Shipping List
                     </h2>
                     <span class="text-sm text-gray-500 dark:text-gray-400">
                         {{ $packingSlip->items->count() }} {{ $packingSlip->items->count() === 1 ? 'item' : 'items' }}
@@ -484,7 +453,7 @@
                                                 {{ $item->lot?->workOrder?->purchaseOrder?->part?->item_number ?? '-' }}
                                             </td>
                                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                                {{ $item->lot?->workOrder?->purchaseOrder?->part?->number ?? '-' }}
+                                                {{ $item->lot?->workOrder?->purchaseOrder?->part?->description ?? '-' }}
                                             </td>
                                             <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
                                                 {{ number_format($item->quantity_packed) }}
@@ -548,7 +517,7 @@
                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                         </svg>
-                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Este Packing Slip no tiene items.</p>
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Este Shipping List no tiene items.</p>
                     </div>
                 @endif
             </div>
@@ -579,7 +548,7 @@
                                     Listo para Invoice
                                 </p>
                                 <p class="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
-                                    Este Packing Slip fue despachado y está disponible para que el departamento de Ordenes genere el Invoice correspondiente.
+                                    Este Shipping List fue despachado y está disponible para que el departamento de Ordenes genere el Invoice correspondiente.
                                 </p>
                             </div>
                         </div>

@@ -70,7 +70,7 @@
                     </div>
 
                     {{-- Filtro por tipo de estación --}}
-                    <select wire:model.live="filterWorkstation"
+                    <select wire:model.live="filterWorkstation" data-no-ts
                         class="w-full sm:w-52 h-10 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer">
                         <option value="">Todos los tipos</option>
                         <option value="Mesa">Mesa</option>
@@ -385,7 +385,7 @@
                                     $woHasEmpPending = ($woLifecycle['viajero'] + $woLifecycle['decision'] + $woLifecycle['material_deliver'] + $woLifecycle['material_receive']) > 0;
                                 @endphp
                                 {{-- Fila Principal de WO --}}
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                <tr wire:key="wo-row-{{ $wo->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                                     <td class="px-4 py-3 text-gray-900 dark:text-white font-medium">WO</td>
                                     <td class="px-4 py-3 font-medium">
                                         <a href="{{ route('admin.sent-lists.display.wo', $wo->id) }}"
@@ -626,7 +626,7 @@
                                         // Obtener razon de bloqueo si existe
                                         $inspectionBlockedReason = $lot->getInspectionBlockedReason();
                                     @endphp
-                                    <tr class="bg-gray-50 dark:bg-gray-700/20">
+                                    <tr wire:key="lot-row-{{ $lot->id }}" class="bg-gray-50 dark:bg-gray-700/20">
                                         <td class="px-4 py-2 pl-8 text-xs text-gray-600 dark:text-gray-400">Lote</td>
                                         <td class="px-4 py-2 text-xs">
                                             @if ($canMaterials)
@@ -1094,7 +1094,7 @@
                             ];
                         @endphp
 
-                        <div class="p-4 space-y-3">
+                        <div wire:key="wo-card-{{ $wo->id }}" class="p-4 space-y-3">
                             <div class="flex items-start justify-between">
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 mb-1">
@@ -1272,7 +1272,7 @@
                                 // Obtener razon de bloqueo si existe
                                 $inspectionBlockedReasonMobile = $lot->getInspectionBlockedReason();
                             @endphp
-                            <div
+                            <div wire:key="lot-card-{{ $lot->id }}"
                                 class="p-4 pl-8 bg-gray-50 dark:bg-gray-700/20 space-y-2 border-l-2 border-gray-300 dark:border-gray-600">
                                 <div class="flex items-center justify-between">
                                     @if ($canMaterials)
@@ -1434,13 +1434,13 @@
 
     {{-- Modal de Gestión de Lotes --}}
     @if ($showLotModal && $selectedWorkOrder)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+        <div wire:key="modal-lot" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeLotModal"></div>
 
                 <div
-                    class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-200 dark:border-gray-700">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-200 dark:border-gray-700">
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between">
                             <div>
@@ -1549,14 +1549,14 @@
 
     {{-- Modal de Estado de Departamentos --}}
     @if ($showDepartmentStatusModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+        <div wire:key="modal-dept-status" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeDepartmentStatusModal">
                 </div>
 
                 <div
-                    class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700">
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between">
                             <div>
@@ -1621,7 +1621,7 @@
 
     {{-- Modal de Status de Inspeccion por Lote --}}
     @if ($showInspectionModal && $selectedLot)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="inspection-modal-title" role="dialog"
+        <div wire:key="modal-inspection" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="inspection-modal-title" role="dialog"
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 {{-- Overlay --}}
@@ -1629,7 +1629,7 @@
 
                 {{-- Modal Container --}}
                 <div
-                    class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700">
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between">
@@ -1825,7 +1825,7 @@
 
     {{-- Modal de Status de Kit por Lote (semaphore click — original) --}}
     @if ($showKitModal && $selectedLotForKit)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="kit-modal-title" role="dialog"
+        <div wire:key="modal-kit" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="kit-modal-title" role="dialog"
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 {{-- Overlay --}}
@@ -1833,7 +1833,7 @@
 
                 {{-- Modal Container --}}
                 <div
-                    class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700">
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-indigo-600">
                         <div class="flex items-center justify-between">
@@ -2013,13 +2013,13 @@
 
     {{-- Modal de Gestión de Kits (botón aparte — multi-kit) --}}
     @if ($showKitManageModal && $selectedLotForKitManage)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="kit-manage-modal-title" role="dialog"
+        <div wire:key="modal-kit-manage" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="kit-manage-modal-title" role="dialog"
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeKitManageModal"></div>
 
                 <div
-                    class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-indigo-600">
                         <div class="flex items-center justify-between">
@@ -2205,7 +2205,7 @@
 
     {{-- Modal de Material (No CRIMP: Lote = Kit) --}}
     @if ($showMaterialModal && $selectedLotForMaterial)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="material-modal-title" role="dialog"
+        <div wire:key="modal-material" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="material-modal-title" role="dialog"
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 {{-- Overlay --}}
@@ -2215,7 +2215,7 @@
 
                 {{-- Modal --}}
                 <div
-                    class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                     {{-- Header --}}
                     <div class="bg-gradient-to-r from-amber-600 to-amber-700 px-6 py-4">
                         <div class="flex items-center justify-between">
@@ -2350,7 +2350,7 @@
 
     {{-- Modal de Empaque por Lote — 4 Fases --}}
     @if ($showPackagingModal && $selectedLotForPackaging)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="packaging-modal-title" role="dialog"
+        <div wire:key="modal-packaging" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="packaging-modal-title" role="dialog"
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 {{-- Overlay --}}
@@ -2358,7 +2358,7 @@
 
                 {{-- Modal Container --}}
                 <div
-                    class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-orange-600">
                         <div class="flex items-center justify-between">
@@ -2682,11 +2682,11 @@
     {{-- MODAL: Decisión Control de Materiales --}}
     {{-- ================================================================ --}}
     @if ($showDecisionModal && $selectedLotForDecision)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="decision-modal-title" role="dialog" aria-modal="true">
+        <div wire:key="modal-decision" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="decision-modal-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity" wire:click="closeDecisionModal"></div>
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-                <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
 
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-purple-600">
@@ -2968,11 +2968,11 @@
     {{-- MODAL: Crear Lote (from Decision) --}}
     {{-- ================================================================ --}}
     @if ($showCreateLotFormModal && $selectedLotForDecision)
-        <div class="fixed inset-0 z-[60] overflow-y-auto" aria-labelledby="create-lot-modal-title" role="dialog" aria-modal="true">
+        <div wire:key="modal-create-lot" class="fixed inset-0 z-[60] overflow-y-auto" aria-labelledby="create-lot-modal-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity" wire:click="closeCreateLotFormModal"></div>
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-                <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
 
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-indigo-600">
@@ -3070,11 +3070,11 @@
     {{-- MODAL: Entregar Material Sobrante --}}
     {{-- ================================================================ --}}
     @if ($showDeliverMaterialModal && $selectedLotForDelivery)
-        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+        <div wire:key="modal-deliver-material" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeDeliverMaterialModal"></div>
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-                <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full border border-gray-200 dark:border-gray-700">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full border border-gray-200 dark:border-gray-700">
 
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-amber-600">
@@ -3148,7 +3148,7 @@
 
     {{-- Modal de Pesada (Calidad) por Lote --}}
     @if ($showQualityModal && $selectedLotForQuality)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="quality-modal-title" role="dialog"
+        <div wire:key="modal-quality" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="quality-modal-title" role="dialog"
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 {{-- Overlay --}}
@@ -3156,7 +3156,7 @@
 
                 {{-- Modal Container --}}
                 <div
-                    class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-teal-600">
                         <div class="flex items-center justify-between">
@@ -3378,7 +3378,7 @@
 
     {{-- Modal de Pesada (Producción) por Lote --}}
     @if ($showProductionModal && $selectedLotForProduction)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="production-modal-title" role="dialog"
+        <div wire:key="modal-production" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="production-modal-title" role="dialog"
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 {{-- Overlay --}}
@@ -3386,7 +3386,7 @@
 
                 {{-- Modal Container --}}
                 <div
-                    class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-indigo-600">
                         <div class="flex items-center justify-between">
@@ -3512,10 +3512,10 @@
 
     {{-- Modal de Pesada Producción por Kit (CRIMP only) --}}
     @if ($showProdKitModal && $selectedLotForProdKit)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="prod-kit-modal-title" role="dialog" aria-modal="true">
+        <div wire:key="modal-prod-kit" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="prod-kit-modal-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeProdKitModal"></div>
-                <div class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-purple-600">
                         <div class="flex items-center justify-between">
@@ -3538,7 +3538,7 @@
                         {{-- Kit selector --}}
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kit *</label>
-                            <select wire:model.live="prodKitSelectedId"
+                            <select wire:model.live="prodKitSelectedId" data-no-ts
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
                                 <option value="">-- Seleccionar Kit --</option>
                                 @foreach ($prodKitKits as $pk)
@@ -3615,10 +3615,10 @@
 
     {{-- Modal de Pesada Calidad por Kit (CRIMP only) --}}
     @if ($showQualKitModal && $selectedLotForQualKit)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="qual-kit-modal-title" role="dialog" aria-modal="true">
+        <div wire:key="modal-qual-kit" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="qual-kit-modal-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeQualKitModal"></div>
-                <div class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-cyan-600">
                         <div class="flex items-center justify-between">
@@ -3641,7 +3641,7 @@
                         {{-- Kit selector --}}
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kit *</label>
-                            <select wire:model.live="qualKitSelectedId"
+                            <select wire:model.live="qualKitSelectedId" data-no-ts
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 <option value="">-- Seleccionar Kit --</option>
                                 @foreach ($qualKitKits as $qk)

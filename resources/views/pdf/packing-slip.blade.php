@@ -463,7 +463,7 @@
                             <td>{{ $item->wo_number_ps ?? '-' }}</td>
                             <td>{{ $item->lot?->workOrder?->purchaseOrder?->po_number ?? '-' }}</td>
                             <td>{{ $item->lot?->workOrder?->purchaseOrder?->part?->item_number ?? '-' }}</td>
-                            <td>{{ $item->lot?->workOrder?->purchaseOrder?->part?->number ?? '-' }}</td>
+                            <td>{{ $item->lot?->workOrder?->purchaseOrder?->part?->description ?? '-' }}</td>
                             <td class="col-qty">{{ number_format($item->quantity_packed) }}</td>
                             <td>{{ $item->lot_date_code ?? '-' }}</td>
                             <td>{{ $labelSpec }}</td>

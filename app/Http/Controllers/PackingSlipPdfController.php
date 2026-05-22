@@ -32,16 +32,10 @@ class PackingSlipPdfController extends Controller
 
     /**
      * Muestra el PDF del Packing Slip directamente en el navegador (stream).
-     * Ruta: admin.packing-slips.pdf
+     * Ruta: admin.shipping-list.pdf
      */
     public function show(PackingSlip $packingSlip): Response
     {
-        abort_if(
-            $packingSlip->document_date === null,
-            422,
-            'No se puede generar el PDF: el Packing Slip no tiene fecha de documento (DATE).'
-        );
-
         $data = $this->buildData($packingSlip);
 
         $pdf = Pdf::loadView('pdf.packing-slip', $data)
@@ -52,16 +46,10 @@ class PackingSlipPdfController extends Controller
 
     /**
      * Fuerza la descarga del PDF del Packing Slip.
-     * Ruta: admin.packing-slips.pdf.download
+     * Ruta: admin.shipping-list.pdf.download
      */
     public function download(PackingSlip $packingSlip): Response
     {
-        abort_if(
-            $packingSlip->document_date === null,
-            422,
-            'No se puede generar el PDF: el Packing Slip no tiene fecha de documento (DATE).'
-        );
-
         $data = $this->buildData($packingSlip);
 
         $pdf = Pdf::loadView('pdf.packing-slip', $data)

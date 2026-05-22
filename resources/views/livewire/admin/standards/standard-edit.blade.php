@@ -35,6 +35,12 @@
                                 <option value="{{ $part->id }}" @selected($part->id == $part_id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
 =======
                                 <option value="{{ $part->id }}" @selected((int) $part_id === (int) $part->id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
+>>>>>>> 9a90a8cf0fd5edd882eabbeda6f72082b6f3503a
+=======
+<<<<<<< HEAD
+                                <option value="{{ $part->id }}" @selected($part->id == $part_id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
+=======
+                                <option value="{{ $part->id }}" @selected((int) $part_id === (int) $part->id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
 >>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
 =======
                                 <option value="{{ $part->id }}" @selected((int) $part_id === (int) $part->id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
@@ -42,6 +48,7 @@
                                 <option value="{{ $part->id }}" @selected($part->id == $part_id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
 >>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
 >>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
+>>>>>>> ea31140db75d77f583fcf138f9a4d8b93dccf27a
                             @endforeach
                         </select>
                         @error('part_id')
@@ -135,6 +142,12 @@
                                                         <option value="{{ $value }}" @selected($value == $config['workstation_type'])>{{ $label }}</option>
 =======
                                                         <option value="{{ $value }}" @selected(($config['workstation_type'] ?? null) == $value)>{{ $label }}</option>
+>>>>>>> 9a90a8cf0fd5edd882eabbeda6f72082b6f3503a
+=======
+<<<<<<< HEAD
+                                                        <option value="{{ $value }}" @selected($value == $config['workstation_type'])>{{ $label }}</option>
+=======
+                                                        <option value="{{ $value }}" @selected(($config['workstation_type'] ?? null) == $value)>{{ $label }}</option>
 >>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
 =======
                                                         <option value="{{ $value }}" @selected(($config['workstation_type'] ?? null) == $value)>{{ $label }}</option>
@@ -142,6 +155,7 @@
                                                         <option value="{{ $value }}" @selected($value == $config['workstation_type'])>{{ $label }}</option>
 >>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
 >>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
+>>>>>>> ea31140db75d77f583fcf138f9a4d8b93dccf27a
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.workstation_type")
@@ -166,6 +180,12 @@
                                                         <option value="{{ $ws['id'] }}" @selected((string)$ws['id'] == (string)$config['workstation_id'])>{{ $ws['name'] }}</option>
 =======
                                                         <option value="{{ $ws['id'] }}" @selected((int) ($config['workstation_id'] ?? 0) === (int) $ws['id'])>{{ $ws['name'] }}</option>
+>>>>>>> 9a90a8cf0fd5edd882eabbeda6f72082b6f3503a
+=======
+<<<<<<< HEAD
+                                                        <option value="{{ $ws['id'] }}" @selected((string)$ws['id'] == (string)$config['workstation_id'])>{{ $ws['name'] }}</option>
+=======
+                                                        <option value="{{ $ws['id'] }}" @selected((int) ($config['workstation_id'] ?? 0) === (int) $ws['id'])>{{ $ws['name'] }}</option>
 >>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
 =======
                                                         <option value="{{ $ws['id'] }}" @selected((int) ($config['workstation_id'] ?? 0) === (int) $ws['id'])>{{ $ws['name'] }}</option>
@@ -173,6 +193,7 @@
                                                         <option value="{{ $ws['id'] }}" @selected((string)$ws['id'] == (string)$config['workstation_id'])>{{ $ws['name'] }}</option>
 >>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
 >>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
+>>>>>>> ea31140db75d77f583fcf138f9a4d8b93dccf27a
                                                     @endforeach
                                                 </select>
                                                 @error("configurations.{$index}.workstation_id")
@@ -239,7 +260,11 @@
 <<<<<<< HEAD
 =======
 =======
+<<<<<<< HEAD
+=======
+=======
 >>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
+>>>>>>> ea31140db75d77f583fcf138f9a4d8b93dccf27a
                     @else
                         <!-- Legacy System Fields -->
                         <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
@@ -350,11 +375,15 @@
                             </div>
                         </div>
 <<<<<<< HEAD
+>>>>>>> 9a90a8cf0fd5edd882eabbeda6f72082b6f3503a
+=======
+<<<<<<< HEAD
 >>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
 =======
 =======
 >>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
 >>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
+>>>>>>> ea31140db75d77f583fcf138f9a4d8b93dccf27a
                     @endif
 
                     <!-- Active Status -->
