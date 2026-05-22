@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 class WorkOrder extends Model
@@ -55,7 +55,6 @@ class WorkOrder extends Model
         return $this->belongsTo(StatusWO::class, 'status_id');
     }
 
-
     /**
      * Get the lots for the work order.
      * Note: Lot model will be created in Phase 3
@@ -63,10 +62,11 @@ class WorkOrder extends Model
     public function lots(): HasMany
     {
         // Return empty relation if Lot model doesn't exist yet
-        if (!class_exists(\App\Models\Lot::class)) {
+        if (! class_exists(Lot::class)) {
             return $this->hasMany(self::class, 'id', 'id')->whereRaw('1 = 0');
         }
-        return $this->hasMany(\App\Models\Lot::class);
+
+        return $this->hasMany(Lot::class);
     }
 
     /**
@@ -109,7 +109,7 @@ class WorkOrder extends Model
      * NOTA: El prefijo es "W0" (W + cero), no "WO" (W + O maiuscula).
      * Esto es consistente con el formato del documento FPL-10 real.
      *
-     * @param int $lotSeq Numero secuencial del lote (ej: 1, 2, 3...)
+     * @param  int  $lotSeq  Numero secuencial del lote (ej: 1, 2, 3...)
      * @return string|null Codigo de WO para FPL-10, o NULL si no hay numero disponible
      */
     public function buildWoCode(int $lotSeq): ?string
@@ -120,7 +120,7 @@ class WorkOrder extends Model
             return null;
         }
 
-        return 'W0' . $woNumber . str_pad((string) $lotSeq, 3, '0', STR_PAD_LEFT);
+        return 'W0'.$woNumber.str_pad((string) $lotSeq, 3, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -130,7 +130,7 @@ class WorkOrder extends Model
      */
     public function hasExternalWoNumber(): bool
     {
-        return !empty($this->getEffectiveWoNumber());
+        return ! empty($this->getEffectiveWoNumber());
     }
 
     // =========================================================
@@ -146,10 +146,13 @@ class WorkOrder extends Model
         $year = Carbon::now()->year;
         $prefix = "WO-{$year}-";
 
-        // Get the last WO number for this year
+        // Get the last WO number for this year.
+        // lockForUpdate() serializes concurrent generations when invoked inside
+        // a transaction, preventing two callers from picking the same number.
         $lastWO = static::withTrashed()
             ->where('wo_number', 'like', "{$prefix}%")
             ->orderByRaw('CAST(SUBSTRING(wo_number, -5) AS UNSIGNED) DESC')
+            ->lockForUpdate()
             ->first();
 
         if ($lastWO) {
@@ -160,7 +163,7 @@ class WorkOrder extends Model
             $newNumber = 1;
         }
 
-        return $prefix . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
+        return $prefix.str_pad($newNumber, 5, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -202,13 +205,13 @@ class WorkOrder extends Model
 
         return $query->where(function ($q) use ($search) {
             $q->where('wo_number', 'like', "%{$search}%")
-              ->orWhereHas('purchaseOrder', function ($poQuery) use ($search) {
-                  $poQuery->where('po_number', 'like', "%{$search}%");
-              })
-              ->orWhereHas('purchaseOrder.part', function ($partQuery) use ($search) {
-                  $partQuery->where('number', 'like', "%{$search}%")
-                            ->orWhere('description', 'like', "%{$search}%");
-              });
+                ->orWhereHas('purchaseOrder', function ($poQuery) use ($search) {
+                    $poQuery->where('po_number', 'like', "%{$search}%");
+                })
+                ->orWhereHas('purchaseOrder.part', function ($partQuery) use ($search) {
+                    $partQuery->where('number', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
         });
     }
 
@@ -251,8 +254,9 @@ class WorkOrder extends Model
      */
     public function forceDeleteWithRelations(): bool
     {
-        // Force delete related lots and their children
-        foreach ($this->lots as $lot) {
+        // Force delete related lots and their children — include soft-deleted
+        // lots so their child records are cleaned up too.
+        foreach ($this->lots()->withTrashed()->get() as $lot) {
             $lot->kits()->detach();
             $lot->weighings()->forceDelete();
             $lot->qualityWeighings()->forceDelete();
@@ -286,6 +290,7 @@ class WorkOrder extends Model
                 // Lote con ciclos de completado/cierre → acumulado real empacado.
                 // Lote completado de forma simple (sin flujo de empaque) → su cantidad.
                 $hasLifecycle = $lot->closure_decision !== null || $lot->completionLogs->isNotEmpty();
+
                 return $hasLifecycle ? $lot->getTotalCompletedPieces() : $lot->quantity;
             });
 

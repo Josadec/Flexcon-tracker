@@ -25,7 +25,7 @@
             <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $activeShifts }}</div>
         </div>
         <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Empleados asignados</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Empleados Asignados</div>
             <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $employeesAssigned }}</div>
         </div>
     </div>
@@ -140,7 +140,9 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 @if($shift->employees_count > 0)
-                                    <span class="text-sm text-gray-900 dark:text-white">{{ $shift->employees_count }} empleado{{ $shift->employees_count > 1 ? 's' : '' }}</span>
+                                    <span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-3 py-1 text-sm font-medium text-blue-700 dark:text-blue-300">
+                                        {{ $shift->employees_count }} empleado{{ $shift->employees_count > 1 ? 's' : '' }}
+                                    </span>
                                 @else
                                     <span class="text-sm text-gray-400">0 empleados</span>
                                 @endif

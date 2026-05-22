@@ -2,12 +2,20 @@
 
 namespace Tests\Unit\Services;
 
-use Tests\TestCase;
-use App\Services\CapacityCalculatorService;
-use App\Models\{Shift, Part, Standard, Holiday, OverTime, PurchaseOrder, SentList, WorkOrder, User};
 use App\Exceptions\CapacityExceededException;
+use App\Models\Holiday;
+use App\Models\OverTime;
+use App\Models\Part;
+use App\Models\SentList;
+use App\Models\Shift;
+use App\Models\Standard;
+use App\Models\StandardConfiguration;
+use App\Models\User;
+use App\Models\WorkOrder;
+use App\Services\CapacityCalculatorService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class CapacityCalculatorServiceTest extends TestCase
 {
@@ -18,7 +26,7 @@ class CapacityCalculatorServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new CapacityCalculatorService();
+        $this->service = new CapacityCalculatorService;
     }
 
     /**
@@ -147,23 +155,28 @@ class CapacityCalculatorServiceTest extends TestCase
         // Arrange
         $part = Part::factory()->create(['number' => 'PART-001']);
 
-        Standard::factory()->create([
+        $standard = Standard::factory()->create([
             'part_id' => $part->id,
             'active' => true,
-            'persons_1' => 10, // 10 units/hour with 1 person
-            'persons_2' => 18,
-            'persons_3' => 25,
+        ]);
+
+        StandardConfiguration::create([
+            'standard_id' => $standard->id,
+            'workstation_type' => StandardConfiguration::TYPE_MANUAL,
+            'persons_required' => 1,
+            'units_per_hour' => 10,
+            'is_default' => true,
         ]);
 
         // Act: Calculate hours needed for 100 units with 1 person
-        $required_hours = $this->service->calculateRequiredHours(
+        $result = $this->service->calculateRequiredHours(
             $part->id,
             100, // quantity
-            '1_person'
+            1
         );
 
         // Assert: 100 units ÷ 10 units/hour = 10 hours
-        $this->assertEquals(10.0, $required_hours);
+        $this->assertEquals(10.0, $result['required_hours']);
     }
 
     /**
@@ -174,23 +187,35 @@ class CapacityCalculatorServiceTest extends TestCase
         // Arrange
         $part = Part::factory()->create();
 
-        Standard::factory()->create([
+        $standard = Standard::factory()->create([
             'part_id' => $part->id,
             'active' => true,
-            'persons_1' => 10,
-            'persons_2' => 18, // 18 units/hour with 2 persons
-            'persons_3' => 25,
+        ]);
+
+        StandardConfiguration::create([
+            'standard_id' => $standard->id,
+            'workstation_type' => StandardConfiguration::TYPE_MANUAL,
+            'persons_required' => 1,
+            'units_per_hour' => 10,
+            'is_default' => true,
+        ]);
+
+        StandardConfiguration::create([
+            'standard_id' => $standard->id,
+            'workstation_type' => StandardConfiguration::TYPE_MANUAL,
+            'persons_required' => 2,
+            'units_per_hour' => 18,
         ]);
 
         // Act
-        $required_hours = $this->service->calculateRequiredHours(
+        $result = $this->service->calculateRequiredHours(
             $part->id,
             90, // quantity
-            '2_persons'
+            2
         );
 
         // Assert: 90 ÷ 18 = 5 hours
-        $this->assertEquals(5.0, $required_hours);
+        $this->assertEquals(5.0, $result['required_hours']);
     }
 
     /**
@@ -230,7 +255,7 @@ class CapacityCalculatorServiceTest extends TestCase
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Part with ID 9999 not found');
 
-        $this->service->calculateRequiredHours(9999, 100, '1_person');
+        $this->service->calculateRequiredHours(9999, 100, 1);
     }
 
     /**
@@ -246,7 +271,7 @@ class CapacityCalculatorServiceTest extends TestCase
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('No active standard found for part PART-001');
 
-        $this->service->calculateRequiredHours($part->id, 100, '1_person');
+        $this->service->calculateRequiredHours($part->id, 100, 1);
     }
 
     /**
@@ -360,10 +385,10 @@ class CapacityCalculatorServiceTest extends TestCase
         // Total hours = 2 hours × 1 employee = 2 hours
         $user = User::factory()->create(['active' => true]);
         $overTime = OverTime::factory()->create([
-            'date'          => '2025-01-06',
-            'shift_id'      => $shift->id,
-            'start_time'    => '16:30:00',
-            'end_time'      => '18:30:00',
+            'date' => '2025-01-06',
+            'shift_id' => $shift->id,
+            'start_time' => '16:30:00',
+            'end_time' => '18:30:00',
             'break_minutes' => 0,
         ]);
         $overTime->users()->attach($user->id);

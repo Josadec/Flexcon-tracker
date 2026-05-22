@@ -359,6 +359,12 @@
                             </svg>
                             Agregar otro lote
                         </button>
+
+                        @if ($lotModalError)
+                            <div class="mt-4 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
+                                {{ $lotModalError }}
+                            </div>
+                        @endif
                     </div>
 
                     {{-- Footer --}}
@@ -466,6 +472,12 @@
                             </svg>
                             Agregar otro kit
                         </button>
+
+                        @if ($kitModalError)
+                            <div class="mt-4 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
+                                {{ $kitModalError }}
+                            </div>
+                        @endif
                     </div>
 
                     {{-- Footer --}}

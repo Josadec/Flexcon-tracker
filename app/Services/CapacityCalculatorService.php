@@ -60,7 +60,7 @@ class CapacityCalculatorService
      * @param Shift $shift
      * @return float Net hours
      */
-    protected function calculateShiftNetHours(Shift $shift): float
+    public function calculateShiftNetHours(Shift $shift): float
     {
         $start = Carbon::parse($shift->start_time);
         $end = Carbon::parse($shift->end_time);

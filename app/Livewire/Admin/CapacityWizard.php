@@ -3,7 +3,7 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
-use App\Models\{Shift, Part, SentList, User, Lot, Kit};
+use App\Models\{Shift, SentList, User, Lot, Kit};
 use App\Services\CapacityCalculatorService;
 use App\Services\CarryoverService;
 use Carbon\Carbon;
@@ -42,8 +42,6 @@ class CapacityWizard extends Component
      * ]
      */
     public array $workOrderItems = [];
-    public ?int $currentPartId = null;
-    public int $currentQuantity = 0;
     public float $totalRequiredHours = 0;
     public float $remainingHours = 0;
     public float $suggestedOvertime = 0;
@@ -62,12 +60,14 @@ class CapacityWizard extends Component
     public bool $showLotModal = false;
     public ?int $currentLotIndex = null; // Índice del item actual para agregar lotes
     public array $tempLots = []; // Lotes temporales para el modal
+    public string $lotModalError = ''; // Error de validación dentro del modal de lotes
 
     // Kit data (for crimp parts)
     public array $kitNumbers = []; // Kit numbers per PO index
     public bool $showKitModal = false;
     public ?int $currentKitIndex = null;
     public array $tempKits = []; // Kits temporales para el modal
+    public string $kitModalError = ''; // Error de validación dentro del modal de kits
 
     // Step 4 - Fechas programadas de envío
     public ?string $scheduledShipDate = null; // UNA fecha para toda la lista
@@ -179,7 +179,7 @@ class CapacityWizard extends Component
 
             $this->shiftDetails = [];
             foreach ($shifts as $shift) {
-                $netHours = $this->calculateShiftNetHours($shift);
+                $netHours = $this->service->calculateShiftNetHours($shift);
                 $this->shiftDetails[] = [
                     'id' => $shift->id,
                     'name' => $shift->name,
@@ -198,44 +198,27 @@ class CapacityWizard extends Component
 
             $this->remainingHours = $this->totalAvailableHours;
             $this->errorMessage = '';
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->errorMessage = 'Error al calcular horas: ' . $e->getMessage();
         }
     }
 
-    protected function calculateShiftNetHours(Shift $shift): float
-    {
-        $start = Carbon::parse($shift->start_time);
-        $end = Carbon::parse($shift->end_time);
-
-        if ($end->lessThan($start)) {
-            $end->addDay();
-        }
-
-        $totalMinutes = $start->diffInMinutes($end);
-        
-        $breakMinutes = 0;
-        foreach ($shift->breakTimes as $breakTime) {
-            $breakStart = Carbon::parse($breakTime->start_break_time);
-            $breakEnd = Carbon::parse($breakTime->end_break_time);
-            if ($breakEnd->lessThan($breakStart)) {
-                $breakEnd->addDay();
-            }
-            $breakMinutes += $breakStart->diffInMinutes($breakEnd);
-        }
-        
-        $netMinutes = $totalMinutes - $breakMinutes;
-
-        return round($netMinutes / 60, 2);
-    }
-
     public function updatedSelectedShifts()
     {
+        $previousPersons = $this->numPersons;
+
         // Cargar empleados para los turnos seleccionados
         $this->loadEmployeesForShifts();
-        
+
         if (!empty($this->selectedShifts) && $this->currentStep === 1) {
             $this->calculateAvailableHours();
+        }
+
+        // CAP-4: avisar si el personal cambió y ya hay partes agregadas, ya que
+        // sus horas se calcularon con el personal anterior.
+        if (!empty($this->workOrderItems) && $this->numPersons !== $previousPersons) {
+            $this->warnings[] = 'El personal disponible cambió a ' . $this->numPersons
+                . '. Revisa las partes agregadas: sus horas se calcularon con el personal anterior.';
         }
     }
 
@@ -461,7 +444,7 @@ class CapacityWizard extends Component
             $this->closePOModal();
 
             $this->successMessage = "{$addedCount} PO(s) agregado(s) exitosamente.";
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->errorMessage = 'Error al agregar POs: ' . $e->getMessage();
         }
     }
@@ -510,89 +493,6 @@ class CapacityWizard extends Component
         return $query->orderBy('po_number')->get();
     }
 
-    public function addWorkOrderItem()
-    {
-        $this->validate([
-            'currentPartId' => 'required|exists:parts,id',
-            'currentQuantity' => 'required|integer|min:1',
-        ], [
-            'currentPartId.required' => 'Debe seleccionar un número de parte.',
-            'currentPartId.exists' => 'El número de parte no existe.',
-            'currentQuantity.required' => 'La cantidad es requerida.',
-            'currentQuantity.min' => 'La cantidad debe ser mayor a 0.',
-        ]);
-
-        try {
-            $part = Part::find($this->currentPartId);
-
-            // Obtener el estándar para calcular horas
-            $standard = $part->standards()->where('active', true)->first();
-            
-            if (!$standard) {
-                $this->errorMessage = "No hay estándar activo para la parte {$part->number}.";
-                return;
-            }
-
-            // Check if standard has configurations
-            if (!$standard->hasMigratedConfigurations()) {
-                $this->errorMessage = "Part {$part->number} has no configurations. Please add configurations for this standard in the Standards management section.";
-                return;
-            }
-
-            // Verificar si ya se agregó esta parte
-            $existingIndex = array_search($this->currentPartId, array_column($this->workOrderItems, 'part_id'));
-            if ($existingIndex !== false) {
-                $this->errorMessage = "La parte {$part->number} ya fue agregada.";
-                return;
-            }
-
-            // Calculate using service with available employees
-            $result = $this->service->calculateRequiredHours(
-                $this->currentPartId,
-                $this->currentQuantity,
-                $this->numPersons  // Available employees from loaded shifts
-            );
-
-            // Validate capacity for the selected configuration
-            $configuration = \App\Models\StandardConfiguration::find($result['configuration']['id']);
-            if ($configuration) {
-                $validation = $configuration->validateCapacity();
-                if (!$validation['is_valid']) {
-                    $this->warnings[] = "Part {$part->number}: {$validation['message']}";
-                }
-            }
-
-            $this->workOrderItems[] = [
-                'part_id' => $this->currentPartId,
-                'part_number' => $part->number,
-                'part_description' => $part->description,
-                'is_crimp' => (bool) ($part->is_crimp ?? false),
-                'quantity' => $this->currentQuantity,
-                'required_hours' => $result['required_hours'],
-                'po_id' => null, // Agregado manualmente, no desde PO
-                'po_number' => null,
-                'wo' => null,
-                'configuration' => $result['configuration'],
-            ];
-
-            $this->calculateDifference();
-
-            // Reset form
-            $this->currentPartId = null;
-            $this->currentQuantity = 0;
-
-            // Dispatch event to clear Tom Select
-            $this->dispatch('partAdded');
-
-            $this->errorMessage = '';
-            $this->successMessage = "Parte {$part->number} agregada. Horas requeridas: {$result['required_hours']}";
-        } catch (\RuntimeException $e) {
-            $this->errorMessage = $e->getMessage();
-        } catch (\Exception $e) {
-            $this->errorMessage = 'Error al agregar parte: ' . $e->getMessage();
-        }
-    }
-
     public function removeWorkOrderItem(int $index)
     {
         if (isset($this->workOrderItems[$index])) {
@@ -622,6 +522,7 @@ class CapacityWizard extends Component
     public function openLotModal(int $index)
     {
         $this->currentLotIndex = $index;
+        $this->lotModalError = '';
         // Cargar lotes existentes o inicializar con uno vacío
         $existingLots = $this->lotNumbers[$index] ?? [];
         
@@ -646,6 +547,7 @@ class CapacityWizard extends Component
         $this->showLotModal = false;
         $this->currentLotIndex = null;
         $this->tempLots = [];
+        $this->lotModalError = '';
     }
 
     public function addLotInput()
@@ -667,11 +569,31 @@ class CapacityWizard extends Component
             return;
         }
 
-        // Filtrar lotes vacíos y guardar
+        $this->lotModalError = '';
+
+        // Filtrar lotes vacíos (sin número)
         $filteredLots = array_values(array_filter($this->tempLots, function($lot) {
             return !empty(trim($lot['number'] ?? ''));
         }));
-        
+
+        // CAP-1: cada lote debe tener cantidad > 0 y la suma no puede exceder
+        // la cantidad del PO/item.
+        $itemQty = (int) ($this->workOrderItems[$this->currentLotIndex]['quantity'] ?? 0);
+        $sum = 0;
+        foreach ($filteredLots as $lot) {
+            $qty = (int) ($lot['quantity'] ?? 0);
+            if ($qty < 1) {
+                $this->lotModalError = 'Cada lote debe tener una cantidad mayor a 0.';
+                return;
+            }
+            $sum += $qty;
+        }
+        if ($sum > $itemQty) {
+            $this->lotModalError = 'La suma de cantidades de los lotes (' . number_format($sum)
+                . ') excede la cantidad del PO (' . number_format($itemQty) . ').';
+            return;
+        }
+
         if (!empty($filteredLots)) {
             $this->lotNumbers[$this->currentLotIndex] = $filteredLots;
         } else {
@@ -697,6 +619,7 @@ class CapacityWizard extends Component
     public function openKitModal(int $index)
     {
         $this->currentKitIndex = $index;
+        $this->kitModalError = '';
         $existingKits = $this->kitNumbers[$index] ?? [];
 
         if (empty($existingKits)) {
@@ -718,6 +641,7 @@ class CapacityWizard extends Component
         $this->showKitModal = false;
         $this->currentKitIndex = null;
         $this->tempKits = [];
+        $this->kitModalError = '';
     }
 
     public function addKitInput()
@@ -739,9 +663,19 @@ class CapacityWizard extends Component
             return;
         }
 
+        $this->kitModalError = '';
+
         $filteredKits = array_values(array_filter($this->tempKits, function ($kit) {
             return !empty(trim($kit['number'] ?? ''));
         }));
+
+        // CAP-1: cada kit debe tener una cantidad > 0
+        foreach ($filteredKits as $kit) {
+            if ((int) ($kit['quantity'] ?? 0) < 1) {
+                $this->kitModalError = 'Cada kit debe tener una cantidad mayor a 0.';
+                return;
+            }
+        }
 
         if (!empty($filteredKits)) {
             $this->kitNumbers[$this->currentKitIndex] = $filteredKits;
@@ -750,6 +684,51 @@ class CapacityWizard extends Component
         }
 
         $this->closeKitModal();
+    }
+
+    /**
+     * CAP-1: valida las cantidades de lotes y kits de todos los items.
+     * Devuelve el primer mensaje de error encontrado, o null si todo es válido.
+     */
+    protected function validateLotKitQuantities(): ?string
+    {
+        foreach ($this->workOrderItems as $index => $item) {
+            $itemQty = (int) ($item['quantity'] ?? 0);
+            $label = $item['po_number'] ?? $item['part_number'] ?? ('#' . ($index + 1));
+
+            // Lotes
+            if (!empty($this->lotNumbers[$index]) && is_array($this->lotNumbers[$index])) {
+                $sum = 0;
+                foreach ($this->lotNumbers[$index] as $lot) {
+                    if (!is_array($lot) || empty(trim($lot['number'] ?? ''))) {
+                        continue;
+                    }
+                    $qty = (int) ($lot['quantity'] ?? 0);
+                    if ($qty < 1) {
+                        return "PO {$label}: cada lote debe tener una cantidad mayor a 0.";
+                    }
+                    $sum += $qty;
+                }
+                if ($sum > $itemQty) {
+                    return "PO {$label}: la suma de lotes (" . number_format($sum)
+                        . ') excede la cantidad (' . number_format($itemQty) . ').';
+                }
+            }
+
+            // Kits
+            if (!empty($this->kitNumbers[$index]) && is_array($this->kitNumbers[$index])) {
+                foreach ($this->kitNumbers[$index] as $kit) {
+                    if (!is_array($kit) || empty(trim($kit['number'] ?? ''))) {
+                        continue;
+                    }
+                    if ((int) ($kit['quantity'] ?? 0) < 1) {
+                        return "PO {$label}: cada kit debe tener una cantidad mayor a 0.";
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     public function generateSentList()
@@ -765,8 +744,23 @@ class CapacityWizard extends Component
             return;
         }
 
+        // CAP-1: validación final de cantidades de lotes y kits
+        $quantityError = $this->validateLotKitQuantities();
+        if ($quantityError !== null) {
+            $this->errorMessage = $quantityError;
+            return;
+        }
+
+        // CAP-2: dejar constancia si la lista excede la capacidad disponible
+        $overtimeNeeded = max(0, round($this->totalRequiredHours - $this->totalAvailableHours, 2));
+        $notes = 'Lista preliminar generada desde Capacity Wizard';
+        if ($overtimeNeeded > 0) {
+            $notes .= ' — Excede la capacidad disponible en ' . number_format($overtimeNeeded, 2)
+                . ' h (requiere tiempo extra).';
+        }
+
         try {
-            DB::transaction(function () {
+            DB::transaction(function () use ($notes) {
                 // Crear SentList como Lista Preliminar
                 $sentList = SentList::create([
                     'po_id' => null, // Ya no se usa, ahora es relación many-to-many
@@ -779,7 +773,7 @@ class CapacityWizard extends Component
                     'remaining_hours' => max(0, $this->remainingHours),
                     'status' => SentList::STATUS_PENDING,
                     'current_department' => SentList::DEPT_MATERIALS,
-                    'notes' => 'Lista preliminar generada desde Capacity Wizard',
+                    'notes' => $notes,
                 ]);
 
                 // Sync shifts
@@ -853,7 +847,7 @@ class CapacityWizard extends Component
                                             'work_order_id' => $workOrder->id,
                                             'lot_number' => $lotNumber,
                                             'description' => $partDescription,
-                                            'quantity' => $lotQuantity > 0 ? $lotQuantity : intval($item['quantity']),
+                                            'quantity' => $lotQuantity,
                                             'status' => Lot::STATUS_PENDING,
                                             'comments' => "Generado automáticamente desde Capacity Wizard",
                                         ]);
@@ -892,7 +886,7 @@ class CapacityWizard extends Component
                                         $newKit = Kit::create([
                                             'work_order_id' => $workOrder->id,
                                             'kit_number' => $kitNumber,
-                                            'quantity' => $kitQuantity > 0 ? $kitQuantity : intval($item['quantity']),
+                                            'quantity' => $kitQuantity,
                                             'status' => Kit::STATUS_PREPARING,
                                             'current_approval_cycle' => 1,
                                         ]);
@@ -913,7 +907,13 @@ class CapacityWizard extends Component
 
             $this->successMessage = '¡Lista preliminar generada exitosamente!';
             $this->errorMessage = '';
-        } catch (\Exception $e) {
+
+            // CAP-2: advertir si la lista quedó por encima de la capacidad
+            if ($overtimeNeeded > 0) {
+                $this->warnings[] = 'La lista se generó excediendo la capacidad por '
+                    . number_format($overtimeNeeded, 2) . ' h. Considera registrar tiempo extra.';
+            }
+        } catch (\Throwable $e) {
             $this->errorMessage = 'Error al generar la lista: ' . $e->getMessage();
         }
     }
@@ -928,8 +928,6 @@ class CapacityWizard extends Component
             'totalAvailableHours',
             'shiftDetails',
             'workOrderItems',
-            'currentPartId',
-            'currentQuantity',
             'totalRequiredHours',
             'remainingHours',
             'suggestedOvertime',
@@ -967,18 +965,8 @@ class CapacityWizard extends Component
 
     public function render()
     {
-        // Obtener todas las partes activas que tienen estándar activo con configuraciones
-        $partsWithStandard = Part::active()
-            ->whereHas('standards', function($q) {
-                $q->where('active', true)
-                  ->has('configurations');
-            })
-            ->orderBy('number')
-            ->get();
-
         return view('livewire.admin.capacity-wizard', [
             'shifts' => Shift::active()->get(),
-            'parts' => $partsWithStandard,
         ]);
     }
 }

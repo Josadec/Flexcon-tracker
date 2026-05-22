@@ -141,10 +141,15 @@
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                         </button>
                                     @endif
-                                    @if($po->canBeDeleted())
-                                        <button wire:click="deletePO({{ $po->id }})" wire:confirm="¿Estás seguro? Se eliminarán la orden de compra y todas las Work Orders, Lotes y registros relacionados." class="inline-flex items-center justify-center w-8 h-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-2 border-transparent hover:border-red-300 rounded-md transition-colors" title="Eliminar">
+                                    @php $deleteBlockReason = $po->getDeletionBlockReason(); @endphp
+                                    @if($deleteBlockReason === null)
+                                        <button wire:click="deletePO({{ $po->id }})" wire:confirm="¿Eliminar la orden de compra {{ $po->po_number }}? Se eliminará también su Work Order asociada. Esta acción no se puede deshacer." class="inline-flex items-center justify-center w-8 h-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-2 border-transparent hover:border-red-300 rounded-md transition-colors" title="Eliminar">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                         </button>
+                                    @else
+                                        <span class="inline-flex items-center justify-center w-8 h-8 text-gray-300 dark:text-gray-600 cursor-not-allowed" title="No se puede eliminar: {{ $deleteBlockReason }}">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </span>
                                     @endif
                                 </div>
                             </td>

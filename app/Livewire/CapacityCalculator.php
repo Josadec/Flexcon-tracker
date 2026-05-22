@@ -2,34 +2,47 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use App\Models\{PurchaseOrder, Shift, Part, SentList, WorkOrder};
-use App\Services\CapacityCalculatorService;
 use App\Exceptions\CapacityExceededException;
+use App\Models\Part;
+use App\Models\PurchaseOrder;
+use App\Models\SentList;
+use App\Models\Shift;
+use App\Services\CapacityCalculatorService;
 use Carbon\Carbon;
+use Livewire\Component;
 
 class CapacityCalculator extends Component
 {
     // Form inputs
     public $po_id = null;
+
     public $selected_shifts = [];
+
     public $num_persons = 1;
+
     public $start_date;
+
     public $end_date;
 
     // Calculator state
     public $total_available_hours = 0;
+
     public $remaining_hours = 0;
+
     public $work_orders = [];
 
     // Add WO form
     public $current_part_id = null;
+
     public $current_quantity = 0;
+
     public $current_assembly_mode = '1_person';
 
     // UI state
     public $error_message = '';
+
     public $success_message = '';
+
     public $is_capacity_calculated = false;
 
     protected CapacityCalculatorService $service;
@@ -94,7 +107,7 @@ class CapacityCalculator extends Component
             $this->error_message = '';
             $this->success_message = 'Capacity calculated successfully!';
         } catch (\Exception $e) {
-            $this->error_message = 'Error calculating capacity: ' . $e->getMessage();
+            $this->error_message = 'Error calculating capacity: '.$e->getMessage();
             $this->success_message = '';
         }
     }
@@ -110,18 +123,20 @@ class CapacityCalculator extends Component
             'current_assembly_mode' => 'required|in:1_person,2_persons,3_persons',
         ]);
 
-        if (!$this->is_capacity_calculated) {
+        if (! $this->is_capacity_calculated) {
             $this->error_message = 'Please calculate capacity first.';
+
             return;
         }
 
         try {
             // Calculate required hours for this work order
-            $required_hours = $this->service->calculateRequiredHours(
+            $result = $this->service->calculateRequiredHours(
                 $this->current_part_id,
                 $this->current_quantity,
-                $this->current_assembly_mode
+                (int) $this->current_assembly_mode[0]
             );
+            $required_hours = $result['required_hours'];
 
             // Validate capacity
             $this->service->validateCapacity($this->remaining_hours, $required_hours);
@@ -153,7 +168,7 @@ class CapacityCalculator extends Component
             $this->error_message = $e->getMessage();
             $this->success_message = '';
         } catch (\Exception $e) {
-            $this->error_message = 'Error adding work order: ' . $e->getMessage();
+            $this->error_message = 'Error adding work order: '.$e->getMessage();
             $this->success_message = '';
         }
     }
@@ -186,6 +201,7 @@ class CapacityCalculator extends Component
 
         if (empty($this->work_orders)) {
             $this->error_message = 'Please add at least one work order.';
+
             return;
         }
 
@@ -200,9 +216,10 @@ class CapacityCalculator extends Component
             );
 
             session()->flash('success', 'Lista de envío creada exitosamente!');
+
             return redirect()->route('admin.sent-lists.show', $sentList->id);
         } catch (\Exception $e) {
-            $this->error_message = 'Error generating SentList: ' . $e->getMessage();
+            $this->error_message = 'Error generating SentList: '.$e->getMessage();
             $this->success_message = '';
         }
     }

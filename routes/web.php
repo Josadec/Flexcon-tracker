@@ -1,18 +1,15 @@
 <?php
 
+use App\Livewire\Admin\SentLists\TvDisplay;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\POController;
-use App\Http\Controllers\HolidayController;
-use App\Http\Controllers\ShiftController;
 
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
 // Ruta pública para el monitor TV de listas de envío (sin autenticación)
-Route::get('/tv', \App\Livewire\Admin\SentLists\TvDisplay::class)->name('tv.display');
+Route::get('/tv', TvDisplay::class)->name('tv.display');
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
@@ -31,7 +28,12 @@ Route::get('/dashboard', function () {
         return redirect()->route('employee.dashboard');
     }
 
-    return redirect()->route('admin.dashboard');
+    return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::redirect('settings', 'settings/profile');
+    Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
+});
 
 require __DIR__.'/auth.php';

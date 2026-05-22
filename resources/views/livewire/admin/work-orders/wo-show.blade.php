@@ -59,8 +59,6 @@
                 @foreach([
                     'general' => ['label' => 'General', 'icon' => 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
                     'lots' => ['label' => 'Lotes (' . $lotsCount . ')', 'icon' => 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'],
-                    'kits' => ['label' => 'Kits (' . $kitsCount . ')', 'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
-                    'weighings' => ['label' => 'Pesadas (' . $totalWeighings . ')', 'icon' => 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3'],
                 ] as $tab => $info)
                     <button wire:click="setTab('{{ $tab }}')"
                         class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-1.5
@@ -325,13 +323,8 @@
         {{-- ============================================ --}}
         @if($activeTab === 'lots')
         <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700">
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Lotes de esta Work Order</h2>
-                <button wire:click="openCreateLotModal"
-                    class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Agregar Lote
-                </button>
             </div>
             @if($workOrder->lots->isEmpty())
                 <div class="p-12 text-center">
@@ -343,12 +336,15 @@
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-900">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Lote #</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cantidad</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Kits</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Pesadas</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Lote #</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cant.</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Kits</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Producción</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Calidad</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Empaque</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Avance</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Ver</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -357,33 +353,137 @@
                                 $lotColor = match($lot->status) {
                                     'pending' => 'zinc', 'in_progress' => 'yellow', 'completed' => 'green', 'cancelled' => 'red', default => 'zinc',
                                 };
-                                $lotWeighed = $lot->weighings->sum('good_pieces') + $lot->weighings->sum('bad_pieces');
+
+                                $prodGood  = $lot->getProductionGoodPieces();
+                                $prodBad   = $lot->getProductionBadPieces();
+                                $prodTotal = $prodGood + $prodBad;
+                                $prodPct   = $lot->quantity > 0 ? min(100, (int) round($prodTotal / $lot->quantity * 100)) : 0;
+
+                                $qSem     = $lot->getQualitySemaphoreStatus();
+                                $qGood    = $lot->getQualityGoodPieces();
+                                $qPending = $lot->getQualityPendingPieces();
+
+                                $pSem     = $lot->getPackagingSemaphoreStatus();
+                                $pPacked  = $lot->getPackagingPackedPieces();
+                                $pPending = $lot->getPackagingPendingPieces();
+
+                                $progress = $lot->getProgressSummary();
+
+                                $dotHex = [
+                                    'gray' => '#d1d5db', 'yellow' => '#fbbf24', 'green' => '#22c55e',
+                                    'blue' => '#3b82f6', 'orange' => '#f97316',
+                                ];
+                                $barHex = [
+                                    'zinc' => '#a1a1aa', 'amber' => '#f59e0b', 'cyan' => '#06b6d4',
+                                    'blue' => '#3b82f6', 'emerald' => '#10b981', 'green' => '#22c55e', 'red' => '#ef4444',
+                                ];
+
+                                $qText = $qSem === 'gray'
+                                    ? 'Sin pesadas'
+                                    : number_format($qGood) . ' ok' . ($qPending > 0 ? ' · ' . number_format($qPending) . ' pend.' : '');
+
+                                $pText = $pSem === 'gray'
+                                    ? 'Sin avance'
+                                    : number_format($pPacked) . ' emp.' . ($pPending > 0 ? ' · ' . number_format($pPending) . ' pend.' : '');
+
+                                // Progreso de calidad: piezas verificadas / piezas buenas producidas
+                                $qWeighed = $qGood + $lot->getQualityBadPieces();
+                                $qBase    = max($prodGood, $qWeighed);
+                                $qPct     = $qBase > 0 ? min(100, (int) round($qWeighed / $qBase * 100)) : 0;
+
+                                // Progreso de empaque: piezas empacadas / piezas aprobadas por calidad
+                                $pAvail = $lot->getPackagingAvailablePieces();
+                                $pBase  = max($pAvail, $pPacked);
+                                $pPct   = $pBase > 0 ? min(100, (int) round($pPacked / $pBase * 100)) : 0;
+
+                                $qDot = $dotHex[$qSem] ?? '#d1d5db';
+                                $pDot = $dotHex[$pSem] ?? '#d1d5db';
                             @endphp
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{{ $lot->lot_number }}</td>
-                                <td class="px-6 py-4 text-center text-sm text-gray-900 dark:text-white">
-                                    {{ number_format($lot->quantity) }}
-                                    @if($lotWeighed > 0)
-                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Pesadas: {{ number_format($lotWeighed) }}</span>
+                                {{-- Lote # --}}
+                                <td class="px-4 py-4 whitespace-nowrap align-top">
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ $lot->lot_number }}</div>
+                                    @if($lot->description)
+                                        <div class="text-xs text-gray-400 truncate max-w-[140px]" title="{{ $lot->description }}">{{ $lot->description }}</div>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-center"><flux:badge :color="$lotColor" size="sm">{{ ucfirst(str_replace('_', ' ', $lot->status)) }}</flux:badge></td>
-                                <td class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">{{ $lot->kits->count() }}</td>
-                                <td class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">{{ $lot->weighings->count() }}</td>
-                                <td class="px-6 py-4 text-right">
-                                    <div class="flex justify-end gap-1">
-                                        <button wire:click="openCreateWeighingModal({{ $lot->id }})" class="p-1.5 text-purple-600 hover:text-purple-800 dark:text-purple-400" title="Registrar pesada">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
-                                        </button>
-                                        <button wire:click="openEditLotModal({{ $lot->id }})" class="p-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Editar lote">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                        </button>
-                                        @if($lot->canBeDeleted())
-                                        <button wire:click="confirmDeleteLot({{ $lot->id }})" class="p-1.5 text-red-600 hover:text-red-800 dark:text-red-400" title="Eliminar lote">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                        </button>
-                                        @endif
+
+                                {{-- Cantidad --}}
+                                <td class="px-4 py-4 text-center text-sm text-gray-900 dark:text-white align-top">{{ number_format($lot->quantity) }}</td>
+
+                                {{-- Estado --}}
+                                <td class="px-4 py-4 text-center align-top"><flux:badge :color="$lotColor" size="sm">{{ $lot->status_label }}</flux:badge></td>
+
+                                {{-- Kits --}}
+                                <td class="px-4 py-4 align-top">
+                                    @if($lot->kits->isEmpty())
+                                        <span class="text-xs text-gray-400">Sin kits</span>
+                                    @else
+                                        <div class="flex flex-wrap gap-1 max-w-[210px]">
+                                            @foreach($lot->kits as $kit)
+                                                @php $kitColor = $kit->status_color === 'gray' ? 'zinc' : $kit->status_color; @endphp
+                                                <flux:badge :color="$kitColor" size="sm">{{ $kit->kit_number }} · {{ $kit->status_label }}</flux:badge>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </td>
+
+                                {{-- Producción (pesadas) --}}
+                                <td class="px-4 py-4 align-top">
+                                    <div class="text-xs text-gray-600 dark:text-gray-300 mb-1 whitespace-nowrap">
+                                        {{ number_format($prodTotal) }} / {{ number_format($lot->quantity) }} pz
                                     </div>
+                                    <div class="w-24 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                        <div class="h-full rounded-full" style="width: {{ $prodPct }}%; background-color: #f59e0b;"></div>
+                                    </div>
+                                    @if($prodBad > 0)
+                                        <div class="text-[10px] text-red-500 mt-0.5">{{ number_format($prodBad) }} malas</div>
+                                    @endif
+                                </td>
+
+                                {{-- Calidad --}}
+                                <td class="px-4 py-4 align-top">
+                                    <div class="flex items-center gap-2 mb-1.5 whitespace-nowrap">
+                                        <span class="inline-block w-3 h-3 rounded-full shrink-0" style="background-color: {{ $qDot }}; box-shadow: 0 0 0 3px {{ $qDot }}33;"></span>
+                                        <span class="text-xs font-medium text-gray-700 dark:text-gray-200">{{ $qText }}</span>
+                                    </div>
+                                    <div class="w-24 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                        <div class="h-full rounded-full" style="width: {{ $qPct }}%; background-color: #06b6d4;"></div>
+                                    </div>
+                                </td>
+
+                                {{-- Empaque --}}
+                                <td class="px-4 py-4 align-top">
+                                    <div class="flex items-center gap-2 mb-1.5 whitespace-nowrap">
+                                        <span class="inline-block w-3 h-3 rounded-full shrink-0" style="background-color: {{ $pDot }}; box-shadow: 0 0 0 3px {{ $pDot }}33;"></span>
+                                        <span class="text-xs font-medium text-gray-700 dark:text-gray-200">{{ $pText }}</span>
+                                    </div>
+                                    <div class="w-24 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                        <div class="h-full rounded-full" style="width: {{ $pPct }}%; background-color: #3b82f6;"></div>
+                                    </div>
+                                </td>
+
+                                {{-- Avance general --}}
+                                <td class="px-4 py-4 align-top">
+                                    <div class="flex items-center gap-1.5 mb-1 whitespace-nowrap">
+                                        @if($progress['done'])
+                                            <svg class="w-4 h-4 text-green-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg>
+                                        @endif
+                                        <flux:badge :color="$progress['color']" size="sm">{{ $progress['label'] }}</flux:badge>
+                                    </div>
+                                    <div class="w-28 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                        <div class="h-full rounded-full" style="width: {{ $progress['percent'] }}%; background-color: {{ $barHex[$progress['color']] ?? '#a1a1aa' }};"></div>
+                                    </div>
+                                </td>
+
+                                {{-- Ver seguimiento --}}
+                                <td class="px-4 py-4 text-center align-top">
+                                    <a href="{{ route('admin.sent-lists.display.wo', $workOrder) }}"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                                        title="Ver seguimiento de lotes">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        Ver
+                                    </a>
                                 </td>
                             </tr>
                             @endforeach
