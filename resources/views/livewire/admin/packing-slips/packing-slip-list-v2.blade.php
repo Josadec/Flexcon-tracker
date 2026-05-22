@@ -1,23 +1,77 @@
 <div class="space-y-6">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Shipping List</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Gestion de documentos de empaque, seguimiento operativo y salida a embarque.
-            </p>
+    {{-- ================================================================ --}}
+    {{-- HEADER: Titulo de la seccion + navegacion por tabs                --}}
+    {{-- ================================================================ --}}
+    <div>
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Shipping List</h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Gestion de documentos de empaque, seguimiento operativo y salida a embarque.
+                </p>
+            </div>
+
+            @if ($activeTab === 'list')
+                <a
+                    href="{{ route('admin.shipping-list.create') }}"
+                    wire:navigate
+                    class="inline-flex items-center gap-2 self-start rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                >
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Nuevo Shipping List
+                </a>
+            @endif
         </div>
 
-        <a
-            href="{{ route('admin.shipping-list.create') }}"
-            wire:navigate
-            class="inline-flex items-center gap-2 self-start rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-        >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Nuevo Shipping List
-        </a>
+        {{-- Tabs de navegacion --}}
+        <div class="mt-4 border-b border-gray-200 dark:border-gray-700">
+            <nav class="-mb-px flex gap-0" aria-label="Tabs">
+                <button
+                    wire:click="setTab('queue')"
+                    type="button"
+                    class="whitespace-nowrap border-b-2 px-5 py-3 text-sm font-medium transition-colors flex items-center gap-2
+                        {{ $activeTab === 'queue'
+                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300' }}"
+                    aria-current="{{ $activeTab === 'queue' ? 'page' : 'false' }}"
+                >
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h8"/>
+                    </svg>
+                    WO Listos para SL
+                </button>
+
+                <button
+                    wire:click="setTab('list')"
+                    type="button"
+                    class="whitespace-nowrap border-b-2 px-5 py-3 text-sm font-medium transition-colors flex items-center gap-2
+                        {{ $activeTab === 'list'
+                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300' }}"
+                    aria-current="{{ $activeTab === 'list' ? 'page' : 'false' }}"
+                >
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Shipping List
+                </button>
+            </nav>
+        </div>
     </div>
+
+    {{-- ================================================================ --}}
+    {{-- TAB: WO LISTOS PARA SL (ShippingQueue embebido)                  --}}
+    {{-- ================================================================ --}}
+    @if ($activeTab === 'queue')
+        @livewire('admin.shipping.shipping-queue', ['embedded' => true], key('shipping-queue-tab'))
+    @endif
+
+    {{-- ================================================================ --}}
+    {{-- TAB: SHIPPING LIST                                                --}}
+    {{-- ================================================================ --}}
+    @if ($activeTab === 'list')
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <div class="rounded-lg border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -303,4 +357,6 @@
             </div>
         </div>
     @endif
+
+    @endif {{-- end @if ($activeTab === 'list') --}}
 </div>

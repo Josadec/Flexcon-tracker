@@ -34,6 +34,13 @@ class ShippingQueue extends Component
 {
     use WithPagination;
 
+    /**
+     * Cuando es true, el componente se renderiza embebido dentro de otro
+     * componente (p.ej. el tab de PackingSlipList) y omite su propio header
+     * para evitar duplicar titulo y descripcion.
+     */
+    public bool $embedded = false;
+
     // Filtros de la cola
     public string $searchTerm = '';
     public string $filterClosedByType = '';

@@ -27,7 +27,6 @@
             '/admin/quality/weighings',
             '/admin/sent-lists/display',
             '/admin/sent-lists/tv',
-            '/admin/shipping-queue',
             '/dashboard',
             '/employee/dashboard',
             '/employee/profile',
@@ -36,6 +35,7 @@
         const prefixedPaths = new Set([
             '/admin/purchase-orders',
             '/admin/work-orders',
+            '/admin/shipping-list',
             '/admin/statuses-wo',
             '/admin/capacity-wizard',
             '/admin/capacity-calculator',
