@@ -249,8 +249,10 @@ Route::middleware(['auth', 'verified', 'role:admin|Empaques'])->group(function (
     Route::get('/shipping-list/{packingSlip}/pdf', [PackingSlipPdfController::class, 'show'])->name('shipping-list.pdf');
     Route::get('/shipping-list/{packingSlip}/pdf/download', [PackingSlipPdfController::class, 'download'])->name('shipping-list.pdf.download');
 
-    // Cola de despacho (Shipping Queue)
-    Route::get('/shipping-queue', \App\Livewire\Admin\Shipping\ShippingQueue::class)->name('shipping.queue');
+    // Cola de despacho (Shipping Queue) — redirige al tab 'queue' dentro de shipping-list
+    Route::get('/shipping-queue', function () {
+        return redirect()->route('admin.shipping-list.index', ['tab' => 'queue']);
+    })->name('shipping.queue');
 
     // ---------------------------------------------------------------
     // Invoices FPL-12

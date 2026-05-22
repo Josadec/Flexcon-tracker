@@ -10,6 +10,9 @@ class PackingSlipList extends Component
 {
     use WithPagination;
 
+    /** Tab activo: 'queue' (WO Listos para SL) o 'list' (Shipping List). Solo en memoria, no persiste en la URL. */
+    public string $activeTab = 'queue';
+
     public string $search = '';
 
     public string $filterStatus = 'all';
@@ -23,6 +26,13 @@ class PackingSlipList extends Component
     public ?int $deleteId = null;
 
     public bool $confirmingDeletion = false;
+
+    public function setTab(string $tab): void
+    {
+        if (in_array($tab, ['queue', 'list'])) {
+            $this->activeTab = $tab;
+        }
+    }
 
     public function updatingSearch(): void
     {
@@ -80,29 +90,36 @@ class PackingSlipList extends Component
 
     public function render()
     {
-        $query = PackingSlip::with(['creator', 'items'])
-            ->search($this->search);
+        // Solo ejecutar las queries del tab 'list' cuando ese tab está activo
+        if ($this->activeTab === 'list') {
+            $query = PackingSlip::with(['creator', 'items'])
+                ->search($this->search);
 
-        if ($this->filterStatus === 'draft') {
-            $query->draft();
-        } elseif ($this->filterStatus === 'pending') {
-            $query->pending();
-        } elseif ($this->filterStatus === 'shipped') {
-            $query->shipped();
-        } elseif ($this->filterStatus === 'cancelled') {
-            $query->cancelled();
+            if ($this->filterStatus === 'draft') {
+                $query->draft();
+            } elseif ($this->filterStatus === 'pending') {
+                $query->pending();
+            } elseif ($this->filterStatus === 'shipped') {
+                $query->shipped();
+            } elseif ($this->filterStatus === 'cancelled') {
+                $query->cancelled();
+            }
+
+            $packingSlips = $query->orderBy($this->sortField, $this->sortDirection)
+                ->paginate($this->perPage);
+
+            $stats = [
+                'total' => PackingSlip::count(),
+                'draft' => PackingSlip::draft()->count(),
+                'pending' => PackingSlip::pending()->count(),
+                'shipped' => PackingSlip::shipped()->count(),
+                'cancelled' => PackingSlip::cancelled()->count(),
+            ];
+        } else {
+            // Tab 'queue' activo: se pasan colecciones vacías para evitar errores en la vista
+            $packingSlips = PackingSlip::query()->paginate(0);
+            $stats = ['total' => 0, 'draft' => 0, 'pending' => 0, 'shipped' => 0, 'cancelled' => 0];
         }
-
-        $packingSlips = $query->orderBy($this->sortField, $this->sortDirection)
-            ->paginate($this->perPage);
-
-        $stats = [
-            'total' => PackingSlip::count(),
-            'draft' => PackingSlip::draft()->count(),
-            'pending' => PackingSlip::pending()->count(),
-            'shipped' => PackingSlip::shipped()->count(),
-            'cancelled' => PackingSlip::cancelled()->count(),
-        ];
 
         return view('livewire.admin.packing-slips.packing-slip-list-v2', [
             'packingSlips' => $packingSlips,

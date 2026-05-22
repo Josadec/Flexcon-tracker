@@ -164,10 +164,7 @@
                         :current="request()->routeIs('admin.packaging.manage')" wire:navigate>{{ __('Gestión') }}
                     </flux:navlist.item>
                     <flux:navlist.item icon="document-text" :href="route('admin.shipping-list.index')"
-                        :current="request()->routeIs('admin.shipping-list.*')" wire:navigate>{{ __('Shipping List') }}
-                    </flux:navlist.item>
-                    <flux:navlist.item icon="truck" :href="route('admin.shipping.queue')"
-                        :current="request()->routeIs('admin.shipping.queue')" wire:navigate>{{ __('WO Listos para SL') }}
+                        :current="request()->routeIs('admin.shipping-list.index') || request()->routeIs('admin.shipping.queue') || request()->routeIs('admin.shipping-list.*')" wire:navigate>{{ __('Shipping List') }}
                     </flux:navlist.item>
                     @unless ($authUser->hasRole('admin'))
                     <flux:navlist.item icon="queue-list" :href="route('admin.sent-lists.display')"

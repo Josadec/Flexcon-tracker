@@ -1,6 +1,7 @@
 <div class="space-y-6">
 
-    {{-- Header --}}
+    {{-- Header: se omite cuando el componente se embebe en otro (ej. tab de PackingSlipList) --}}
+    @unless ($embedded)
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
             <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">WO Listos para SL</h1>
@@ -8,8 +9,12 @@
                         Work Orders con lotes disponibles para crear un Packing Slip (FPL-10)
             </p>
         </div>
+    </div>
+    @endunless
 
-        @if($canCreatePs && !empty($selectedLotIds))
+    {{-- Boton "Crear Packing Slip" (siempre visible cuando hay lotes seleccionados) --}}
+    @if($canCreatePs && !empty($selectedLotIds))
+        <div class="flex justify-end">
             <button
                 wire:click="openCreatePsModal"
                 class="inline-flex items-center gap-2 self-start rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
@@ -19,8 +24,8 @@
                 </svg>
                 Crear Packing Slip ({{ count($selectedLotIds) }})
             </button>
-        @endif
-    </div>
+        </div>
+    @endif
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div class="rounded-lg border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
