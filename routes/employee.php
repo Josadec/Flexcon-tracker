@@ -25,7 +25,7 @@ Route::middleware(['auth', 'verified', 'role:employee|admin'])->group(function (
     Route::get('/profile', Profile::class)->name('profile');
 
     // Settings del empleado
-    Route::redirect('settings', 'employee/settings/profile');
+    Route::redirect('settings', '/employee/settings/profile');
     Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
     Volt::route('settings/password', 'settings.password')->name('settings.password');
     Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');

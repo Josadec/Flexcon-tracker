@@ -22,7 +22,7 @@ use Livewire\Volt\Volt;
 // SHARED: Settings & Profile (all authenticated users)
 // ===================================================================
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::redirect('settings', 'admin/settings/profile');
+    Route::redirect('settings', '/admin/settings/profile');
     Volt::route('settings/profile', 'admin.settings.profile')->name('settings.profile');
     Volt::route('settings/password', 'admin.settings.password')->name('settings.password');
     Volt::route('settings/appearance', 'admin.settings.appearance')->name('settings.appearance');
