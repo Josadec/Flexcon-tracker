@@ -13,6 +13,18 @@ class PackingSlipList extends Component
     /** Tab activo: 'queue' (WO Listos para SL) o 'list' (Shipping List). Solo en memoria, no persiste en la URL. */
     public string $activeTab = 'queue';
 
+    public function mount(): void
+    {
+        // Leer el tab de retorno desde la sesión (guardado por PackingSlipShow/Create
+        // al hacer clic en "Volver a Shipping List"). Se usa pull() para consumirlo
+        // en un solo uso y mantener la URL limpia sin query strings.
+        $tab = session()->pull('shipping_list_return_tab', 'queue');
+
+        if (in_array($tab, ['queue', 'list'])) {
+            $this->activeTab = $tab;
+        }
+    }
+
     public string $search = '';
 
     public string $filterStatus = 'all';
