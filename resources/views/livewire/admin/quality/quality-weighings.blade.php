@@ -165,11 +165,11 @@
 
     {{-- Modal de Detalle del Lote --}}
     @if ($showDetailModal && $selectedLot)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="detail-modal-title" role="dialog" aria-modal="true">
+        <div wire:key="modal-quality-detail" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="detail-modal-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeDetailModal"></div>
 
-                <div class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b-2 border-gray-200 dark:border-gray-700 bg-teal-600">
                         <div class="flex items-center justify-between">
@@ -345,11 +345,11 @@
 
     {{-- Modal de Nueva Pesada de Calidad --}}
     @if ($showWeighingModal)
-        <div class="fixed inset-0 z-[60] overflow-y-auto" aria-labelledby="weighing-modal-title" role="dialog" aria-modal="true">
+        <div wire:key="modal-quality-weighing" class="fixed inset-0 z-[60] overflow-y-auto" aria-labelledby="weighing-modal-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-900/60 transition-opacity" wire:click="closeWeighingModal"></div>
 
-                <div class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
                     <div class="px-6 py-4 border-b-2 border-gray-200 dark:border-gray-700 {{ $editingQualityWeighingId ? 'bg-blue-700' : 'bg-teal-700' }}">
                         <h3 id="weighing-modal-title" class="text-lg font-semibold text-white">
                             {{ $editingQualityWeighingId ? 'Editar Pesada de Calidad' : 'Nueva Pesada de Calidad' }}

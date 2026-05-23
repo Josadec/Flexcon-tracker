@@ -165,11 +165,11 @@
 
     {{-- MODAL CREAR / EDITAR PESADA --}}
     @if ($showFormModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="weighing-form-title" role="dialog" aria-modal="true">
+        <div wire:key="modal-weighing-form" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="weighing-form-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeFormModal"></div>
 
-                <div class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b-2 border-blue-500 bg-blue-600">
                         <div class="flex items-center justify-between">
@@ -279,11 +279,11 @@
 
     {{-- MODAL VER DETALLE --}}
     @if ($showDetailModal && $detailWeighing)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="weighing-detail-title" role="dialog" aria-modal="true">
+        <div wire:key="modal-weighing-detail" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="weighing-detail-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeDetailModal"></div>
 
-                <div class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b-2 border-gray-200 dark:border-gray-700 bg-gray-700">
                         <div class="flex items-center justify-between">
@@ -389,11 +389,11 @@
 
     {{-- MODAL CONFIRMAR ELIMINACIÓN --}}
     @if ($confirmingDeletion)
-        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+        <div wire:key="modal-weighing-delete" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="cancelDeletion"></div>
 
-                <div class="inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
                     <div class="px-6 py-5">
                         <div class="flex items-center">
                             <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 border-2 border-red-200 dark:border-red-700 flex items-center justify-center">
