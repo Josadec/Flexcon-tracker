@@ -75,6 +75,10 @@ class ShippingListDisplay extends Component
     public $selectedWorkOrder = null;
     public $lots = []; // Array de lotes: [['id' => 1, 'number' => '001', 'quantity' => 100], ...]
 
+    // Modal de historial de ciclos
+    public $showCycleHistoryModal = false;
+    public $selectedLotForCycleHistory = null;
+
     // Modal de estado de departamentos
     public $showDepartmentStatusModal = false;
     public $selectedWoForStatus = null;
@@ -302,6 +306,127 @@ class ShippingListDisplay extends Component
         $this->lots = [];
     }
 
+    // ===============================================
+    // HISTORIAL DE CICLOS + ROLLBACK
+    // ===============================================
+
+    public function openCycleHistoryModal($lotId)
+    {
+        $this->selectedLotForCycleHistory = Lot::with([
+            'completionLogs' => fn($q) => $q->orderBy('cycle_number'),
+            'completionLogs.completedByUser',
+            'workOrder.purchaseOrder.part',
+        ])->find($lotId);
+
+        $this->showCycleHistoryModal = true;
+    }
+
+    public function closeCycleHistoryModal()
+    {
+        $this->showCycleHistoryModal = false;
+        $this->selectedLotForCycleHistory = null;
+    }
+
+    public function rollbackLastCycle($lotId)
+    {
+        if (!Auth::user()->hasRole('admin')) {
+            session()->flash('error', 'Solo administradores pueden revertir ciclos.');
+            return;
+        }
+
+        $lot = Lot::with([
+            'completionLogs' => fn($q) => $q->orderBy('cycle_number'),
+            'workOrder.purchaseOrder.part',
+        ])->find($lotId);
+
+        if (!$lot) return;
+
+        $sortedLogs = $lot->completionLogs->sortBy('cycle_number')->values();
+        $lastLog    = $sortedLogs->last();
+
+        if (!$lastLog) {
+            session()->flash('error', 'No hay ciclos completados para revertir.');
+            return;
+        }
+
+        // Bloquear si ya existe Packing Slip para este lote
+        if ($lot->packingSlipItem()->exists()) {
+            session()->flash('error', 'No se puede revertir: el lote ya tiene un Packing Slip generado.');
+            return;
+        }
+
+        $completedAt = $lastLog->completed_at;
+        $prevLog     = $sortedLogs->count() > 1 ? $sortedLogs->get($sortedLogs->count() - 2) : null;
+        $prevCompletedAt = $prevLog?->completed_at;
+
+        // 1. Eliminar permanentemente los registros del ciclo actual (sin deleted_at = ciclo en curso)
+        Weighing::where('lot_id', $lot->id)->forceDelete();
+        QualityWeighing::where('lot_id', $lot->id)->forceDelete();
+        PackagingRecord::where('lot_id', $lot->id)->forceDelete();
+
+        // 2. Restaurar los registros soft-deleted del ciclo anterior
+        //    Identificados por: deleted_at <= completedAt del ciclo que se revierte
+        //    Si hay ciclos anteriores, también filtramos: deleted_at > prevCompletedAt
+        $wQuery  = Weighing::withTrashed()->where('lot_id', $lot->id)->whereNotNull('deleted_at')
+            ->where('deleted_at', '<=', $completedAt);
+        $qQuery  = QualityWeighing::withTrashed()->where('lot_id', $lot->id)->whereNotNull('deleted_at')
+            ->where('deleted_at', '<=', $completedAt);
+        $pQuery  = PackagingRecord::withTrashed()->where('lot_id', $lot->id)->whereNotNull('deleted_at')
+            ->where('deleted_at', '<=', $completedAt);
+
+        if ($prevCompletedAt) {
+            $wQuery->where('deleted_at', '>', $prevCompletedAt);
+            $qQuery->where('deleted_at', '>', $prevCompletedAt);
+            $pQuery->where('deleted_at', '>', $prevCompletedAt);
+        }
+
+        $wQuery->restore();
+        $qQuery->restore();
+        $pQuery->restore();
+
+        // 3. Eliminar el LotCompletionLog del ciclo revertido
+        $lastLog->delete();
+
+        // 4. Resetear el lote al estado previo al ciclo completado
+        $lot->update([
+            'quantity'                 => $lastLog->original_quantity,
+            'completion_count'         => max(0, ($lot->completion_count ?? 0) - 1),
+            'closure_decision'         => null,
+            'closure_decided_by'       => null,
+            'closure_decided_at'       => null,
+            'status'                   => Lot::STATUS_IN_PROGRESS,
+            'material_status'          => 'pending',
+            'inspection_status'        => Lot::INSPECTION_PENDING,
+            'inspection_comments'      => null,
+            'inspection_completed_at'  => null,
+            'inspection_completed_by'  => null,
+            'packaging_status'         => 'pending',
+            'packaging_comments'       => null,
+            'packaging_inspected_by'   => null,
+            'packaging_inspected_at'   => null,
+            'viajero_received'         => false,
+            'viajero_received_at'      => null,
+            'viajero_received_by'      => null,
+            'surplus_received'         => false,
+            'surplus_received_at'      => null,
+            'surplus_received_by'      => null,
+            'surplus_delivered'        => false,
+            'surplus_delivered_at'     => null,
+            'surplus_delivered_by'     => null,
+        ]);
+
+        // 5. Si es CRIMP, resetear kits al estado inicial
+        $isCrimp = (bool) ($lot->workOrder->purchaseOrder->part->is_crimp ?? false);
+        if ($isCrimp) {
+            $lot->kits()->update(['status' => Kit::STATUS_PREPARING]);
+        }
+
+        $cycleNum = $lastLog->cycle_number;
+        session()->flash('message', "Ciclo {$cycleNum} revertido. El lote regresó a {$lastLog->original_quantity} piezas.");
+        $this->closeCycleHistoryModal();
+        $this->dispatch('refresh-display');
+    }
+
     public function addLot()
     {
         $this->lots[] = [
@@ -313,6 +438,8 @@ class ShippingListDisplay extends Component
 
     public function removeLot($index)
     {
+        if (!$this->guardDepartment('materials')) return;
+
         // Si el lote tiene ID, significa que existe en la BD y debe eliminarse
         if (isset($this->lots[$index]['id']) && $this->lots[$index]['id']) {
             $lot = Lot::find($this->lots[$index]['id']);
