@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\SentList;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 
 class SentListController extends Controller
 {
@@ -14,32 +12,12 @@ class SentListController extends Controller
      */
     public function index()
     {
-        $user = Auth::user();
-        $query = SentList::with(['purchaseOrder.part', 'purchaseOrders.part', 'workOrders', 'shifts'])
-            ->orderBy('created_at', 'desc');
-
-        // Filtrar por departamento según el rol (admin y Materiales ven todo)
-        if (!$user->hasRole('admin') && !$user->hasRole('Materiales')) {
-            if ($user->hasRole('Produccion')) {
-                $query->where(function ($q) {
-                    $q->where('current_department', SentList::DEPT_PRODUCTION)
-                      ->orWhereNotNull('production_approved_at');
-                });
-            } elseif ($user->hasRole('Calidad')) {
-                $query->where(function ($q) {
-                    $q->whereIn('current_department', [SentList::DEPT_QUALITY, SentList::DEPT_INSPECTION])
-                      ->orWhereNotNull('quality_approved_at')
-                      ->orWhereNotNull('inspection_approved_at');
-                });
-            } elseif ($user->hasRole('Empaques')) {
-                $query->where(function ($q) {
-                    $q->where('current_department', SentList::DEPT_SHIPPING)
-                      ->orWhereNotNull('shipping_approved_at');
-                });
-            }
-        }
-
-        $sentLists = $query->paginate(15);
+        // Todas las áreas ven todas las listas preliminares, sin importar la
+        // etapa del flujo en la que estén (visibilidad de solo lectura para
+        // todos los roles autorizados por la ruta).
+        $sentLists = SentList::with(['purchaseOrder.part', 'purchaseOrders.part', 'workOrders', 'shifts'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
 
         return view('sent-lists.index', compact('sentLists'));
     }
