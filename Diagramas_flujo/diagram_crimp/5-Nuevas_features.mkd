@@ -1,0 +1,279 @@
+# 5 — Nuevas Features (Análisis de Implementación)
+
+> **Estado:** Inspección / análisis técnico. **No** contiene código aplicado, solo el
+> diagnóstico del código actual y la propuesta de implementación para cada feature.
+> **Fecha:** 2026-06-04
+> **Stack:** Laravel 12 · Livewire 3 · Flux 2 · Volt · TailwindCSS · Spatie Permission · dompdf · phpspreadsheet
+> **Tiempo real actual:** `wire:poll` (NO hay Reverb/Pusher; `BROADCAST_CONNECTION=log`).
+
+---
+
+## Resumen ejecutivo
+
+| # | Feature | Área del sistema | Esfuerzo | Riesgo | Depende de |
+| - | ------- | ---------------- | -------- | ------ | ---------- |
+| 1 | Reajuste del proceso de CRIMP | Empaque / Decisiones / Kits | Alto | Alto | **Diagrama y detalles del cliente (bloqueante)** |
+| 2 | Alarmas sonoras al cambiar semáforos | TV Monitor / Dashboards de área | Medio | Medio | Decidir polling vs Reverb |
+| 3 | Comentarios por WO en Lista de Envío | Sent Lists (todas las vistas de depto) | Bajo-Medio | Bajo | — |
+| 4 | 4° botón de cierre de lote (último lote, **solo SIN crimp**) | Empaque → Toma de Decisión | Medio | Medio | — |
+
+---
+
+## Feature 1 — Reajuste del proceso de CRIMP
+
+### Requerimiento
+> *"Se requiere reajustar el proceso de CRIMP. El cliente dará un diagrama y detalles
+> para esta nueva implementación."*
+
+### Estado actual en el código
+El proceso de CRIMP ya está implementado y documentado en este mismo folder:
+- Diagramas de flujo: `1-diagrama_flujo_parte_con_crimp.mkd` … `4-diagrama_paso_6_toma_de_Decisiones.mkd`.
+- Lógica de decisiones (Paso 6): `app/Livewire/Admin/SentLists/SentListPackagingView.php`
+  - `decisionCompleteLot()` — reinicia el **mismo** lote con las piezas faltantes (guarda `LotCompletionLog`, borra weighings/quality/packaging y resetea kit a `preparing`).
+  - `decisionNewLot()` / `confirmCreateLot('new_lot')` — cierra el lote, crea lote nuevo (y **kit** si es crimp) y regresa la lista a Materiales.
+  - `decisionCloseAsIs()` — cierra aceptando faltantes.
+- Diferenciación crimp / no-crimp por `part->is_crimp` en:
+  - `app/Models/Lot.php` → `canBeInspected()`, `getInspectionBlockedReason()`.
+  - `SentListPackagingView::openDecisionModal()` (`$decIsCrimp`).
+  - `app/Livewire/Public/TvMonitor.php` (columna "Kit" usa kit si crimp, `material_status` si no).
+- Semáforos de empaque/calidad: `Lot::getPackagingSemaphoreStatus()`, `Lot::getQualitySemaphoreStatus()`.
+
+### Análisis
+**Esta feature está BLOQUEADA hasta recibir el diagrama y los detalles del cliente.**
+No es posible diseñar la implementación sin conocer los cambios concretos solicitados.
+
+### Qué necesitamos del cliente (para desbloquear)
+1. ¿Qué pasos del flujo actual (1–8) cambian, se eliminan o se agregan?
+2. ¿Cambian las fórmulas del Paso 6 (faltantes/sobrantes, "manguitas" vs CRIMP)?
+3. ¿Cambia la relación **lote ↔ kit ↔ pesadas** ("manguitas" / piezas CRIMP)?
+4. ¿Hay nuevos documentos/reportes? (Hoy el "Empaque Terminado" ya no se descarga en PDF, se muestra en pantalla — ver `3-Diagrama-paso_5modal_de_confirmacion.mkd`).
+5. ¿Nuevos estados de semáforo o nuevas validaciones por área?
+
+### Recomendación
+Mantener en espera. Al recibir el diagrama, levantar un documento de *delta* (qué cambia
+respecto a `1`–`4`) y mapearlo contra `SentListPackagingView` + `Lot` + `Kit`.
+
+---
+
+## Feature 2 — Alarmas sonoras al cambiar los semáforos
+
+### Requerimiento
+> *"Sistema de alarmas con sonido para que los usuarios identifiquen cuando exista un
+> cambio en los semáforos de todas las áreas, aunque el usuario no esté frente a su máquina."*
+
+### Estado actual en el código
+- Los semáforos se calculan server-side por **lote** y se agregan por **área**:
+  - Por lote: `Lot::getQualitySemaphoreStatus()` y `Lot::getPackagingSemaphoreStatus()` (`app/Models/Lot.php`).
+  - Agregado por área (kit, inspección, producción, calidad, empaque): `app/Traits/ComputesAreaStats.php` y `app/Livewire/Public/TvMonitor.php`.
+- Refresco "tiempo real" actual = **polling Livewire**:
+  - `resources/views/livewire/admin/sent-lists/tv-display.blade.php` → `wire:poll.{{ $refreshInterval }}s="refreshDisplay"` (30 s).
+  - `resources/views/livewire/admin/sent-lists/shipping-list-display.blade.php` → `wire:poll.30s`.
+  - Pantallas que consumen `ComputesAreaStats`: `QualityAreaDashboard`, `PackagingDashboard`, `MaterialsHubDashboard`, `ProductionHubDashboard`.
+- **No** hay WebSockets: sin `config/broadcasting.php`, sin Reverb/Pusher, `BROADCAST_CONNECTION=log`.
+
+### Propuesta de implementación
+Dos caminos. Recomendado el **A** por costo/beneficio dado el stack actual.
+
+**Opción A — Detección de cambios sobre el polling existente (recomendada)**
+1. Server: exponer una "firma" del estado de semáforos por área (p. ej. hash de los
+   conteos `green/yellow/gray` que ya produce `computeAreaStats()`), o el conteo crudo.
+2. Cliente (Alpine): guardar la firma previa; en cada ciclo de `wire:poll`, comparar.
+   Si cambió → `new Audio('/sounds/alarm.mp3').play()` + resaltar visualmente el área.
+3. Respetar políticas de autoplay del navegador: el audio solo suena tras una primera
+   interacción del usuario (mostrar un botón "Activar sonido" una vez).
+4. Preferencias por usuario: activar/silenciar, volumen, y opcionalmente filtrar a su
+   propia área (un empacador solo escucha cambios de Empaque).
+- **Pros:** sin infraestructura nueva, reutiliza `wire:poll` y `ComputesAreaStats`.
+- **Contras:** latencia de hasta 30 s; cada cliente recalcula al hacer poll.
+
+**Opción B — Tiempo real con Laravel Reverb (broadcasting)**
+1. Instalar/configurar Reverb (`config/broadcasting.php`, `.env`, proceso `reverb:start`).
+2. Emitir un evento `ShouldBroadcast` cuando un lote cambia de estado de semáforo
+   (desde el `Observer` existente `app/Observers/LotPackagingObserver.php` o eventos del modelo).
+3. Cliente con `Echo` escucha el canal del área y dispara sonido al instante.
+- **Pros:** instantáneo, push real, menos cómputo redundante.
+- **Contras:** requiere correr y mantener el servidor Reverb (hay nota en `.agents/skills/laravel-livewire/references/reverb.md`); mayor complejidad de despliegue (XAMPP/Windows).
+
+### Cambios en BD
+- Opción A: opcional, una tabla/columna de **preferencias de notificación** por usuario
+  (`users.notif_sound_enabled`, `notif_area`, `notif_volume`) o JSON en `users`.
+- Núcleo de la feature: **sin** cambios de esquema.
+
+### Archivos afectados (Opción A)
+- `app/Traits/ComputesAreaStats.php` — devolver también una firma/hash del estado.
+- `app/Livewire/Public/TvMonitor.php` y dashboards de área — exponer la firma a la vista.
+- Vistas con `wire:poll` (tv-display, dashboards) — wrapper Alpine para comparar y sonar.
+- `public/sounds/alarm.mp3` (nuevo asset) + control "Activar/silenciar sonido".
+
+### Casos borde / decisiones
+- ¿Qué transición dispara alarma? ¿cualquier cambio, o solo `→ green` (área lista) o `→ yellow/rojo` (atención)?
+- ¿Alarma global (todas las áreas) o por rol/área del usuario?
+- Pestañas múltiples abiertas → evitar sonido duplicado.
+- Autoplay bloqueado por el navegador hasta la primera interacción.
+
+---
+
+## Feature 3 — Comentarios por WO dentro de la Lista de Envío
+
+### Requerimiento
+> *"Sistema de comentarios dentro de la Lista de Envío que se puedan agregar por cada WO
+> para procesos internos."*
+
+### Estado actual en el código
+- `WorkOrder` ya tiene **una** columna simple `comments` (`app/Models/WorkOrder.php`,
+  fillable) — un solo texto, **no** es un hilo de comentarios con autor/fecha.
+- `SentList` tiene `notes` (una sola nota a nivel lista).
+- Vistas de Lista de Envío por departamento (donde se ven los WO):
+  `SentListMaterialsView`, `SentListInspectionView`, `SentListProductionView`,
+  `SentListQualityView`, `SentListPackagingView`, `DynamicSentListView`,
+  `SentListDepartmentView` (carpeta `app/Livewire/Admin/SentLists/` y `Materials/`).
+- **No existe** tabla de comentarios (verificado: no hay migración `*comment*`).
+- Sí existe patrón de auditoría reutilizable: `app/Models/AuditTrail.php` (relación
+  polimórfica `morphMany` ya usada por `Lot::auditTrail()`).
+
+### Propuesta de implementación
+Crear un **hilo de comentarios** asociado a cada WO (varios comentarios, con autor y fecha).
+
+**Modelo de datos (recomendado: tabla dedicada)**
+- Nueva migración `create_work_order_comments_table`:
+  - `id`, `work_order_id` (FK), `user_id` (FK), `body` (text), `timestamps`, `softDeletes`.
+  - Opcional: `sent_list_id` para anclar el comentario al contexto de la lista,
+    y `is_internal` (bool) si más adelante hubiera comentarios visibles al cliente.
+- Alternativa: tabla **polimórfica** `comments` (`commentable_type/id`) si se prevé
+  comentar también Lotes/PO/SentList. Más flexible, sigue el patrón de `AuditTrail`.
+
+**Modelo / relaciones**
+- `app/Models/WorkOrderComment.php` (nuevo) `belongsTo(WorkOrder)`, `belongsTo(User)`.
+- `WorkOrder::comments()` como `HasMany` (⚠️ **colisiona con la columna `comments`**
+  existente → usar otro nombre de relación, p. ej. `commentThread()` / `internalComments()`,
+  o migrar la columna actual).
+
+**UI / Livewire**
+- Componente Livewire reutilizable (p. ej. `WorkOrderComments`) o métodos en las
+  vistas de Sent List, embebido por cada WO en la lista (panel colapsable o modal
+  "Comentarios" junto al número de WO).
+- Acciones: agregar, listar (orden cronológico, con nombre + fecha), editar/borrar
+  (solo autor o rol con permiso).
+- Permisos vía Spatie (p. ej. `wo-comments.create` / `.delete`).
+
+### Cambios en BD
+- 1 tabla nueva (`work_order_comments` **o** `comments` polimórfica). Sin romper esquema actual.
+
+### Archivos afectados
+- `database/migrations/xxxx_create_work_order_comments_table.php` (nuevo).
+- `app/Models/WorkOrderComment.php` (nuevo) + relación en `app/Models/WorkOrder.php`.
+- Vista(s) de Sent List por departamento (al menos un partial compartido) para mostrar
+  el hilo por WO; punto natural: junto al header de cada WO (ver `packaging-view.blade.php`
+  líneas ~41–51 donde ya se pinta el header del WO).
+- Opcional: permisos/seeder Spatie.
+
+### Casos borde / decisiones
+- ¿El hilo es **por WO global** (se ve en todas las listas/depto) o **por WO dentro de
+  una Sent List** específica? (Define si se ancla `sent_list_id`).
+- ¿Quién puede ver/editar/borrar? (todos los deptos vs. solo área dueña).
+- ¿Migrar el `WorkOrder.comments` actual al nuevo hilo o conservarlo como "nota principal"?
+- ¿Adjuntos? (probablemente fuera de alcance v1).
+
+---
+
+## Feature 4 — 4° botón de cierre de lote (último lote, **solo partes SIN crimp**)
+
+### Requerimiento
+> *"Agregar un cuarto botón al cierre de un lote por Empaque, solo en el último lote y
+> siempre que la sumatoria de todos los lotes aún no sea suficiente para completar la
+> orden/WO. En esa última opción el cliente puede poner la cantidad del lote, pero el
+> sistema le sugiere la cantidad recomendada (opcional)."*
+> **Aclaración del cliente:** *"Solo aplica para los que NO tienen crimp."*
+
+**Ejemplo:** PO = 100,000 pz. Se abren 2 lotes de 50,000. El lote 1 quedó corto (49,000),
+el lote 2 sí cumplió 50,000 → total real 99,000. Faltan 1,000 pz para completar la
+orden. El sistema debe **abrir un nuevo lote por ese faltante de la PO** (sugerido 1,000),
+con la cantidad editable por el usuario.
+
+### Estado actual en el código
+Hoy el modal de "Toma de Decisión" (`resources/views/livewire/admin/sent-lists/packaging-view.blade.php`,
+líneas ~454–506) ofrece **3 opciones**, manejadas en `SentListPackagingView`:
+1. **Completar Lote** → `decisionCompleteLot()` — reinicia el mismo lote con sus faltantes.
+2. **Nuevo Lote** → `decisionNewLot()` / `confirmCreateLot('new_lot')` — crea lote nuevo con
+   `decLotTotal - decPacked` (faltante **de ese lote**) y regresa la lista a Materiales.
+3. **Cerrar Lote** → `decisionCloseAsIs()` — cierra aceptando faltantes.
+
+Datos disponibles para el cálculo a nivel WO/PO (ya existen):
+- `WorkOrder::getOriginalQuantityAttribute()` = `purchaseOrder->quantity` (total de la PO/WO).
+- `WorkOrder::$sent_pieces` (acumulado real, mantenido por `updateSentPieces()` sumando
+  lotes completados, usando `getTotalCompletedPieces()` para lotes con ciclos).
+- `WorkOrder::getPendingQuantityAttribute()` = `max(0, original - sent_pieces)` → **este es
+  el "faltante de la PO" sugerido**.
+- `Lot::is_crimp` se obtiene de `workOrder->purchaseOrder->part->is_crimp`.
+
+### Diferencia clave vs. "Nuevo Lote" actual
+| | Nuevo Lote (existente) | 4° botón (nuevo) |
+| - | - | - |
+| Nivel del faltante | Del **lote** (`total lote − empacadas`) | De la **WO/PO** (`qty PO − Σ piezas reales`) |
+| Cuándo aparece | Si hay faltantes/sobrantes en el lote | Solo en el **último lote** del WO **y** si `pending_quantity(WO) > 0` |
+| Tipo de parte | Crimp y no-crimp | **Solo NO-crimp** |
+| Cantidad | `total − empacadas` | **Sugerida** = `pending_quantity(WO)`, **editable** |
+
+### Propuesta de implementación
+1. **Condición de visibilidad del 4° botón** (en el modal de decisión, por lote):
+   - La parte es **NO crimp** (`!$decIsCrimp`).
+   - El lote es el **último** del WO (mayor `lot_number` / último creado entre los lotes
+     no cancelados del WO).
+   - La **sumatoria de todos los lotes** del WO aún **no completa** la PO/WO →
+     `workOrder->pending_quantity > 0` (equivalente: `Σ piezas reales < qty PO`).
+2. **Cálculo de sugerencia:** `cantidadSugerida = workOrder->pending_quantity`
+   (= `qty PO − sent_pieces`). Mostrarla precargada y **editable** (igual que el modal
+   "Crear Lote" actual ya permite editar `createLotQuantity`).
+3. **Acción:** crear un **nuevo lote** en el mismo WO con la cantidad confirmada
+   (reutilizar el flujo de `confirmCreateLot`, con un `createLotType` nuevo p. ej.
+   `'wo_shortfall'`). Como es **no-crimp**, **no** se crea kit (el `Lot` actúa como kit).
+4. **Estado de la lista:** definir si, como en "Nuevo Lote", la Sent List regresa a
+   Materiales para procesar el nuevo lote (probablemente **sí**, para que el lote nuevo
+   recorra el flujo).
+
+### Cambios en BD
+- **Ninguno** previsto: se reutiliza `lots` y los campos de cierre/decisión existentes.
+- (Opcional) registrar la decisión en `LotCompletionLog` o un nuevo valor de
+  `closure_decision` para trazabilidad — evaluar.
+
+### Archivos afectados
+- `app/Livewire/Admin/SentLists/SentListPackagingView.php`:
+  - Nuevo método (p. ej. `decisionWoShortfall()`) + cálculo de `pendingWo` y flag
+    `canOfferWoShortfall` en `openDecisionModal()`.
+  - Adaptar `confirmCreateLot()` para el nuevo tipo (sin kit, no-crimp).
+- `resources/views/livewire/admin/sent-lists/packaging-view.blade.php`:
+  - 4° botón en el grid de decisiones (~líneas 456–495), visible solo bajo las condiciones.
+  - Campo de cantidad con sugerencia editable en el modal de creación (~líneas 649–660).
+
+### Casos borde / decisiones
+- ¿"Último lote" = mayor `lot_number`, o el último por `created_at`? (deben excluirse
+  los cancelados / soft-deleted).
+- Validación: cantidad ingresada `>= 1`; ¿permitir exceder `pending_quantity`? (probable
+  permitir, pero advertir).
+- Interacción con `updateSentPieces()`: el nuevo lote, al completarse, debe sumar al
+  `sent_pieces` del WO sin doble conteo (la lógica ya distingue lotes con ciclo vs. simples).
+- ¿Aplica también a nivel PO con múltiples WO, o solo dentro de un WO? El ejemplo habla de
+  PO; en el modelo, PO→WO→Lots. **Confirmar** si el "faltante" se mide contra la cantidad
+  de la PO o de la WO (en muchos casos 1 PO ↔ 1 WO, pero conviene confirmarlo).
+- Mutuamente excluyente o complementario con "Nuevo Lote" cuando ambos aplicarían.
+
+---
+
+## Preguntas abiertas (para el cliente / definición)
+
+**Feature 1 (CRIMP):**
+- Entregar el diagrama + delta concreto del flujo (bloqueante).
+
+**Feature 2 (alarmas):**
+- ¿Polling (latencia ≤30 s, sin infra) o Reverb (instantáneo, requiere servidor)?
+- ¿Qué transición dispara la alarma y es global o por área/rol del usuario?
+
+**Feature 3 (comentarios):**
+- ¿Hilo por WO global o por WO dentro de cada Sent List?
+- ¿Permisos de ver/editar/borrar por departamento?
+- ¿Se conserva o migra el `WorkOrder.comments` actual?
+
+**Feature 4 (4° botón):**
+- ¿El faltante se mide contra la cantidad de la **PO** o de la **WO**?
+- ¿"Último lote" por número de lote o por fecha de creación?
+- ¿La lista regresa a Materiales al crear el lote del faltante?

@@ -1,0 +1,180 @@
+# Diagrama 3 Paso 6: Toma de decisión
+
+## Paso 6: Resumen del lote de CRIMP
+
+```text
+[Resumen del lote de CRIMP]
+Total | Empacadas | Sobrantes | Faltantes
+        |
+        v
+[¿Qué decisión?]
+```
+
+---
+
+## D1: Cerrar lote
+
+```text
+[D1. Cerrar lote]
+Así como está, sin nuevo lote
+        |
+        v
+[Reporte de Decisión 1]
+*Definir*
+        |
+        v
+[Continúa Paso 7]
+Entrega de viajero - "Viajero recibido"
+```
+
+---
+
+## D2: Completar
+
+```text
+[D2. Completar]
+Dos sub-decisiones
+*Definir*
+        |
+        v
++-----------------------------+-----------------------------+-----------------------------+
+|                             |                             |
+v                             v                             v
+[Sub-D2a]                     [Sub-D2b]                     [Sub-D2c]
+Solo completar piezas CRIMP   Solo completar piezas         Completar piezas (manguitas)
+Decisión de Materiales        (manguitas)                   y CRIMP
+                              Decisión de Materiales        Decisión de Materiales
+```
+
+---
+
+### Sub-D2a: Solo completar piezas CRIMP
+
+```text
+[Sub-D2a]
+Solo completar piezas CRIMP
+Decisión de Materiales
+        |
+        v
+[Fórmula]
+Completar CRIMP = piezas sobrantes - CRIMP sobrante
+        |
+        v
+[Reporte de Decisión 2]
+*Definir*
+        |
+        v
+[Continúa Paso 7]
+Entrega de viajero - "Viajero recibido"
+```
+
+---
+
+### Sub-D2b: Solo completar piezas / manguitas
+
+```text
+[Sub-D2b]
+Solo completar piezas (manguitas)
+Decisión de Materiales
+        |
+        v
+[Materiales envía cantidad a empaque]
+        |
+        v
+[Empaque completa piezas pendientes]
+        |
+        v
+[Reporte de Decisión 3]
+*Definir*
+        |
+        v
+[Continúa Paso 7]
+Entrega de viajero - "Viajero recibido"
+```
+
+---
+
+### Sub-D2c: Completar piezas / manguitas y CRIMP
+
+```text
+[Sub-D2c]
+Completar piezas (manguitas) y CRIMP
+Decisión de Materiales
+        |
+        v
+[Fórmula]
+Completar CRIMP = piezas sobrantes - CRIMP sobrante
+        |
+        v
+[Completar lote de CRIMP
+y que se pueda capturar las piezas (manguitas) CRIMP]
+        |
+        v
+[Reporte de Decisión 5]
+*Definir*
+        |
+        v
+[Continúa Paso 7]
+Entrega de viajero - "Viajero recibido"
+```
+
+---
+
+## D3: Nuevo lote
+
+```text
+[D3. Nuevo lote]
+*Definir*
+
+Pregunta:
+¿Reiniciar sobre el mismo lote o crear un nuevo lote?
+
+Respuesta:
+Nuevo lote de CRIMP
+        |
+        v
+[Fórmula]
+Sobrantes piezas (manguitas) = Nuevo lote de CRIMP
+
+Nota:
+Redondear hacia abajo en múltiplos de 100
+        |
+        v
+[Decisión de nuevo lote de CRIMP
+con la cantidad que Materiales decida
+y se reinicia el lote de CRIMP]
+        |
+        v
+[Reporte de Decisión 6]
+*Definir*
+        |
+        v
+[Continúa Paso 7]
+Entrega de viajero - "Viajero recibido"
+```
+
+---
+
+## Continuación del flujo principal
+
+```text
+[Continúa Paso 7]
+Entrega de viajero - "Viajero recibido"
+        |
+        v
+[8. Regresar sobrantes]
+Piezas o CRIMP sobrantes a materiales
+```
+
+---
+
+# Resumen general del Paso 6
+
+| Decisión | Nombre                               | Acción principal                                                         | Reporte                   |
+| -------- | ------------------------------------ | ------------------------------------------------------------------------ | ------------------------- |
+| D1       | Cerrar lote                          | Cerrar el lote así como está, sin crear nuevo lote                       | Reporte de Decisión 1     |
+| D2       | Completar                            | Completar faltantes según el caso                                        | Depende de la subdecisión |
+| Sub-D2a  | Solo completar piezas CRIMP          | Calcular CRIMP faltante con fórmula                                      | Reporte de Decisión 2     |
+| Sub-D2b  | Solo completar piezas / manguitas    | Materiales envía cantidad a empaque y empaque completa piezas pendientes | Reporte de Decisión 3     |
+| Sub-D2c  | Completar piezas / manguitas y CRIMP | Completar lote de CRIMP y capturar piezas CRIMP                          | Reporte de Decisión 5     |
+| D3       | Nuevo lote                           | Crear o reiniciar nuevo lote de CRIMP                                    | Reporte de Decisión 6     |

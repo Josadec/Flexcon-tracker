@@ -1,0 +1,43 @@
+# Diagrama de flujo general CRIMP
+
+## Paso a paso
+
+[Inicio]
+   |
+   v
+[1. Crear viajero para la orden
+WO + Viajero con cantidad total]
+   |
+   v
+[2. Agregar lotes de CRIMP al viajero
+Materiales asigna lotes disponibles]
+   |
+   v
+[3. Entregar CRIMP a empaque
+Materiales entrega lote físico]
+   |
+   v
+[4. Pesar y empacar lotes de CRIMP
+CRUD pesadas CRIMP + piezas "manguitas"
+Ventana emergente]
+   |
+   v
+[5. Confirmar piezas y CRIMP
+Modal + correo "Empaque Viajero"
+Nota: ¿El documento generado se envía?]
+   |
+   v
+[6. Resumen + toma de decisión
+4 opciones según sobrantes / faltantes]
+   |
+   v
+[7. Entrega de viajero
+Empaque confirma "Viajero recibido"]
+   |
+   v
+[8. Regresar sobrantes
+Piezas o CRIMP sobrantes a materiales
+Pendiente de revisar]
+   |
+   v
+[Fin]

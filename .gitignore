@@ -35,10 +35,6 @@ auth.setup.js
 ejemplo.spec.js
 playwright.config.js
 INSTRUCCIONES.md
-<<<<<<< HEAD
 storage/framework/vies/*
-=======
 storage/framework/views/*
-storage/framework/views/*
->>>>>>> d2f74ebf7c2f9f4c827f4f62378a48ae15a2db3e
-storage/framework/views/*
+Diagramas_flujo/diagram_crimp/6-Propuesta_Tiempo_costo.mkd
