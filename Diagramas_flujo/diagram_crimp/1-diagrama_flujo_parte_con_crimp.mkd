@@ -1,0 +1,30 @@
+# Diagrama de flujo Para Parte con CRIMP
+
+[Inicio]
+   |
+   v
+[1. Crear viajero para producción para la orden]
+   |
+   v
+[2. Agregar lotes de CRIMP al viajero]
+   |
+   v
+[3. Entregamos CRIMP a empaque]
+   |
+   v
+[4. Pesa y empaca lote de CRIMP]
+   |
+   v
+[5. Confirma cantidad de piezas y CRIMP]
+   |
+   v
+[6. Cerramos o completamos piezas, CRIMP o ambas]
+   |
+   v
+[7. Indicamos qué hacer con piezas o CRIMP sobrante]
+   |
+   v
+[8. Regresas piezas o CRIMP solicitado]
+   |
+   v
+[Fin]

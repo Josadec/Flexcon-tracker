@@ -1,0 +1,89 @@
+# Diagrama de flujo general CRIMP
+
+## Paso a paso
+
+[Inicio]
+|
+v
+[1. Crear viajero para la orden
+WO + Viajero con cantidad total]
+|
+v
+[2. Agregar lotes de CRIMP al viajero
+Materiales asigna lotes disponibles]
+|
+v
+[3. Entregar CRIMP a empaque
+Materiales entrega lote físico]
+|
+v
+[4. Pesar y empacar lotes de CRIMP
+CRUD pesadas CRIMP + piezas "manguitas"
+Ventana emergente]
+|
+v
+[5. Confirmar piezas y CRIMP
+Modal de confirmación sobre pantalla de Empaque]
+|
++------------------------------------------------+
+|                                                |
+v                                                v
+[Seleccionar lote de CRIMP]              [Capturar pesadas]
+[De los lotes asignados al viajero]      [Piezas "manguitas" / Piezas CRIMP]
+|                                                |
++------------------------+-----------------------+
+|
+v
+[Confirmar cantidades
+Empacador revisa y acepta el resumen]
+|
+v
+[Generar resumen de Empaque Terminado
+El documento ya no se descarga en PDF]
+|
+v
+[6. Resumen + toma de decisión
+4 opciones según sobrantes / faltantes]
+|
+v
+[7. Entrega de viajero
+Empaque confirma "Viajero recibido"]
+|
+v
+[8. Regresar sobrantes
+Piezas o CRIMP sobrantes a materiales
+Pendiente de revisar]
+|
+v
+[Fin]
+
+---
+
+# Resumen generado en el Paso 5
+
+## Empaque Terminado
+
+| Campo                                             | Información                                            |
+| ------------------------------------------------- | ------------------------------------------------------ |
+| Destinatarios                                     | Empaque + Materiales                                   |
+| Descripción                                       | H-CR-436-38                                            |
+| No. Order (WO + Viajero)                          | 2053940 + 004                                          |
+| Número de orden en etiquetas (WO + Lote de CRIMP) | 2053940 + 009                                          |
+| Cantidad en el viajero                            | 20,000                                                 |
+| División del lote                                 | Este lote contiene 18,800 y existe otro lote por 1,200 |
+| Cantidad completa de piezas (manguitas)           | 1,840                                                  |
+| Cantidad completa de CRIMP                        | 1,840                                                  |
+| CRIMP sobrante                                    | 0                                                      |
+| Piezas / manguitas sobrantes                      | 0                                                      |
+| Empacado por                                      | Yazmin                                                 |
+| Fecha                                             | 2026-05-28                                             |
+| Comentarios                                       | -                                                      |
+
+## Nota del flujo
+
+En el Paso 5, el sistema muestra un modal de confirmación sobre la pantalla de Empaque.
+El empacador selecciona el lote de CRIMP, captura las pesadas de piezas y CRIMP, revisa el resumen y confirma las cantidades.
+
+Después de confirmar, el sistema genera un resumen interno llamado **Empaque Terminado**, el cual puede mostrarse como documento o tabla dentro del sistema para consulta o descarga, según se defina posteriormente.
+
+Este resumen forma parte del flujo principal y continúa directamente al **Paso 6: Resumen + toma de decisión**.

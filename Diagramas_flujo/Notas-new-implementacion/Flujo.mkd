@@ -1,0 +1,602 @@
+# Análisis de Feature: Cambio de lógica para CRIMP
+
+## 1. Contexto general
+
+Se solicita analizar un cambio en la lógica actual del sistema para los números de parte que manejan **CRIMP**.
+
+Actualmente, el sistema maneja una lógica donde, dentro de ciertos procesos, se trabaja con **lotes**, **kits** y pesadas relacionadas a esos kits. Sin embargo, el nuevo flujo propuesto cambia la forma en que se debe manejar CRIMP dentro del proceso productivo.
+
+El objetivo principal es que, para los productos que manejan CRIMP, el sistema trabaje bajo el concepto de **viajero de producción**, al cual se le podrán asociar uno o varios lotes de CRIMP. Además, se deberán modificar algunos procesos posteriores como pesadas de producción, pesadas de calidad, empaque y confirmación final de CRIMP.
+
+> Importante:
+> Esta lógica aplica únicamente para los números de parte que manejan CRIMP.
+> Para los números de parte que no manejan CRIMP, se debe respetar la lógica actual y continuar usando el concepto de **lote**.
+
+---
+
+# 2. Cambio principal en Sent List / CRIMP
+
+## 2.1 Cambio de nombre: Lote → Viajero
+
+En la sección de **Sent List**, dentro del flujo de CRIMP, el campo o concepto que actualmente se maneja como **lote** deberá cambiar su nombre a **viajero**.
+
+Este cambio será únicamente visual y funcional para los registros que correspondan a productos con CRIMP.
+
+## Regla importante
+
+* Si el número de parte **tiene CRIMP**, se debe mostrar y manejar como **viajero**.
+* Si el número de parte **no tiene CRIMP**, se debe conservar la lógica actual y seguir llamándose **lote**.
+
+---
+
+# 3. Nuevo flujo para creación de viajero y lotes de CRIMP
+
+## 3.1 Flujo propuesto
+
+El nuevo flujo solicitado es el siguiente:
+
+Revisar la parte de capacidad para verificar el cambio que se realizara con CRIMP
+
+1. Primero se crea el **viajero de producción**.
+2. A cada viajero se le podrán agregar uno o varios **lotes de CRIMP**.
+3. Cada viajero podrá tener desde **1 hasta N lotes de CRIMP**.
+4. Ya no se manejarán **kits** para esta parte del proceso.
+5. Por cada lote de CRIMP se deberá capturar un nuevo campo llamado **lote de fabricante**.
+
+---
+
+## 3.2 Relación propuesta
+
+Un viajero de producción podrá tener múltiples lotes de CRIMP asociados Como lo venimos manejando, solo agregando 
+
+Ejemplo:
+
+| Viajero     | Cantidad del viajero | Lote de CRIMP | Campo comentarios adicional   |
+| ----------- | -------------------: | ------------- | ------------------            |
+| Viajero 001 |         5,000 piezas | CRIMP-001     | FAB-ABC-001                   |
+| Viajero 001 |         5,000 piezas | CRIMP-002     | FAB-ABC-002                   |
+| Viajero 001 |         5,000 piezas | CRIMP-003     | FAB-ABC-003                   |
+
+---
+
+## 3.3 Nuevo campo requerido
+
+Por cada lote de CRIMP se deberá agregar un campo de texto:
+
+| Campo              | Tipo  | Descripción                                                                                    |
+| ------------------ | ----- | ---------------------------------------------------------------------------------------------- |
+| Lote de fabricante | Texto | Campo manual donde el usuario escribirá el lote de fabricante correspondiente al lote de CRIMP Y agregar en la DB para su posterior uso en empaque |
+
+---
+
+# 4. Cambios en Pesadas de Producción
+
+## 4.1 Cambio solicitado
+
+Actualmente, en el flujo con CRIMP, se selecciona el kit del viajero para realizar las pesadas.
+
+El nuevo requerimiento indica que ya **no se debe seleccionar el kit del viajero**.
+
+La lógica deberá comportarse de forma similar a los productos que no tienen CRIMP, es decir, las pesadas se harán de manera general sobre el viajero completo.
+
+---
+
+## 4.2 Comportamiento esperado
+
+Ejemplo:
+
+Si el viajero tiene una cantidad de **5,000 piezas**, las pesadas de producción se realizarán sobre el total del viajero, sin seleccionar kit.
+
+## Regla nueva
+
+* Ya no se selecciona kit.
+* Ya no se pesan kits individuales.
+* La pesada se registra a nivel general del viajero.
+* La lógica debe comportarse como los productos que no manejan CRIMP.
+
+---
+
+# 5. Cambios en Pesadas de Calidad
+
+## 5.1 Cambio solicitado
+
+Para las **pesadas de calidad**, también se deberá eliminar la dependencia del kit.
+
+Al área de calidad no le interesan los lotes de CRIMP ni los kits, sino la cantidad general del viajero.
+
+## Comportamiento esperado
+
+* Las pesadas de calidad se realizan a nivel viajero.
+* No se selecciona kit.
+* No se selecciona lote de CRIMP.
+* Se mantiene una lógica general similar a los productos sin CRIMP.
+
+---
+
+# 6. Cambios en Empaque para productos con CRIMP
+
+## 6.1 Contexto del proceso físico
+
+En el proceso físico de empaque, cuando el número de parte lleva CRIMP, el producto se compone de dos elementos:
+
+1. CRIMP
+2. Pieza / manguita
+
+Durante el proceso, el área de empaque pesa ambos elementos por separado.
+
+Primero se pesan los CRIMP y las piezas por separado, normalmente organizándolos en bolsas de cierta cantidad, por ejemplo:
+
+* Bolsas de 100 piezas
+* Bolsas de 101 piezas
+* O cantidades variables según el proceso
+
+Después, ambos elementos se unen en una cajita o empaque final.
+
+---
+
+## 6.2 Nueva lógica requerida en empaque
+
+Para los productos que manejan CRIMP, el sistema deberá permitir capturar:
+
+1. Pesadas de piezas / manguitas
+2. Pesadas de CRIMP
+
+Esto implica agregar dos nuevos módulos o formularios tipo CRUD dentro de empaque.
+
+---
+
+# 7. Nuevos CRUD requeridos en Empaque
+
+## 7.1 CRUD de Pesadas de Piezas
+
+Se requiere un CRUD para registrar las pesadas correspondientes a las piezas o manguitas.
+
+Este formulario deberá estar disponible dentro del módulo de empaque, probablemente mediante un modal.
+
+### Posibles campos
+
+| Campo                | Descripción                     |
+| -------------------- | ------------------------------- |
+| Viajero              | Viajero relacionado             |
+| Cantidad pesada      | Cantidad de piezas registradas  |
+| Peso                 | Peso capturado                  |
+| Usuario / empacadora | Persona que realiza el registro |
+| Fecha                | Fecha del registro              |
+| Comentarios          | Observaciones adicionales       |
+
+---
+
+## 7.2 CRUD de Pesadas de CRIMP
+
+Se requiere un segundo CRUD para registrar las pesadas correspondientes a CRIMP.
+
+Este formulario también deberá estar disponible dentro del módulo de empaque, mediante un modal.
+
+### Posibles campos
+
+| Campo                    | Descripción                     |
+| ------------------------ | ------------------------------- |
+| Viajero                  | Viajero relacionado             |
+| Cantidad pesada de CRIMP | Cantidad de CRIMP registrada    |
+| Peso                     | Peso capturado                  |
+| Usuario / empacadora     | Persona que realiza el registro |
+| Fecha                    | Fecha del registro              |
+| Comentarios              | Observaciones adicionales       |
+
+---
+
+# 8. Confirmación final de CRIMP
+
+## 8.1 Concepto de confirmación
+
+Después del proceso de empaque, se requiere una confirmación final específica para productos con CRIMP.
+
+Esta confirmación consiste en validar cuántas piezas y cuántos CRIMP fueron completados, así como cuántos sobraron.
+
+Actualmente, según el proceso descrito, la empacadora comunica esta información por correo.
+
+---
+
+## 8.2 Ejemplo del proceso
+
+Ejemplo:
+
+Un viajero indica que se deben procesar **20,000 piezas**.
+
+Durante el proceso:
+
+* Se divide en lotes o cantidades parciales.
+* Al final solo se completan cierta cantidad de piezas.
+* Se identifica cuánto CRIMP sobró.
+* Se identifica cuántas piezas sobraron.
+* Se comunica esta información por correo.
+
+Ejemplo de resultado:
+
+| Concepto                      | Cantidad |
+| ----------------------------- | -------: |
+| Cantidad en viajero           |   20,000 |
+| Cantidad completada de piezas |      200 |
+| Cantidad completada de CRIMP  |      200 |
+| CRIMP sobrante                |    1,000 |
+| Piezas sobrantes              |       77 |
+
+---
+
+# 9. Formato de correo requerido
+
+## 9.1 Nombre del formato
+
+El formato solicitado para el correo o notificación será:
+
+**Empaque terminado CRIMP Viajero**
+
+---
+
+## 9.2 Campos requeridos
+
+El correo deberá contener los siguientes campos:
+
+| Campo                         | Descripción                     |
+| ----------------------------- | ------------------------------- |
+| Descripción                   | Descripción del número de parte |
+| No. de orden                  | WO + número de lote/viajero     |
+| No. de etiquetas              | Pendiente de validar            |
+| Cantidad en el viajero        | Cantidad total del viajero      |
+| Cantidad completada de piezas | Total de piezas completadas     |
+| Cantidad completada de CRIMP  | Total de CRIMP completados      |
+| CRIMP sobrante                | Cantidad de CRIMP restante      |
+| Piezas sobrantes              | Cantidad de piezas restantes    |
+| Nombre empacadora             | Persona que empacó              |
+| Fecha                         | Fecha de finalización           |
+| Comentarios                   | Comentarios adicionales         |
+
+---
+
+## 9.3 Ejemplo de correo
+
+**Asunto:** Empaque terminado CRIMP Viajero - WO XXXXX
+
+**Descripción:** Número de parte / descripción del producto
+**No. de orden:** WO XXXXX - Viajero XXXXX
+**No. de etiquetas:** Pendiente de validar
+**Cantidad en el viajero:** 20,000 piezas
+**Cantidad completada de piezas:** 200 piezas
+**Cantidad completada de CRIMP:** 200 CRIMP
+**CRIMP sobrante:** 1,000 CRIMP
+**Piezas sobrantes:** 77 piezas
+**Nombre empacadora:** Nombre de la persona que empacó
+**Fecha:** DD/MM/AAAA
+**Comentarios:** Comentarios adicionales del proceso
+
+---
+
+# 10. Áreas del sistema que se verían afectadas
+
+## 10.1 Sent List / CRIMP
+
+Se verá afectada la forma en que se muestra y se maneja el concepto de lote para productos con CRIMP.
+
+### Impacto
+
+* Cambio visual de nombre de campo.
+* Validación condicional según si el número de parte maneja CRIMP.
+* Ajuste en creación o edición de registros.
+* Posible ajuste en filtros, tablas, reportes o etiquetas donde aparezca la palabra lote.
+
+---
+
+## 10.2 Módulo de creación de lote / viajero
+
+Se deberá revisar la lógica actual de creación de lote para separar el comportamiento entre:
+
+* Productos con CRIMP.
+* Productos sin CRIMP.
+
+### Impacto
+
+* Para productos con CRIMP, se deberá manejar como viajero.
+* Para productos sin CRIMP, se conserva la lógica actual de lote.
+* Se deberán poder asociar múltiples lotes de CRIMP a un viajero.
+* Se deberá agregar el nuevo campo lote de fabricante.
+
+---
+
+## 10.3 Base de datos
+
+Probablemente se requieran ajustes en base de datos.
+
+### Posibles cambios
+
+* Nueva tabla para relacionar viajeros con lotes de CRIMP.
+* Nuevo campo para lote de fabricante.
+* Nueva tabla para pesadas de piezas en empaque.
+* Nueva tabla para pesadas de CRIMP en empaque.
+* Posibles ajustes en tablas existentes si actualmente se depende de kits.
+
+---
+
+## 10.4 Pesadas de producción
+
+Se verá afectada la lógica de captura de pesadas.
+
+### Impacto
+
+* Remover selección de kit para productos con CRIMP.
+* Ajustar validaciones.
+* Ajustar relación de pesadas al viajero.
+* Revisar reportes o consultas que actualmente agrupen por kit.
+
+---
+
+## 10.5 Pesadas de calidad
+
+Se verá afectada la lógica de captura de pesadas de calidad.
+
+### Impacto
+
+* Remover selección de kit.
+* Registrar pesadas a nivel viajero.
+* Ajustar validaciones.
+* Revisar reportes o trazabilidad actual.
+
+---
+
+## 10.6 Empaque
+
+Este será uno de los módulos con mayor impacto.
+
+### Impacto
+
+* Agregar formulario/modal para pesadas de piezas.
+* Agregar formulario/modal para pesadas de CRIMP.
+* Crear CRUD de pesadas de piezas.
+* Crear CRUD de pesadas de CRIMP.
+* Registrar cantidades completadas.
+* Registrar sobrantes.
+* Ajustar cierre o confirmación de empaque.
+* Generar formato de correo final.
+
+---
+
+## 10.7 Correos / notificaciones
+
+Se deberá agregar un nuevo formato de correo para productos con CRIMP.
+
+### Impacto
+
+* Nuevo template de correo.
+* Nueva lógica de envío.
+* Datos dinámicos del viajero.
+* Datos dinámicos de empaque.
+* Validación de campos obligatorios.
+* Pendiente validar el campo de número de etiquetas.
+
+---
+
+## 10.8 Reportes y trazabilidad
+
+Se deberá revisar si existen reportes que actualmente dependan de:
+
+* Lote.
+* Kit.
+* Pesadas por kit.
+* Empaque por pieza únicamente.
+* Cierre de lote.
+
+### Impacto
+
+Si existen reportes con esta lógica, deberán ajustarse para que productos con CRIMP se consulten por viajero y no por kit.
+
+---
+
+# 11. Riesgos identificados
+
+## 11.1 Riesgo de afectar productos sin CRIMP
+
+El principal riesgo es modificar la lógica general de lote y afectar productos que no manejan CRIMP.
+
+### Recomendación
+
+Toda la lógica nueva debe estar condicionada por el número de parte o configuración que indique si el producto maneja CRIMP.
+
+---
+
+## 11.2 Riesgo por dependencia actual de kits
+
+Si actualmente las pesadas, calidad o empaque dependen directamente de kits, eliminar esa selección para CRIMP puede afectar consultas, reportes o validaciones existentes.
+
+### Recomendación
+
+Antes de desarrollar, se debe identificar en qué partes del sistema se usa el kit como llave o referencia principal.
+
+---
+
+## 11.3 Riesgo de duplicidad de conceptos
+
+Existe riesgo de confusión entre:
+
+* Lote
+* Viajero
+* Lote de CRIMP
+* Lote de fabricante
+* WO
+* Kit
+
+### Recomendación
+
+Definir claramente qué significa cada concepto dentro del sistema y en qué flujo aplica.
+
+---
+
+## 11.4 Riesgo en cierre de empaque
+
+El cierre de empaque para productos con CRIMP será más complejo, porque ahora se deben validar dos cantidades:
+
+1. Piezas completadas.
+2. CRIMP completados.
+
+Además, se deberán calcular o capturar sobrantes.
+
+---
+
+# 12. Preguntas pendientes por validar
+
+## 12.1 Sobre el viajero
+
+* ¿El viajero reemplaza completamente al lote únicamente para productos con CRIMP?
+* ¿El número de viajero será capturado manualmente o generado por el sistema?
+* ¿Puede existir más de un viajero para una misma WO?
+* ¿El viajero tendrá una cantidad total fija desde su creación?
+
+---
+
+## 12.2 Sobre lotes de CRIMP
+
+* ¿Los lotes de CRIMP se capturan manualmente?
+* ¿El lote de fabricante será obligatorio?
+* ¿Se podrá editar o eliminar un lote de CRIMP después de creado?
+* ¿Se debe validar que la suma de lotes de CRIMP coincida con la cantidad del viajero?
+
+---
+
+## 12.3 Sobre pesadas de producción y calidad
+
+* ¿Las pesadas anteriores por kit deben conservarse como historial?
+* ¿Para nuevos registros con CRIMP ya no debe aparecer ningún campo relacionado con kit?
+* ¿La lógica sin CRIMP queda exactamente igual?
+
+---
+
+## 12.4 Sobre empaque
+
+* ¿Las pesadas de piezas y CRIMP se capturan manualmente o se calculan con base en peso?
+* ¿La cantidad completada se calcula automáticamente desde las pesadas o se captura manualmente?
+* ¿Los sobrantes se calculan automáticamente o se capturan manualmente?
+* ¿Se permitirá cerrar empaque si las cantidades de piezas y CRIMP no coinciden?
+* ¿Qué pasa si hay más piezas completadas que CRIMP, o más CRIMP que piezas?
+
+---
+
+## 12.5 Sobre correo final
+
+* ¿A quién se enviará el correo de “Empaque terminado CRIMP Viajero”?
+* ¿El correo se enviará automáticamente al cerrar empaque o manualmente?
+* ¿El número de etiquetas será capturado, calculado o tomado de otro módulo?
+* ¿Se requiere PDF adjunto o solo cuerpo de correo?
+* ¿Debe quedar historial del correo enviado?
+
+---
+
+# 13. Estimación preliminar de tiempo
+
+> Esta estimación es preliminar y depende de la estructura actual del sistema, especialmente de qué tan acoplada esté la lógica de kits, lotes, pesadas y empaque.
+
+## 13.1 Análisis técnico y revisión del flujo actual
+
+| Actividad                                     | Tiempo estimado |
+| --------------------------------------------- | --------------: |
+| Revisar lógica actual de lote, kit y CRIMP    |     4 a 6 horas |
+| Identificar tablas, relaciones y dependencias |     3 a 5 horas |
+| Revisar pantallas afectadas                   |     2 a 4 horas |
+| Revisar correos/reportes existentes           |     1 a 3 horas |
+| Total estimado                                |   10 a 18 horas |
+
+---
+
+## 13.2 Cambios en Sent List y creación de viajero
+
+| Actividad                                | Tiempo estimado |
+| ---------------------------------------- | --------------: |
+| Cambio condicional de lote a viajero     |     2 a 4 horas |
+| Ajuste de validaciones                   |     2 a 4 horas |
+| Asociación de viajero con lotes de CRIMP |    6 a 10 horas |
+| Campo lote de fabricante                 |     2 a 3 horas |
+| Pruebas iniciales                        |     2 a 4 horas |
+| Total estimado                           |   14 a 25 horas |
+
+---
+
+## 13.3 Cambios en pesadas de producción y calidad
+
+| Actividad                              | Tiempo estimado |
+| -------------------------------------- | --------------: |
+| Remover selección de kit para CRIMP    |     4 a 8 horas |
+| Ajustar lógica de guardado por viajero |     4 a 8 horas |
+| Ajustar validaciones                   |     2 a 4 horas |
+| Revisar impactos en consultas/reportes |     3 a 6 horas |
+| Pruebas                                |     3 a 5 horas |
+| Total estimado                         |   16 a 31 horas |
+
+---
+
+## 13.4 Cambios en empaque
+
+| Actividad                                       | Tiempo estimado |
+| ----------------------------------------------- | --------------: |
+| Crear CRUD de pesadas de piezas                 |    6 a 10 horas |
+| Crear CRUD de pesadas de CRIMP                  |    6 a 10 horas |
+| Integrar formularios en modal dentro de empaque |     4 a 8 horas |
+| Ajustar cierre de empaque para CRIMP            |    6 a 12 horas |
+| Manejo de cantidades completadas y sobrantes    |     4 a 8 horas |
+| Pruebas del flujo completo                      |     4 a 8 horas |
+| Total estimado                                  |   30 a 56 horas |
+
+---
+
+## 13.5 Correo de confirmación CRIMP
+
+| Actividad                          | Tiempo estimado |
+| ---------------------------------- | --------------: |
+| Crear template de correo           |     3 a 5 horas |
+| Integrar datos dinámicos           |     3 a 6 horas |
+| Agregar lógica de envío            |     2 a 5 horas |
+| Validar destinatarios y disparador |     1 a 3 horas |
+| Pruebas de envío                   |     2 a 4 horas |
+| Total estimado                     |   11 a 23 horas |
+
+---
+
+# 14. Estimación total preliminar
+
+| Fase                              | Tiempo estimado |
+| --------------------------------- | --------------: |
+| Análisis técnico                  |   10 a 18 horas |
+| Sent List / Viajero / Lotes CRIMP |   14 a 25 horas |
+| Pesadas de producción y calidad   |   16 a 31 horas |
+| Empaque                           |   30 a 56 horas |
+| Correo final                      |   11 a 23 horas |
+| Pruebas integrales y ajustes      |   10 a 20 horas |
+| Total preliminar                  |  91 a 173 horas |
+
+---
+
+# 15. Estimación en días laborales
+
+Considerando jornadas de trabajo de 6 a 8 horas efectivas de desarrollo:
+
+| Escenario           |      Tiempo aproximado |
+| ------------------- | ---------------------: |
+| Escenario optimista | 12 a 15 días laborales |
+| Escenario medio     | 18 a 22 días laborales |
+| Escenario complejo  | 25 a 30 días laborales |
+
+---
+
+# 16. Conclusión preliminar
+
+El cambio solicitado no parece ser únicamente un cambio visual de nombres, sino una modificación importante al flujo de CRIMP dentro del sistema.
+
+Las áreas más afectadas serían:
+
+1. Sent List / creación de viajero.
+2. Relación entre viajero y lotes de CRIMP.
+3. Eliminación de la lógica de kits en pesadas de producción.
+4. Eliminación de la lógica de kits en pesadas de calidad.
+5. Nuevo manejo de pesadas separadas en empaque.
+6. Confirmación final de cantidades de piezas y CRIMP.
+7. Nuevo formato de correo de empaque terminado.
+
+El punto más delicado será evitar afectar la lógica actual de productos que no tienen CRIMP. Por esa razón, toda la nueva funcionalidad debe estar condicionada claramente a los números de parte que sí manejan CRIMP.
+
+También se recomienda realizar primero un levantamiento técnico de las tablas y procesos actuales, especialmente para identificar dónde se usa actualmente el concepto de kit, lote y CRIMP, antes de estimar de forma definitiva el desarrollo.
