@@ -157,6 +157,23 @@ class Lot extends Model
     }
 
     /**
+     * Get the CRIMP lots (lotes de CRIMP) for this lot (viajero).
+     * Sustituye al Kit en el flujo de partes con CRIMP.
+     */
+    public function crimpLots(): HasMany
+    {
+        return $this->hasMany(CrimpLot::class);
+    }
+
+    /**
+     * Indica si este lote es un "viajero" (su parte tiene CRIMP).
+     */
+    public function isViajero(): bool
+    {
+        return (bool) ($this->workOrder?->purchaseOrder?->part?->is_crimp ?? false);
+    }
+
+    /**
      * Get the weighings (pesadas) for this lot.
      */
     public function weighings(): HasMany
