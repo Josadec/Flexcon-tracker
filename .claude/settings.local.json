@@ -83,7 +83,8 @@
       "mcp__playwright__browser_close",
       "PowerShell(Get-Process *)",
       "Bash(del *)",
-      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt http://flexcon-tracker.test:8088/login -o /tmp/login_page.html)"
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt http://flexcon-tracker.test:8088/login -o /tmp/login_page.html)",
+      "Bash(echo \"---EXIT $?---\")"
     ],
     "deny": [],
     "ask": []
