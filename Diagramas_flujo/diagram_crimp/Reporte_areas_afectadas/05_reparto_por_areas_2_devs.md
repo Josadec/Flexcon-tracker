@@ -9,6 +9,10 @@
 > Regla simple: **si vive dentro del Sent List, es de Mauricio.** Capacidad, Shipping List e Invoice
 > son módulos aparte → Josadec.
 
+> **✅ Base lista — Josadec puede arrancar Capacidad.**
+> - Migración `crimp_lots` + modelo `CrimpLot` + relación `Lot::crimpLots()` + helper `Lot::isViajero()` → **ya creados** (M1 base). Falta solo `php artisan migrate` (con MySQL arriba).
+> - **Decisión B.1 cerrada → Opción A:** cada lote de CRIMP cuelga **de su viajero** (`crimp_lots.lot_id` → `Lot`). La UI del Step 3 arranca con **1 viajero por defecto**, así el caso simple queda igual de simple.
+
 ---
 
 ## 1. Resumen de la división
@@ -73,12 +77,12 @@ CRIMP cruza el wizard en **3 puntos** (no uno). Hoy el wizard trabaja con **kits
 | Paso | Qué hace hoy (kits) | Qué debe hacer (CRIMP) | Referencia |
 | ---- | ------------------- | ---------------------- | ---------- |
 | **Step 2** — Cálculo de horas / agregar POs | Cada item de la lista preliminar ya carga el flag `is_crimp`. | **Sin cambio funcional**: el flag `is_crimp` sigue siendo el discriminador que habilita la captura del paso 3. | [`CapacityWizard.php:418-438`](../../../app/Livewire/Admin/CapacityWizard.php#L418) (`is_crimp` en `:422`) |
-| **Step 3** — Lista Preliminar | Captura **kits** por PO crimp (`kitNumbers`, modal de kit con número + cantidad) junto a los lotes. | Reemplazar la captura de kits por captura de **lotes de CRIMP**: número + **lote de fabricante** + cantidad (+ comentarios). | modal de kit [`:618-690`](../../../app/Livewire/Admin/CapacityWizard.php#L618); validación CAP-1 [`validateLotKitQuantities():697`](../../../app/Livewire/Admin/CapacityWizard.php#L697); vista `step3.blade.php` |
-| **Creación final** — `createSentList()` | Para crimp, **crea registros `Kit`** y los asocia a los lotes creados (`syncWithoutDetaching`). | Crear **viajero (`Lot`) + lotes de CRIMP (`crimp_lots`)** con su lote de fabricante; **no** crear kits. | [`:866-900`](../../../app/Livewire/Admin/CapacityWizard.php#L866) |
+| **Step 3** — Lista Preliminar | Captura **kits** por PO crimp (`kitNumbers`, modal de kit con número + cantidad) junto a los lotes. | **Opción A:** capturar lotes de CRIMP **anidados por viajero** — por cada lote/viajero, sus N lotes de CRIMP (número + **lote de fabricante** + cantidad + comentarios). | modal de kit [`:618-690`](../../../app/Livewire/Admin/CapacityWizard.php#L618); validación CAP-1 [`validateLotKitQuantities():697`](../../../app/Livewire/Admin/CapacityWizard.php#L697); vista `step3.blade.php` |
+| **Creación final** — `createSentList()` | Para crimp, **crea registros `Kit`** y los asocia a **todos** los lotes (`syncWithoutDetaching`). | **Opción A:** tras crear cada `Lot` (viajero), crear **sus** lotes de CRIMP → `CrimpLot::create(['lot_id' => $newLot->id, ...])`. **No** crear kits ni sincronizar a todos. | [`:866-900`](../../../app/Livewire/Admin/CapacityWizard.php#L866) |
 
-> **Dependencia:** los pasos 3 y creación final **consumen el modelo `CrimpLot`** que crea Mauricio en **M1**.
-> Josadec puede avanzar el Step 2 y la UI del Step 3 desde el inicio, pero **no cierra** la persistencia de
-> lotes de CRIMP hasta tener la firma del modelo `CrimpLot`. Acordarla con Mauricio antes (ver §5).
+> **Dependencia (ya resuelta):** los pasos 3 y creación final consumen el modelo `CrimpLot` — **ya creado**
+> por Mauricio con la firma `lot_id, crimp_lot_number, lote_fabricante, quantity, comments`. Josadec puede
+> cerrar la persistencia de una vez; no hay nada que esperar.
 
 ### 4.2 Shipping List — FPL-10 (Packing Slip)
 
@@ -105,9 +109,9 @@ CRIMP cruza el wizard en **3 puntos** (no uno). Hoy el wizard trabaja con **kits
 
 Todo el Sent List es de Mauricio, así que no se reparten archivos compartidos. Las únicas costuras:
 
-- **Capacidad ↔ CRIMP:** el Capacity Wizard (Steps 3 y creación final) **consume** el modelo `CrimpLot`
-  que crea Mauricio en M1; no lo redefine. **Acordar la firma del modelo `CrimpLot` antes** de cerrar la
-  persistencia en el wizard (campos: `lot_id`, `crimp_lot_number`, `lote_fabricante`, `quantity`, `comments`).
+- **Capacidad ↔ CRIMP (resuelto):** el Capacity Wizard consume `CrimpLot` (**ya creado**: `lot_id`,
+  `crimp_lot_number`, `lote_fabricante`, `quantity`, `comments`). **Decisión B.1 = Opción A:** cada lote de
+  CRIMP cuelga de su viajero (`lot_id`). Josadec no lo redefine, solo lo usa.
 - **Empaque → Shipping List:** el Packing Slip (Josadec) toma como insumo los **lotes ya completados/
   empacados** que produce el Empaque (Mauricio). Es una entrega de datos, no de código compartido.
 
@@ -117,10 +121,12 @@ Fuera de eso, ambos tracks corren en paralelo sin esperarse.
 
 ## 6. Orden de arranque sugerido para Josadec
 
+> **Base lista + decisión A tomada → puedes empezar.** Solo corre `php artisan migrate` (con MySQL arriba).
+
 1. Leer este `05` (panorama + tu área).
 2. **Capacidad:** leer `01 §M3` + `02` (tabla `crimp_lots`) + `03 §B.1`.
-3. Adaptar **Step 2** y la **UI del Step 3** (captura de lotes de CRIMP + lote de fabricante) — no bloquea.
-4. Acordar con Mauricio la firma del modelo `CrimpLot` (§5) y cerrar la **persistencia** del Step 3 / creación final.
+3. Adaptar **Step 2** y la **UI del Step 3**: lotes de CRIMP **anidados por viajero** (Opción A) con lote de fabricante; la UI defaultea a 1 viajero.
+4. Cerrar la **persistencia** en `createSentList()`: por cada `Lot` creado → `CrimpLot::create(['lot_id' => $newLot->id, ...])`. El modelo ya existe; nada que esperar.
 5. **Shipping List (FPL-10)** e **Invoice (FPL-12):** independientes del Sent List; leer sus análisis (§4.2, §4.3).
 
 > Referencia técnica de los módulos M1–M10: `01` / `02` / `03`. El `04` (división por flujo) fue eliminado.
