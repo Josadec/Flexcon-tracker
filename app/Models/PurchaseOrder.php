@@ -174,6 +174,7 @@ class PurchaseOrder extends Model
 
         return $query->where(function ($q) use ($search) {
             $q->where('po_number', 'like', "%{$search}%")
+                ->orWhere('wo', 'like', "%{$search}%")
                 ->orWhereHas('part', function ($partQuery) use ($search) {
                     $partQuery->where('number', 'like', "%{$search}%")
                         ->orWhere('description', 'like', "%{$search}%");

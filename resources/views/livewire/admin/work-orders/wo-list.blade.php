@@ -93,7 +93,7 @@
                 </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     @foreach($workOrders as $wo)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                        <tr wire:key="wo-{{ $wo->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ str_pad(substr($wo->wo_number, strrpos($wo->wo_number, '-') + 1), 4, '0', STR_PAD_LEFT) }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-indigo-600 dark:text-indigo-400">{{ $wo->purchaseOrder->wo ?? '—' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
