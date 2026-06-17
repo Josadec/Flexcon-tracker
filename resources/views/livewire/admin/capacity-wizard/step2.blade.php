@@ -261,7 +261,7 @@
                                 $configurations = $standard ? $standard->configurations : collect();
                                 $isSelected = in_array($po->id, $selectedPOs);
                             @endphp
-                            <div @class([
+                            <div wire:key="po-{{ $po->id }}" @class([
                                 'border rounded-lg p-4 mb-3',
                                 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' => $isSelected,
                                 'border-gray-200 dark:border-gray-700' => !$isSelected,
@@ -308,7 +308,7 @@
                                                         @php
                                                             $canUse = $config->persons_required <= $numPersons;
                                                         @endphp
-                                                        <label @class([
+                                                        <label wire:key="cfg-{{ $po->id }}-{{ $config->id }}" @class([
                                                             'flex items-center p-2 rounded cursor-pointer',
                                                             'hover:bg-gray-100 dark:hover:bg-gray-800' => $canUse,
                                                             'opacity-50 cursor-not-allowed' => !$canUse,
