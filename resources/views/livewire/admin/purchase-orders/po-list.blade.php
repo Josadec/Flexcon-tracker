@@ -38,7 +38,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Número de PO o parte..."
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Número de PO, WO o parte..."
                         class="block w-full pl-10 pr-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 </div>
             </div>
@@ -101,7 +101,7 @@
                 </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     @forelse($purchaseOrders as $po)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                        <tr wire:key="po-{{ $po->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $po->po_number }}</div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ $po->po_date->format('d/m/Y') }}</div>
