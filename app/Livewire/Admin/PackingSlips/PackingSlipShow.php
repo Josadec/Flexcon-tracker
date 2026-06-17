@@ -33,6 +33,14 @@ class PackingSlipShow extends Component
         }
     }
 
+    public function goBackToShippingList(): void
+    {
+        // Guarda en sesión el tab de retorno para que PackingSlipList
+        // lo lea en mount() y active el tab correcto sin query strings en la URL.
+        session(['shipping_list_return_tab' => 'list']);
+        $this->redirect(route('admin.shipping-list.index'));
+    }
+
     // -----------------------------------------------------------------------
     // Inicializar la selección de lotes desde los items actuales del PS
     // -----------------------------------------------------------------------

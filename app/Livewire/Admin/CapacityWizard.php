@@ -3,7 +3,7 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
-use App\Models\{Shift, SentList, User, Lot, Kit, Part};
+use App\Models\{Shift, SentList, User, Lot, CrimpLot, Part};
 use App\Services\CapacityCalculatorService;
 use App\Services\CarryoverService;
 use Carbon\Carbon;
@@ -62,12 +62,13 @@ class CapacityWizard extends Component
     public array $tempLots = []; // Lotes temporales para el modal
     public string $lotModalError = ''; // Error de validación dentro del modal de lotes
 
-    // Kit data (for crimp parts)
-    public array $kitNumbers = []; // Kit numbers per PO index
-    public bool $showKitModal = false;
-    public ?int $currentKitIndex = null;
-    public array $tempKits = []; // Kits temporales para el modal
-    public string $kitModalError = ''; // Error de validación dentro del modal de kits
+    // Lotes de CRIMP (para partes crimp) — sustituye a los Kits
+    public array $crimpLots = []; // Lotes de CRIMP por índice de item: [ ['lot_ref' => '', 'number' => '', 'lote_fabricante' => '', 'quantity' => '', 'comments' => ''], ... ]
+    public bool $showCrimpModal = false;
+    public ?int $currentCrimpIndex = null;
+    public array $tempCrimpLots = []; // Lotes de CRIMP temporales para el modal
+    public string $crimpModalError = ''; // Error de validación dentro del modal de lotes de CRIMP
+    public array $crimpLotRefOptions = []; // Lotes/viajeros disponibles del item actual para el selector lot_ref
 
     // Step 4 - Fechas programadas de envío
     public ?string $scheduledShipDate = null; // UNA fecha para toda la lista
@@ -615,92 +616,140 @@ class CapacityWizard extends Component
     }
 
     // ==========================================
-    // Kit Modal Methods (for crimp parts)
+    // Crimp Lot Modal Methods (lotes de CRIMP para partes crimp)
     // ==========================================
 
-    public function openKitModal(int $index)
+    /**
+     * Devuelve los números de lote/viajero disponibles para un item dado.
+     */
+    protected function lotRefOptionsForIndex(int $index): array
     {
-        $this->currentKitIndex = $index;
-        $this->kitModalError = '';
-        $existingKits = $this->kitNumbers[$index] ?? [];
-
-        if (empty($existingKits)) {
-            $this->tempKits = [['number' => '', 'quantity' => '']];
-        } else {
-            $this->tempKits = array_map(function ($kit) {
-                if (is_array($kit) && isset($kit['number'])) {
-                    return $kit;
+        $options = [];
+        if (!empty($this->lotNumbers[$index]) && is_array($this->lotNumbers[$index])) {
+            foreach ($this->lotNumbers[$index] as $lot) {
+                $number = is_array($lot) ? trim($lot['number'] ?? '') : trim((string) $lot);
+                if ($number !== '') {
+                    $options[] = $number;
                 }
-                return ['number' => $kit, 'quantity' => ''];
-            }, $existingKits);
+            }
+        }
+        return array_values(array_unique($options));
+    }
+
+    public function openCrimpModal(int $index)
+    {
+        $this->currentCrimpIndex = $index;
+        $this->crimpModalError = '';
+
+        // Cargar los lotes/viajeros disponibles del item para el selector lot_ref
+        $this->crimpLotRefOptions = $this->lotRefOptionsForIndex($index);
+        // Si el item tiene un solo lote, se pre-rellena lot_ref con ese (selector oculto en la vista)
+        $defaultRef = count($this->crimpLotRefOptions) === 1 ? $this->crimpLotRefOptions[0] : '';
+
+        $existingCrimpLots = $this->crimpLots[$index] ?? [];
+
+        if (empty($existingCrimpLots)) {
+            $this->tempCrimpLots = [[
+                'lot_ref'         => $defaultRef,
+                'number'          => '',
+                'lote_fabricante' => '',
+                'quantity'        => '',
+                'comments'        => '',
+            ]];
+        } else {
+            $this->tempCrimpLots = array_map(function ($cl) use ($defaultRef) {
+                return [
+                    'lot_ref'         => $cl['lot_ref'] ?? $defaultRef,
+                    'number'          => $cl['number'] ?? '',
+                    'lote_fabricante' => $cl['lote_fabricante'] ?? '',
+                    'quantity'        => $cl['quantity'] ?? '',
+                    'comments'        => $cl['comments'] ?? '',
+                ];
+            }, $existingCrimpLots);
         }
 
-        $this->showKitModal = true;
+        $this->showCrimpModal = true;
     }
 
-    public function closeKitModal()
+    public function closeCrimpModal()
     {
-        $this->showKitModal = false;
-        $this->currentKitIndex = null;
-        $this->tempKits = [];
-        $this->kitModalError = '';
+        $this->showCrimpModal = false;
+        $this->currentCrimpIndex = null;
+        $this->tempCrimpLots = [];
+        $this->crimpLotRefOptions = [];
+        $this->crimpModalError = '';
     }
 
-    public function addKitInput()
+    public function addCrimpInput()
     {
-        $this->tempKits[] = ['number' => '', 'quantity' => ''];
+        $defaultRef = count($this->crimpLotRefOptions) === 1 ? $this->crimpLotRefOptions[0] : '';
+        $this->tempCrimpLots[] = [
+            'lot_ref'         => $defaultRef,
+            'number'          => '',
+            'lote_fabricante' => '',
+            'quantity'        => '',
+            'comments'        => '',
+        ];
     }
 
-    public function removeKitInput(int $kitIndex)
+    public function removeCrimpInput(int $crimpIndex)
     {
-        unset($this->tempKits[$kitIndex]);
-        $this->tempKits = array_values($this->tempKits);
+        unset($this->tempCrimpLots[$crimpIndex]);
+        $this->tempCrimpLots = array_values($this->tempCrimpLots);
 
-        if (empty($this->tempKits)) {
-            $this->tempKits = [['number' => '', 'quantity' => '']];
+        if (empty($this->tempCrimpLots)) {
+            $defaultRef = count($this->crimpLotRefOptions) === 1 ? $this->crimpLotRefOptions[0] : '';
+            $this->tempCrimpLots = [[
+                'lot_ref'         => $defaultRef,
+                'number'          => '',
+                'lote_fabricante' => '',
+                'quantity'        => '',
+                'comments'        => '',
+            ]];
         }
     }
 
-    public function saveKits()
+    public function saveCrimpLots()
     {
-        if ($this->currentKitIndex === null) {
+        if ($this->currentCrimpIndex === null) {
             return;
         }
 
-        $this->kitModalError = '';
+        $this->crimpModalError = '';
 
-        $filteredKits = array_values(array_filter($this->tempKits, function ($kit) {
-            return !empty(trim($kit['number'] ?? ''));
+        // Filtrar filas sin número de lote de CRIMP
+        $filteredCrimpLots = array_values(array_filter($this->tempCrimpLots, function ($cl) {
+            return !empty(trim($cl['number'] ?? ''));
         }));
 
-        // CAP-1: cada kit debe tener una cantidad > 0
-        foreach ($filteredKits as $kit) {
-            if ((int) ($kit['quantity'] ?? 0) < 1) {
-                $this->kitModalError = 'Cada kit debe tener una cantidad mayor a 0.';
+        // CAP-1: cada lote de CRIMP debe tener una cantidad > 0 (lote_fabricante es opcional)
+        foreach ($filteredCrimpLots as $cl) {
+            if ((int) ($cl['quantity'] ?? 0) < 1) {
+                $this->crimpModalError = 'Cada lote de CRIMP debe tener una cantidad mayor a 0.';
                 return;
             }
         }
 
-        if (!empty($filteredKits)) {
-            $this->kitNumbers[$this->currentKitIndex] = $filteredKits;
+        if (!empty($filteredCrimpLots)) {
+            $this->crimpLots[$this->currentCrimpIndex] = $filteredCrimpLots;
         } else {
-            unset($this->kitNumbers[$this->currentKitIndex]);
+            unset($this->crimpLots[$this->currentCrimpIndex]);
         }
 
-        $this->closeKitModal();
+        $this->closeCrimpModal();
     }
 
     /**
-     * CAP-1: valida las cantidades de lotes y kits de todos los items.
+     * CAP-1: valida las cantidades de lotes y lotes de CRIMP de todos los items.
      * Devuelve el primer mensaje de error encontrado, o null si todo es válido.
      */
-    protected function validateLotKitQuantities(): ?string
+    protected function validateLotCrimpQuantities(): ?string
     {
         foreach ($this->workOrderItems as $index => $item) {
             $itemQty = (int) ($item['quantity'] ?? 0);
             $label = $item['po_number'] ?? $item['part_number'] ?? ('#' . ($index + 1));
 
-            // Lotes
+            // Lotes (intacto)
             if (!empty($this->lotNumbers[$index]) && is_array($this->lotNumbers[$index])) {
                 $sum = 0;
                 foreach ($this->lotNumbers[$index] as $lot) {
@@ -719,14 +768,20 @@ class CapacityWizard extends Component
                 }
             }
 
-            // Kits
-            if (!empty($this->kitNumbers[$index]) && is_array($this->kitNumbers[$index])) {
-                foreach ($this->kitNumbers[$index] as $kit) {
-                    if (!is_array($kit) || empty(trim($kit['number'] ?? ''))) {
+            // Lotes de CRIMP
+            if (!empty($this->crimpLots[$index]) && is_array($this->crimpLots[$index])) {
+                $availableRefs = $this->lotRefOptionsForIndex($index);
+                foreach ($this->crimpLots[$index] as $cl) {
+                    if (!is_array($cl) || empty(trim($cl['number'] ?? ''))) {
                         continue;
                     }
-                    if ((int) ($kit['quantity'] ?? 0) < 1) {
-                        return "PO {$label}: cada kit debe tener una cantidad mayor a 0.";
+                    if ((int) ($cl['quantity'] ?? 0) < 1) {
+                        return "PO {$label}: cada lote de CRIMP debe tener una cantidad mayor a 0.";
+                    }
+                    // lot_ref debe corresponder a un lote existente del item (si hay lotes definidos)
+                    $lotRef = trim($cl['lot_ref'] ?? '');
+                    if (!empty($availableRefs) && ($lotRef === '' || !in_array($lotRef, $availableRefs, true))) {
+                        return "PO {$label}: el lote de CRIMP debe asociarse a un lote/viajero válido.";
                     }
                 }
             }
@@ -748,8 +803,8 @@ class CapacityWizard extends Component
             return;
         }
 
-        // CAP-1: validación final de cantidades de lotes y kits
-        $quantityError = $this->validateLotKitQuantities();
+        // CAP-1: validación final de cantidades de lotes y lotes de CRIMP
+        $quantityError = $this->validateLotCrimpQuantities();
         if ($quantityError !== null) {
             $this->errorMessage = $quantityError;
             return;
@@ -833,19 +888,20 @@ class CapacityWizard extends Component
                         
                         // Crear registros Lot reales para que aparezcan en /admin/lots
                         $createdLotIds = [];
+                        $lotIdByNumber = []; // Mapa número de lote => id (para colgar lotes de CRIMP de su viajero)
                         if ($purchaseOrder && $purchaseOrder->workOrder && !empty($lotNumbersArray)) {
                             $workOrder = $purchaseOrder->workOrder;
                             $partDescription = $purchaseOrder->part->description ?? 'Sin descripción';
-                            
+
                             foreach ($lotNumbersArray as $lot) {
                                 $lotNumber = trim($lot['number'] ?? '');
                                 $lotQuantity = isset($lot['quantity']) && $lot['quantity'] !== '' ? intval($lot['quantity']) : 0;
-                                
+
                                 if (!empty($lotNumber)) {
                                     $existingLot = Lot::where('work_order_id', $workOrder->id)
                                         ->where('lot_number', $lotNumber)
                                         ->first();
-                                    
+
                                     if (!$existingLot) {
                                         $newLot = Lot::create([
                                             'work_order_id' => $workOrder->id,
@@ -856,51 +912,42 @@ class CapacityWizard extends Component
                                             'comments' => "Generado automáticamente desde Capacity Wizard",
                                         ]);
                                         $createdLotIds[] = $newLot->id;
+                                        $lotIdByNumber[$lotNumber] = $newLot->id;
                                     } else {
                                         $createdLotIds[] = $existingLot->id;
+                                        $lotIdByNumber[$lotNumber] = $existingLot->id;
                                     }
                                 }
                             }
                         }
-                        
-                        // Crear registros Kit para partes crimp y asociarlos a los lotes
+
+                        // Crear lotes de CRIMP para partes crimp, colgando de su viajero (Opción A)
                         $isCrimp = $item['is_crimp'] ?? false;
                         if ($isCrimp && $purchaseOrder && $purchaseOrder->workOrder) {
-                            $workOrder = $purchaseOrder->workOrder;
-                            $kitNumbersArray = [];
-                            
-                            if (isset($this->kitNumbers[$index]) && is_array($this->kitNumbers[$index])) {
-                                foreach ($this->kitNumbers[$index] as $kit) {
-                                    if (is_array($kit) && !empty($kit['number'])) {
-                                        $kitNumbersArray[] = $kit;
-                                    }
+                            foreach (($this->crimpLots[$index] ?? []) as $cl) {
+                                $number = trim($cl['number'] ?? '');
+                                if ($number === '') {
+                                    continue;
                                 }
-                            }
-                            
-                            foreach ($kitNumbersArray as $kit) {
-                                $kitNumber = trim($kit['number'] ?? '');
-                                $kitQuantity = isset($kit['quantity']) && $kit['quantity'] !== '' ? intval($kit['quantity']) : 0;
-                                
-                                if (!empty($kitNumber)) {
-                                    $existingKit = Kit::where('work_order_id', $workOrder->id)
-                                        ->where('kit_number', $kitNumber)
-                                        ->first();
-                                    
-                                    if (!$existingKit) {
-                                        $newKit = Kit::create([
-                                            'work_order_id' => $workOrder->id,
-                                            'kit_number' => $kitNumber,
-                                            'quantity' => $kitQuantity,
-                                            'status' => Kit::STATUS_PREPARING,
-                                            'current_approval_cycle' => 1,
-                                        ]);
-                                        
-                                        // Associate kit with all lots of this WO
-                                        if (!empty($createdLotIds)) {
-                                            $newKit->lots()->syncWithoutDetaching($createdLotIds);
-                                        }
-                                    }
+                                // Resolver el viajero al que pertenece (Opción A)
+                                $lotRef = $cl['lot_ref'] ?? array_key_first($lotIdByNumber);
+                                $lotId  = $lotIdByNumber[$lotRef] ?? null;
+                                if (!$lotId) {
+                                    continue; // viajero no resuelto: no persistir huérfano
                                 }
+                                // Idempotencia: no duplicar por (lot_id, crimp_lot_number)
+                                $exists = CrimpLot::where('lot_id', $lotId)
+                                    ->where('crimp_lot_number', $number)->exists();
+                                if ($exists) {
+                                    continue;
+                                }
+                                CrimpLot::create([
+                                    'lot_id'           => $lotId,
+                                    'crimp_lot_number' => $number,
+                                    'lote_fabricante'  => trim($cl['lote_fabricante'] ?? '') ?: null,
+                                    'quantity'         => ($cl['quantity'] ?? '') !== '' ? (int) $cl['quantity'] : null,
+                                    'comments'         => trim($cl['comments'] ?? '') ?: null,
+                                ]);
                             }
                         }
                     }
@@ -942,10 +989,11 @@ class CapacityWizard extends Component
             'showLotModal',
             'currentLotIndex',
             'tempLots',
-            'kitNumbers',
-            'showKitModal',
-            'currentKitIndex',
-            'tempKits',
+            'crimpLots',
+            'showCrimpModal',
+            'currentCrimpIndex',
+            'tempCrimpLots',
+            'crimpLotRefOptions',
         ]);
 
         $this->numPersons = 0;

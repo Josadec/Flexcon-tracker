@@ -1,16 +1,17 @@
 <div class="space-y-6">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-            <a
-                href="{{ route('admin.shipping-list.index') }}"
-                wire:navigate
+            {{-- Usa wire:click para guardar en sesión el tab de retorno ('list')
+                 antes de redirigir, manteniendo la URL limpia sin query strings. --}}
+            <button
+                wire:click="goBackToShippingList"
                 class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 Volver a Shipping List
-            </a>
+            </button>
             <h1 class="mt-3 text-2xl font-semibold text-gray-900 dark:text-white">Nuevo Shipping List</h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Crea un documento de empaque seleccionando lotes disponibles para despacho.

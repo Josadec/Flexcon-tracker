@@ -25,6 +25,12 @@ class PackingSlipCreate extends Component
         $this->document_date = '';
     }
 
+    public function goBackToShippingList(): void
+    {
+        session(['shipping_list_return_tab' => 'list']);
+        $this->redirect(route('admin.shipping-list.index'));
+    }
+
     protected function rules(): array
     {
         return [

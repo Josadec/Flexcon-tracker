@@ -100,6 +100,11 @@
                         Envíos</strong>.
                     Opcionalmente puede asignar números de lote/viajero a cada PO.
                 </p>
+                @php
+                    // Opción B: encabezado dinámico — si la lista contiene alguna parte CRIMP,
+                    // la columna de la unidad principal (Lot) se rotula como "Viajeros".
+                    $listHasCrimp = collect($workOrderItems)->contains(fn ($it) => $it['is_crimp'] ?? false);
+                @endphp
                 <div class="rounded-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
                     <table class="w-full">
                         <thead class="bg-gray-50 dark:bg-gray-900/50">
@@ -127,10 +132,10 @@
                                     Horas Req.</th>
                                 <th
                                     class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                                    Lotes</th>
+                                    {{ $listHasCrimp ? 'Viajeros' : 'Lotes' }}</th>
                                 <th
                                     class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                                    Kits</th>
+                                    Lotes de CRIMP</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -139,8 +144,8 @@
                                     $isCrimp = $item['is_crimp'] ?? false;
                                     $lots = $lotNumbers[$index] ?? [];
                                     $lotCount = is_array($lots) ? count($lots) : 0;
-                                    $kits = $kitNumbers[$index] ?? [];
-                                    $kitCount = is_array($kits) ? count($kits) : 0;
+                                    $crimps = $crimpLots[$index] ?? [];
+                                    $crimpCount = is_array($crimps) ? count($crimps) : 0;
                                 @endphp
                                 <tr>
                                     <td class="px-4 py-3 text-gray-500 dark:text-gray-400">{{ $index + 1 }}</td>
@@ -177,7 +182,7 @@
                                                     @endforeach
                                                 </div>
                                             @else
-                                                <span class="text-gray-400 text-sm flex-1">Sin lotes</span>
+                                                <span class="text-gray-400 text-sm flex-1">{{ $listHasCrimp ? 'Sin viajeros' : 'Sin lotes' }}</span>
                                             @endif
                                             <button wire:click="openLotModal({{ $index }})" type="button"
                                                 class="inline-flex items-center justify-center p-1.5 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
@@ -188,29 +193,32 @@
                                             </button>
                                         </div>
                                     </td>
-                                    {{-- Kits column (only for crimp) --}}
+                                    {{-- Lotes de CRIMP column (only for crimp) --}}
                                     <td class="px-4 py-3">
                                         @if ($isCrimp)
                                             <div class="flex items-center gap-2">
-                                                @if ($kitCount > 0)
+                                                @if ($crimpCount > 0)
                                                     <div class="flex flex-wrap gap-1 flex-1">
-                                                        @foreach ($kits as $kit)
-                                                            @if (is_array($kit) && !empty($kit['number']))
+                                                        @foreach ($crimps as $crimp)
+                                                            @if (is_array($crimp) && !empty($crimp['number']))
                                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                                                    {{ $kit['number'] }}
-                                                                    @if (!empty($kit['quantity']))
-                                                                        <span class="ml-1 text-purple-600 dark:text-purple-300">({{ number_format($kit['quantity']) }})</span>
+                                                                    {{ $crimp['number'] }}
+                                                                    @if (!empty($crimp['lote_fabricante']))
+                                                                        <span class="ml-1 text-purple-500 dark:text-purple-400">/ {{ $crimp['lote_fabricante'] }}</span>
+                                                                    @endif
+                                                                    @if (!empty($crimp['quantity']))
+                                                                        <span class="ml-1 text-purple-600 dark:text-purple-300">({{ number_format($crimp['quantity']) }})</span>
                                                                     @endif
                                                                 </span>
                                                             @endif
                                                         @endforeach
                                                     </div>
                                                 @else
-                                                    <span class="text-gray-400 text-sm flex-1">Sin kits</span>
+                                                    <span class="text-gray-400 text-sm flex-1">Sin lotes de CRIMP</span>
                                                 @endif
-                                                <button wire:click="openKitModal({{ $index }})" type="button"
+                                                <button wire:click="openCrimpModal({{ $index }})" type="button"
                                                     class="inline-flex items-center justify-center p-1.5 rounded-md text-gray-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
-                                                    title="Gestionar kits">
+                                                    title="Gestionar lotes de CRIMP">
                                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                                     </svg>
@@ -381,13 +389,13 @@
         </div>
     @endif
 
-    {{-- Modal para Agregar Múltiples Kits (crimp parts) --}}
-    @if ($showKitModal && $currentKitIndex !== null)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="kit-modal-title" role="dialog"
+    {{-- Modal para Agregar Múltiples Lotes de CRIMP (crimp parts) --}}
+    @if ($showCrimpModal && $currentCrimpIndex !== null)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="crimp-modal-title" role="dialog"
             aria-modal="true">
             <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 {{-- Background overlay --}}
-                <div class="fixed inset-0 bg-gray-500/75 transition-opacity" wire:click="closeKitModal">
+                <div class="fixed inset-0 bg-gray-500/75 transition-opacity" wire:click="closeCrimpModal">
                 </div>
 
                 {{-- Modal panel --}}
@@ -397,20 +405,20 @@
                         {{-- Header --}}
                         <div class="flex items-center justify-between mb-4">
                             <div>
-                                <h3 class="text-lg font-medium text-gray-900 dark:text-white" id="kit-modal-title">
-                                    Gestionar Kits
+                                <h3 class="text-lg font-medium text-gray-900 dark:text-white" id="crimp-modal-title">
+                                    Gestionar Lotes de CRIMP
                                     <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">CRIMP</span>
                                 </h3>
-                                @if (isset($workOrderItems[$currentKitIndex]))
+                                @if (isset($workOrderItems[$currentCrimpIndex]))
                                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                         PO:
-                                        <strong>{{ $workOrderItems[$currentKitIndex]['po_number'] ?? 'N/A' }}</strong>
+                                        <strong>{{ $workOrderItems[$currentCrimpIndex]['po_number'] ?? 'N/A' }}</strong>
                                         |
-                                        Parte: <strong>{{ $workOrderItems[$currentKitIndex]['part_number'] }}</strong>
+                                        Parte: <strong>{{ $workOrderItems[$currentCrimpIndex]['part_number'] }}</strong>
                                     </p>
                                 @endif
                             </div>
-                            <button wire:click="closeKitModal" class="text-gray-400 hover:text-gray-500">
+                            <button wire:click="closeCrimpModal" class="text-gray-400 hover:text-gray-500">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M6 18L18 6M6 6l12 12"></path>
@@ -418,21 +426,48 @@
                             </button>
                         </div>
 
-                        {{-- Kits List --}}
-                        <div class="space-y-3 max-h-80 overflow-y-auto">
-                            @foreach ($tempKits as $kitIndex => $kit)
-                                <div class="flex items-start gap-2">
+                        {{-- Lotes de CRIMP List --}}
+                        <div class="space-y-4 max-h-96 overflow-y-auto">
+                            @foreach ($tempCrimpLots as $crimpIndex => $crimp)
+                                <div class="flex items-start gap-2 border-b border-gray-100 dark:border-gray-700 pb-3 last:border-b-0">
                                     <span class="text-sm font-medium text-gray-500 dark:text-gray-400 w-8 pt-2">
-                                        {{ $kitIndex + 1 }}.
+                                        {{ $crimpIndex + 1 }}.
                                     </span>
                                     <div class="flex-1 space-y-2">
+                                        {{-- Selector de viajero (oculto si solo hay 1 lote) --}}
+                                        @if (count($crimpLotRefOptions) > 1)
+                                            <div>
+                                                <label
+                                                    class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Viajero / Lote
+                                                </label>
+                                                <select wire:model="tempCrimpLots.{{ $crimpIndex }}.lot_ref"
+                                                    class="w-full rounded-md p-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
+                                                    <option value="">Seleccione un viajero…</option>
+                                                    @foreach ($crimpLotRefOptions as $refOption)
+                                                        <option value="{{ $refOption }}">{{ $refOption }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        @else
+                                            <input type="hidden" wire:model="tempCrimpLots.{{ $crimpIndex }}.lot_ref" />
+                                        @endif
                                         <div>
                                             <label
                                                 class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                No. Kit
+                                                No. Lote CRIMP
                                             </label>
-                                            <input type="text" wire:model="tempKits.{{ $kitIndex }}.number"
-                                                placeholder="Ej: KIT-001"
+                                            <input type="text" wire:model="tempCrimpLots.{{ $crimpIndex }}.number"
+                                                placeholder="Ej: CL-001"
+                                                class="w-full rounded-md p-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500" />
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Lote de fabricante <span class="text-gray-400 font-normal">(opcional)</span>
+                                            </label>
+                                            <input type="text" wire:model="tempCrimpLots.{{ $crimpIndex }}.lote_fabricante"
+                                                placeholder="Ej: F-22"
                                                 class="w-full rounded-md p-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500" />
                                         </div>
                                         <div>
@@ -440,14 +475,23 @@
                                                 class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                 Cantidad
                                             </label>
-                                            <input type="number" wire:model="tempKits.{{ $kitIndex }}.quantity"
+                                            <input type="number" wire:model="tempCrimpLots.{{ $crimpIndex }}.quantity"
                                                 placeholder="Ej: 500" min="1"
                                                 class="w-full rounded-md p-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500" />
                                         </div>
+                                        <div>
+                                            <label
+                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Comentarios <span class="text-gray-400 font-normal">(opcional)</span>
+                                            </label>
+                                            <input type="text" wire:model="tempCrimpLots.{{ $crimpIndex }}.comments"
+                                                placeholder="Notas del lote de CRIMP"
+                                                class="w-full rounded-md p-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500" />
+                                        </div>
                                     </div>
-                                    <button wire:click="removeKitInput({{ $kitIndex }})" type="button"
+                                    <button wire:click="removeCrimpInput({{ $crimpIndex }})" type="button"
                                         class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition mt-6"
-                                        title="Eliminar kit">
+                                        title="Eliminar lote de CRIMP">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -460,29 +504,29 @@
                         </div>
 
                         {{-- Add More Button --}}
-                        <button wire:click="addKitInput" type="button"
+                        <button wire:click="addCrimpInput" type="button"
                             class="mt-4 w-full inline-flex items-center justify-center px-4 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-purple-500 hover:text-purple-500 transition">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
-                            Agregar otro kit
+                            Agregar otro lote de CRIMP
                         </button>
 
-                        @if ($kitModalError)
+                        @if ($crimpModalError)
                             <div class="mt-4 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
-                                {{ $kitModalError }}
+                                {{ $crimpModalError }}
                             </div>
                         @endif
                     </div>
 
                     {{-- Footer --}}
                     <div class="bg-gray-50 dark:bg-gray-900 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
-                        <button wire:click="saveKits" type="button"
+                        <button wire:click="saveCrimpLots" type="button"
                             class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm">
-                            Guardar Kits
+                            Guardar Lotes de CRIMP
                         </button>
-                        <button wire:click="closeKitModal" type="button"
+                        <button wire:click="closeCrimpModal" type="button"
                             class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:mt-0 sm:w-auto sm:text-sm">
                             Cancelar
                         </button>
