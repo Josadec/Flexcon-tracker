@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\SentList;
+use App\Models\WorkOrder;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SentListController extends Controller
 {
@@ -20,6 +23,75 @@ class SentListController extends Controller
             ->paginate(15);
 
         return view('sent-lists.index', compact('sentLists'));
+    }
+
+    /**
+     * Export the shipping list (Lista de Envío, FPL-02) of a single SentList as PDF.
+     *
+     * Reproduce el documento físico de Ensambles Formula con las WOs de ESTA lista
+     * preliminar (reflejando sus últimos cambios), agrupadas en bandas:
+     *   Atrasados (POs carryover) → Mesas → Máquinas → Máquinas Semi-Automáticas.
+     * Las WOs se resuelven igual que la vista enfocada de ShippingListDisplay:
+     * por sent_list_id directo o vía el pivot PO ↔ SentList.
+     * La banda de cada WO no-carryover usa PO.workstation_type con fallback al
+     * modo de ensamble del Standard activo.
+     */
+    public function exportPdf(SentList $sentList)
+    {
+        $workOrders = WorkOrder::with([
+                'purchaseOrder.part.standards' => fn ($q) => $q->active(),
+                'lots',
+                'sentList',
+            ])
+            ->where(function ($q) use ($sentList) {
+                $q->where('sent_list_id', $sentList->id)
+                  ->orWhereHas('purchaseOrder.sentLists', fn ($sub) => $sub->where('sent_lists.id', $sentList->id));
+            })
+            ->orderBy('wo_number')
+            ->get();
+
+        // POs marcadas como carryover en cualquier lista → banda "Atrasados".
+        $carryoverPoIds = DB::table('sent_list_purchase_orders')
+            ->where('is_carryover', true)
+            ->pluck('purchase_order_id')
+            ->flip();
+
+        $resolveWorkstation = function (WorkOrder $wo) {
+            $woType = $wo->purchaseOrder->workstation_type ?? null;
+            $mode = $woType ?: optional($wo->purchaseOrder->part->standards->first())->getAssemblyMode();
+
+            return match ($mode) {
+                'manual', 'table' => 'Mesas',
+                'machine'         => 'Maquinas',
+                'semi_automatic'  => 'Maquinas Semi-Automaticas',
+                default           => 'Sin Clasificar',
+            };
+        };
+
+        $groups = [];
+        foreach ($workOrders as $wo) {
+            $band = isset($carryoverPoIds[$wo->purchase_order_id])
+                ? 'Atrasados'
+                : $resolveWorkstation($wo);
+            $groups[$band][] = $wo;
+        }
+
+        // Orden fijo de las bandas, omitiendo las vacías.
+        $bandOrder = ['Atrasados', 'Mesas', 'Maquinas', 'Maquinas Semi-Automaticas', 'Sin Clasificar'];
+        $ordered = [];
+        foreach ($bandOrder as $band) {
+            if (! empty($groups[$band])) {
+                $ordered[$band] = collect($groups[$band]);
+            }
+        }
+
+        $pdf = Pdf::loadView('sent-lists.pdf.shipping-list', [
+            'groups'      => $ordered,
+            'sentList'    => $sentList,
+            'generatedAt' => now(),
+        ])->setPaper('letter', 'landscape');
+
+        return $pdf->download('lista-de-envio-' . $sentList->id . '-' . now()->format('Y-m-d') . '.pdf');
     }
 
     /**
