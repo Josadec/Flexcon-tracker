@@ -53,6 +53,7 @@ class CapacityWizard extends Component
     public string $poSearchTerm = '';
 
     // Step 3 - Lista Preliminar
+    public string $itemSearchTerm = ''; // Búsqueda live en la tabla resumen (WO, PO, parte, descripción)
     public ?int $generatedSentListId = null;
     public array $lotNumbers = []; // Números de lote para cada PO (múltiples por índice)
     
@@ -498,6 +499,33 @@ class CapacityWizard extends Component
         }
 
         return $query->orderBy('po_number')->get();
+    }
+
+    /**
+     * Items de la tabla resumen (paso 3) filtrados por itemSearchTerm.
+     * Filtra en memoria por WO, PO, número de parte o descripción (case-insensitive,
+     * coincidencia parcial). Preserva el índice original de cada item para que las
+     * acciones por fila (removeWorkOrderItem, openLotModal, openCrimpModal) sigan
+     * recibiendo el índice correcto. No muta workOrderItems ni la selección.
+     */
+    public function getFilteredWorkOrderItemsProperty(): array
+    {
+        $term = trim($this->itemSearchTerm);
+
+        if ($term === '') {
+            return $this->workOrderItems;
+        }
+
+        $needle = mb_strtolower($term);
+
+        return array_filter($this->workOrderItems, function ($item) use ($needle) {
+            foreach (['wo', 'po_number', 'part_number', 'part_description'] as $field) {
+                if (mb_strpos(mb_strtolower((string) ($item[$field] ?? '')), $needle) !== false) {
+                    return true;
+                }
+            }
+            return false;
+        });
     }
 
     public function removeWorkOrderItem(int $index)

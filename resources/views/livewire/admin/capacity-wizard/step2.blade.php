@@ -249,7 +249,7 @@
                     {{-- Search --}}
                     <div class="mb-4">
                         <input wire:model.live.debounce.300ms="poSearchTerm" type="text"
-                            placeholder="Buscar por WO o número de parte..."
+                            placeholder="Buscar por WO, PO, parte o descripción..."
                             class="w-full rounded-md p-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     </div>
 

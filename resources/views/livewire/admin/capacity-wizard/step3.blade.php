@@ -105,6 +105,17 @@
                     // la columna de la unidad principal (Lot) se rotula como "Viajeros".
                     $listHasCrimp = collect($workOrderItems)->contains(fn ($it) => $it['is_crimp'] ?? false);
                 @endphp
+                {{-- Buscador live: filtra la tabla por WO, PO, número de parte o descripción --}}
+                <div class="relative mb-3">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </span>
+                    <input type="text" wire:model.live.debounce.300ms="itemSearchTerm"
+                        placeholder="Buscar por WO, PO, parte o descripción..."
+                        class="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
                 <div class="rounded-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
                     <table class="w-full">
                         <thead class="bg-gray-50 dark:bg-gray-900/50">
@@ -139,7 +150,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                            @foreach ($workOrderItems as $index => $item)
+                            @forelse ($this->filteredWorkOrderItems as $index => $item)
                                 @php
                                     $isCrimp = $item['is_crimp'] ?? false;
                                     $lots = $lotNumbers[$index] ?? [];
@@ -229,7 +240,13 @@
                                         @endif
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="9" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                                        No se encontraron POs que coincidan con "{{ $itemSearchTerm }}".
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                         <tfoot class="bg-gray-50 dark:bg-gray-900">
                             <tr>
