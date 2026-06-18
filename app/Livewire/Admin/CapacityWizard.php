@@ -315,23 +315,29 @@ class CapacityWizard extends Component
         $this->showPOModal = true;
         $this->poSearchTerm = '';
 
-        // Pre-seleccionar los POs que ya están en la lista
-        $this->selectedPOs = array_values(array_column($this->workOrderItems, 'po_id'));
-
-        // Pre-cargar las configuraciones ya seleccionadas para cada PO que está en la lista
-        $this->poConfigurations = [];
+        // Pre-seleccionar los POs que ya están en la lista, SIN pisar la selección
+        // que el usuario haya dejado en borrador (cerró el modal sin "Agregar").
         foreach ($this->workOrderItems as $item) {
-            if (!empty($item['po_id']) && !empty($item['configuration']['id'])) {
+            if (empty($item['po_id'])) {
+                continue;
+            }
+            if (!in_array($item['po_id'], $this->selectedPOs)) {
+                $this->selectedPOs[] = $item['po_id'];
+            }
+            // Solo completar configuraciones ausentes; respetar las del borrador.
+            if (!empty($item['configuration']['id']) && !isset($this->poConfigurations[$item['po_id']])) {
                 $this->poConfigurations[$item['po_id']] = $item['configuration']['id'];
             }
         }
+        $this->selectedPOs = array_values($this->selectedPOs);
     }
 
     public function closePOModal()
     {
+        // Solo ocultamos el modal. La selección (selectedPOs/poConfigurations) se
+        // conserva como borrador mientras no se recargue la página; el reset real
+        // ocurre tras "Agregar Seleccionados" (addSelectedPOs) o en resetWizard().
         $this->showPOModal = false;
-        $this->selectedPOs = [];
-        $this->poConfigurations = [];
     }
 
     public function togglePOSelection(int $poId)
@@ -979,6 +985,8 @@ class CapacityWizard extends Component
             'totalAvailableHours',
             'shiftDetails',
             'workOrderItems',
+            'selectedPOs',
+            'poConfigurations',
             'totalRequiredHours',
             'remainingHours',
             'suggestedOvertime',
