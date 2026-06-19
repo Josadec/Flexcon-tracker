@@ -25,6 +25,8 @@ yarn-error.log
 /.zed
 /.kiro
 /.trae
+# Claude Code: ajustes locales por desarrollador (no compartir)
+/.claude/settings.local.json
 # Playwright test artifacts
 /test-results/
 /playwright-report/
