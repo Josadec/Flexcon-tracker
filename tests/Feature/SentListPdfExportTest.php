@@ -293,6 +293,77 @@ class SentListPdfExportTest extends TestCase
     }
 
     /**
+     * 4f) En flujo CRIMP, el comentario del Viajero (Lot->comments) se muestra en la
+     *     celda "Piezas Enviadas" junto a los comentarios de los Lotes de CRIMP.
+     */
+    public function test_muestra_comentario_del_viajero_en_crimp(): void
+    {
+        [$sl, $wo, , , $lot] = $this->makeSentListWithWorkOrder(
+            isCrimp: true,
+            lotComment: 'Comentario del viajero CRIMP'
+        );
+
+        CrimpLot::create([
+            'lot_id' => $lot->id,
+            'crimp_lot_number' => '001',
+            'lote_fabricante' => 'PROV-AAA',
+            'quantity' => 600,
+            'comments' => 'Lote de crimp de 600',
+        ]);
+
+        $wo->load(['purchaseOrder.part', 'lots.crimpLots']);
+
+        $html = View::make('sent-lists.pdf.shipping-list', [
+            'groups' => ['Mesas' => collect([$wo])],
+            'sentList' => $sl,
+            'generatedAt' => now(),
+        ])->render();
+
+        $this->assertStringContainsString(
+            'Comentario del viajero CRIMP',
+            $html,
+            'El comentario del Viajero debe mostrarse en el PDF CRIMP'
+        );
+        $this->assertStringContainsString(
+            'Lote de crimp de 600',
+            $html,
+            'El comentario del CrimpLot debe seguir mostrandose'
+        );
+    }
+
+    /**
+     * 4g) En CRIMP, la nota auto-generada del Wizard a nivel de Viajero NO se muestra.
+     */
+    public function test_oculta_autonota_del_viajero_en_crimp(): void
+    {
+        [$sl, $wo, , , $lot] = $this->makeSentListWithWorkOrder(
+            isCrimp: true,
+            lotComment: 'Generado automáticamente desde Capacity Wizard'
+        );
+
+        CrimpLot::create([
+            'lot_id' => $lot->id,
+            'crimp_lot_number' => '001',
+            'quantity' => 600,
+            'comments' => 'Lote de crimp de 600',
+        ]);
+
+        $wo->load(['purchaseOrder.part', 'lots.crimpLots']);
+
+        $html = View::make('sent-lists.pdf.shipping-list', [
+            'groups' => ['Mesas' => collect([$wo])],
+            'sentList' => $sl,
+            'generatedAt' => now(),
+        ])->render();
+
+        $this->assertStringNotContainsString(
+            'Generado automáticamente desde Capacity Wizard',
+            $html,
+            'La nota auto-generada del Viajero NO debe mostrarse en CRIMP'
+        );
+    }
+
+    /**
      * 4d) El numero de PO aparece (en rojo, celda .item-no) en la fila Total, para
      *     cualquier WO. Se valida con una parte NO-crimp para confirmar que NO es
      *     exclusivo del flujo CRIMP.

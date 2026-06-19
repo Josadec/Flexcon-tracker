@@ -562,15 +562,16 @@ class CapacityWizard extends Component
         $existingLots = $this->lotNumbers[$index] ?? [];
         
         if (empty($existingLots)) {
-            $this->tempLots = [['number' => '', 'quantity' => '']];
+            $this->tempLots = [['number' => '', 'quantity' => '', 'comment' => '']];
         } else {
             // Ensure existing lots have the new structure
             $this->tempLots = array_map(function($lot) {
                 if (is_array($lot) && isset($lot['number'])) {
-                    return $lot;
+                    // Garantiza la clave 'comment' en lotes existentes.
+                    return array_merge(['comment' => ''], $lot);
                 }
                 // Convert old format (string) to new format
-                return ['number' => $lot, 'quantity' => ''];
+                return ['number' => $lot, 'quantity' => '', 'comment' => ''];
             }, $existingLots);
         }
         
@@ -587,7 +588,7 @@ class CapacityWizard extends Component
 
     public function addLotInput()
     {
-        $this->tempLots[] = ['number' => '', 'quantity' => ''];
+        $this->tempLots[] = ['number' => '', 'quantity' => '', 'comment' => ''];
     }
 
     public function removeLotInput(int $lotIndex)
@@ -596,7 +597,7 @@ class CapacityWizard extends Component
         $this->tempLots = array_values($this->tempLots);
 
         if (empty($this->tempLots)) {
-            $this->tempLots = [['number' => '', 'quantity' => '']];
+            $this->tempLots = [['number' => '', 'quantity' => '', 'comment' => '']];
         }
     }
 
@@ -930,6 +931,7 @@ class CapacityWizard extends Component
                             foreach ($lotNumbersArray as $lot) {
                                 $lotNumber = trim($lot['number'] ?? '');
                                 $lotQuantity = isset($lot['quantity']) && $lot['quantity'] !== '' ? intval($lot['quantity']) : 0;
+                                $lotComment = trim($lot['comment'] ?? '');
 
                                 if (!empty($lotNumber)) {
                                     $existingLot = Lot::where('work_order_id', $workOrder->id)
@@ -943,11 +945,19 @@ class CapacityWizard extends Component
                                             'description' => $partDescription,
                                             'quantity' => $lotQuantity,
                                             'status' => Lot::STATUS_PENDING,
-                                            'comments' => "Generado automáticamente desde Capacity Wizard",
+                                            // Si el usuario escribió comentario, se guarda ESE;
+                                            // si no, se conserva la nota auto-generada (que el PDF oculta).
+                                            'comments' => $lotComment !== ''
+                                                ? $lotComment
+                                                : 'Generado automáticamente desde Capacity Wizard',
                                         ]);
                                         $createdLotIds[] = $newLot->id;
                                         $lotIdByNumber[$lotNumber] = $newLot->id;
                                     } else {
+                                        // Lote existente: si el usuario escribió comentario, actualizarlo.
+                                        if ($lotComment !== '') {
+                                            $existingLot->update(['comments' => $lotComment]);
+                                        }
                                         $createdLotIds[] = $existingLot->id;
                                         $lotIdByNumber[$lotNumber] = $existingLot->id;
                                     }

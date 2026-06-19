@@ -131,6 +131,15 @@
                             @php
                                 $crimps = $lot->crimpLots;
                                 $viajeroCell = $lot->lot_number . ')' . $fmt($lot->quantity);
+
+                                // Comentario del Viajero (nivel Lot), ocultando la nota auto-generada del Wizard.
+                                $rawLotComment = trim((string) ($lot->comments ?? ''));
+                                $isAutoLotNote = $rawLotComment !== ''
+                                    && str_contains(
+                                        mb_strtolower($rawLotComment),
+                                        mb_strtolower('Generado automáticamente desde Capacity Wizard')
+                                    );
+                                $viajeroComment = $isAutoLotNote ? '' : $rawLotComment;
                             @endphp
                             @forelse ($crimps as $ci => $crimp)
                                 <tr class="sub">
@@ -139,7 +148,7 @@
                                     <td class="ctr" style="font-weight:bold;">{{ $viajeroCell }}</td>
                                     <td>{{ $crimp->lote_fabricante }}</td>
                                     <td class="qty-cell">{{ $crimp->crimp_lot_number . ')' . $fmt($crimp->quantity) }}</td>
-                                    <td class="note">{{ $crimp->comments }}</td>
+                                    <td class="note">@if ($ci === 0 && $viajeroComment !== ''){{ $viajeroComment }}@if ($crimp->comments)<br>@endif@endif{{ $crimp->comments }}</td>
                                     <td></td>
                                     <td></td>
                                     <td></td>
@@ -156,7 +165,7 @@
                                     <td class="ctr" style="font-weight:bold;">{{ $viajeroCell }}</td>
                                     <td></td>
                                     <td class="qty-cell">{{ $fmt($lot->quantity) }}</td>
-                                    <td class="note"></td>
+                                    <td class="note">{{ $viajeroComment }}</td>
                                     <td></td>
                                     <td></td>
                                     <td></td>

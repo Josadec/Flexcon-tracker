@@ -358,6 +358,15 @@
                                                 placeholder="Ej: 400" min="1"
                                                 class="w-full rounded-md p-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                                         </div>
+                                        <div>
+                                            <label
+                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Comentario (opcional)
+                                            </label>
+                                            <input type="text" wire:model="tempLots.{{ $lotIndex }}.comment"
+                                                placeholder="Ej: Viajero parcial, falta material"
+                                                class="w-full rounded-md p-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                                        </div>
                                     </div>
                                     <button wire:click="removeLotInput({{ $lotIndex }})" type="button"
                                         class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition mt-6"
