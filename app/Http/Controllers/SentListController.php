@@ -41,6 +41,7 @@ class SentListController extends Controller
         $workOrders = WorkOrder::with([
                 'purchaseOrder.part.standards' => fn ($q) => $q->active(),
                 'lots',
+                'lots.crimpLots' => fn ($q) => $q->orderBy('crimp_lot_number'),
                 'sentList',
             ])
             ->where(function ($q) use ($sentList) {

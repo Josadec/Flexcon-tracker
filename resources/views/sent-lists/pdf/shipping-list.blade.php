@@ -125,42 +125,85 @@
                         <td class="ctr">{{ $wo->pr }}</td>
                     </tr>
 
-                    {{-- Sub-filas: lotes / viajeros del WO --}}
-                    @foreach ($lots as $lot)
-                        <tr class="sub">
-                            <td></td>
-                            <td>{{ $isCrimp ? $unitLabel : (trim(($po?->wo ?? '') . ' ' . $lot->lot_number)) }}</td>
-                            <td class="item-no"></td>{{-- TODO: nº rojo (Kit / lote de crimp) en 2ª pasada --}}
-                            <td>{{ $part?->description }}</td>
-                            <td class="qty-cell">{{ $fmt($lot->quantity) }}</td>
+                    {{-- Sub-filas: CRIMP = una fila por Lote de CRIMP (CrimpLot) por viajero; no-CRIMP = una fila por Lote --}}
+                    @if ($isCrimp)
+                        @foreach ($lots as $lot)
                             @php
-                                // Ocultar SOLO la nota auto-generada por el Capacity Wizard.
-                                // Las notas reales escritas por usuarios sí se muestran.
-                                $rawComment = trim((string) ($lot->comments ?? ''));
-                                $isAutoNote = $rawComment !== ''
-                                    && str_contains(
-                                        mb_strtolower($rawComment),
-                                        mb_strtolower('Generado automáticamente desde Capacity Wizard')
-                                    );
-                                $displayComment = $isAutoNote ? '' : $rawComment;
+                                $crimps = $lot->crimpLots;
+                                $viajeroCell = $lot->lot_number . ')' . $fmt($lot->quantity);
                             @endphp
-                            <td class="note">{{ $displayComment }}</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                    @endforeach
+                            @forelse ($crimps as $ci => $crimp)
+                                <tr class="sub">
+                                    <td></td>
+                                    <td>{{ $unitLabel }}</td>
+                                    <td class="ctr" style="font-weight:bold;">{{ $viajeroCell }}</td>
+                                    <td>{{ $crimp->lote_fabricante }}</td>
+                                    <td class="qty-cell">{{ $crimp->crimp_lot_number . ')' . $fmt($crimp->quantity) }}</td>
+                                    <td class="note">{{ $crimp->comments }}</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            @empty
+                                {{-- Viajero sin lotes de CRIMP: muestra solo la fila del viajero --}}
+                                <tr class="sub">
+                                    <td></td>
+                                    <td>{{ $unitLabel }}</td>
+                                    <td class="ctr" style="font-weight:bold;">{{ $viajeroCell }}</td>
+                                    <td></td>
+                                    <td class="qty-cell">{{ $fmt($lot->quantity) }}</td>
+                                    <td class="note"></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            @endforelse
+                        @endforeach
+                    @else
+                        @foreach ($lots as $lot)
+                            <tr class="sub">
+                                <td></td>
+                                <td>{{ trim(($po?->wo ?? '') . ' ' . $lot->lot_number) }}</td>
+                                <td class="item-no"></td>
+                                <td>{{ $part?->description }}</td>
+                                <td class="qty-cell">{{ $fmt($lot->quantity) }}</td>
+                                @php
+                                    // Ocultar SOLO la nota auto-generada por el Capacity Wizard.
+                                    // Las notas reales escritas por usuarios sí se muestran.
+                                    $rawComment = trim((string) ($lot->comments ?? ''));
+                                    $isAutoNote = $rawComment !== ''
+                                        && str_contains(
+                                            mb_strtolower($rawComment),
+                                            mb_strtolower('Generado automáticamente desde Capacity Wizard')
+                                        );
+                                    $displayComment = $isAutoNote ? '' : $rawComment;
+                                @endphp
+                                <td class="note">{{ $displayComment }}</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        @endforeach
+                    @endif
 
                     {{-- Total del WO --}}
                     @if ($lots->isNotEmpty())
                         <tr class="total-row">
                             <td></td>
                             <td></td>
-                            <td></td>
+                            <td class="item-no">{{ $po?->po_number }}</td>
                             <td></td>
                             <td class="num" style="border-top:2px solid #000;">Total: {{ $fmt($lots->sum('quantity')) }}</td>
                             <td colspan="8"></td>
@@ -172,8 +215,6 @@
             @endforelse
         </tbody>
     </table>
-
-    <div class="footer-msg">FAVOR DE CONFIRMAR CANTIDADES TODOS LOS DÍAS</div>
 
 </body>
 </html>

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CrimpLot;
 use App\Models\Lot;
 use App\Models\Part;
 use App\Models\PurchaseOrder;
@@ -230,6 +231,104 @@ class SentListPdfExportTest extends TestCase
             $htmlPlain,
             'Una parte NO-CRIMP debe mostrar "{po->wo} {lot_number}" en la sub-fila'
         );
+    }
+
+    /**
+     * 4c) Desglose por Lote de CRIMP: un viajero (Lot) con 2 CrimpLots produce una
+     *     sub-fila por CrimpLot. El "viajero" ({lot_number}){cantidad} se REPITE en
+     *     cada fila; cada fila muestra su {crimp_lot_number}){cantidad} en Cantidad WO,
+     *     su lote_fabricante en Descripcion y su comentario en Piezas Enviadas. Ademas
+     *     el numero de PO aparece (en rojo) en la fila Total.
+     */
+    public function test_desglosa_lotes_de_crimp_por_viajero(): void
+    {
+        [$sl, $wo, $po, , $lot] = $this->makeSentListWithWorkOrder(isCrimp: true);
+        $po->update(['po_number' => 'PO-RED-TEST']);
+
+        CrimpLot::create([
+            'lot_id' => $lot->id,
+            'crimp_lot_number' => '001',
+            'lote_fabricante' => 'PROV-AAA',
+            'quantity' => 600,
+            'comments' => 'Lote de crimp de 600',
+        ]);
+        CrimpLot::create([
+            'lot_id' => $lot->id,
+            'crimp_lot_number' => '002',
+            'lote_fabricante' => 'PROV-BBB',
+            'quantity' => 400,
+            'comments' => 'Lote de crimp de 400',
+        ]);
+
+        $wo->load(['purchaseOrder.part', 'lots.crimpLots']);
+
+        $html = View::make('sent-lists.pdf.shipping-list', [
+            'groups' => ['Mesas' => collect([$wo])],
+            'sentList' => $sl,
+            'generatedAt' => now(),
+        ])->render();
+
+        // El viajero ({lot_number}){cantidad} se repite: una vez por cada CrimpLot (2).
+        $viajeroCell = $lot->lot_number . ')' . number_format(1000);
+        $this->assertGreaterThanOrEqual(
+            2,
+            substr_count($html, $viajeroCell),
+            'El viajero debe repetirse en cada fila de Lote de CRIMP'
+        );
+
+        // Cada CrimpLot muestra su {crimp_lot_number}){cantidad} en Cantidad WO.
+        $this->assertStringContainsString('001)' . number_format(600), $html);
+        $this->assertStringContainsString('002)' . number_format(400), $html);
+
+        // Lote del proveedor (lote_fabricante) en Descripcion.
+        $this->assertStringContainsString('PROV-AAA', $html);
+        $this->assertStringContainsString('PROV-BBB', $html);
+
+        // Comentarios del Lote de CRIMP en Piezas Enviadas.
+        $this->assertStringContainsString('Lote de crimp de 600', $html);
+        $this->assertStringContainsString('Lote de crimp de 400', $html);
+
+        // El numero de PO aparece en la fila Total.
+        $this->assertStringContainsString('PO-RED-TEST', $html);
+    }
+
+    /**
+     * 4d) El numero de PO aparece (en rojo, celda .item-no) en la fila Total, para
+     *     cualquier WO. Se valida con una parte NO-crimp para confirmar que NO es
+     *     exclusivo del flujo CRIMP.
+     */
+    public function test_numero_po_aparece_en_fila_total(): void
+    {
+        [$sl, $wo, $po] = $this->makeSentListWithWorkOrder(isCrimp: false);
+        $po->update(['po_number' => 'PO-TOTAL-42']);
+        $wo->load(['purchaseOrder.part', 'lots']);
+
+        $html = View::make('sent-lists.pdf.shipping-list', [
+            'groups' => ['Mesas' => collect([$wo])],
+            'sentList' => $sl,
+            'generatedAt' => now(),
+        ])->render();
+
+        // El po_number sale exactamente en la celda item-no (roja) de la fila total.
+        $this->assertStringContainsString('<td class="item-no">PO-TOTAL-42</td>', $html);
+    }
+
+    /**
+     * 4e) Regresion: el PDF ya NO incluye el mensaje de pie
+     *     "FAVOR DE CONFIRMAR CANTIDADES TODOS LOS DIAS" (eliminado por pedido).
+     */
+    public function test_pdf_no_incluye_mensaje_confirmar_cantidades(): void
+    {
+        [$sl, $wo] = $this->makeSentListWithWorkOrder(isCrimp: false);
+        $wo->load(['purchaseOrder.part', 'lots']);
+
+        $html = View::make('sent-lists.pdf.shipping-list', [
+            'groups' => ['Mesas' => collect([$wo])],
+            'sentList' => $sl,
+            'generatedAt' => now(),
+        ])->render();
+
+        $this->assertStringNotContainsString('FAVOR DE CONFIRMAR CANTIDADES', $html);
     }
 
     /**
