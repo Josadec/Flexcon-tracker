@@ -249,7 +249,7 @@
                     {{-- Search --}}
                     <div class="mb-4">
                         <input wire:model.live.debounce.300ms="poSearchTerm" type="text"
-                            placeholder="Buscar por WO o número de parte..."
+                            placeholder="Buscar por WO, PO, parte o descripción..."
                             class="w-full rounded-md p-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     </div>
 
@@ -261,7 +261,7 @@
                                 $configurations = $standard ? $standard->configurations : collect();
                                 $isSelected = in_array($po->id, $selectedPOs);
                             @endphp
-                            <div @class([
+                            <div wire:key="po-{{ $po->id }}" @class([
                                 'border rounded-lg p-4 mb-3',
                                 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' => $isSelected,
                                 'border-gray-200 dark:border-gray-700' => !$isSelected,
@@ -308,7 +308,7 @@
                                                         @php
                                                             $canUse = $config->persons_required <= $numPersons;
                                                         @endphp
-                                                        <label @class([
+                                                        <label wire:key="cfg-{{ $po->id }}-{{ $config->id }}" @class([
                                                             'flex items-center p-2 rounded cursor-pointer',
                                                             'hover:bg-gray-100 dark:hover:bg-gray-800' => $canUse,
                                                             'opacity-50 cursor-not-allowed' => !$canUse,

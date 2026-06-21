@@ -53,6 +53,7 @@ class CapacityWizard extends Component
     public string $poSearchTerm = '';
 
     // Step 3 - Lista Preliminar
+    public string $itemSearchTerm = ''; // Búsqueda live en la tabla resumen (WO, PO, parte, descripción)
     public ?int $generatedSentListId = null;
     public array $lotNumbers = []; // Números de lote para cada PO (múltiples por índice)
     
@@ -315,23 +316,29 @@ class CapacityWizard extends Component
         $this->showPOModal = true;
         $this->poSearchTerm = '';
 
-        // Pre-seleccionar los POs que ya están en la lista
-        $this->selectedPOs = array_values(array_column($this->workOrderItems, 'po_id'));
-
-        // Pre-cargar las configuraciones ya seleccionadas para cada PO que está en la lista
-        $this->poConfigurations = [];
+        // Pre-seleccionar los POs que ya están en la lista, SIN pisar la selección
+        // que el usuario haya dejado en borrador (cerró el modal sin "Agregar").
         foreach ($this->workOrderItems as $item) {
-            if (!empty($item['po_id']) && !empty($item['configuration']['id'])) {
+            if (empty($item['po_id'])) {
+                continue;
+            }
+            if (!in_array($item['po_id'], $this->selectedPOs)) {
+                $this->selectedPOs[] = $item['po_id'];
+            }
+            // Solo completar configuraciones ausentes; respetar las del borrador.
+            if (!empty($item['configuration']['id']) && !isset($this->poConfigurations[$item['po_id']])) {
                 $this->poConfigurations[$item['po_id']] = $item['configuration']['id'];
             }
         }
+        $this->selectedPOs = array_values($this->selectedPOs);
     }
 
     public function closePOModal()
     {
+        // Solo ocultamos el modal. La selección (selectedPOs/poConfigurations) se
+        // conserva como borrador mientras no se recargue la página; el reset real
+        // ocurre tras "Agregar Seleccionados" (addSelectedPOs) o en resetWizard().
         $this->showPOModal = false;
-        $this->selectedPOs = [];
-        $this->poConfigurations = [];
     }
 
     public function togglePOSelection(int $poId)
@@ -494,6 +501,33 @@ class CapacityWizard extends Component
         return $query->orderBy('po_number')->get();
     }
 
+    /**
+     * Items de la tabla resumen (paso 3) filtrados por itemSearchTerm.
+     * Filtra en memoria por WO, PO, número de parte o descripción (case-insensitive,
+     * coincidencia parcial). Preserva el índice original de cada item para que las
+     * acciones por fila (removeWorkOrderItem, openLotModal, openCrimpModal) sigan
+     * recibiendo el índice correcto. No muta workOrderItems ni la selección.
+     */
+    public function getFilteredWorkOrderItemsProperty(): array
+    {
+        $term = trim($this->itemSearchTerm);
+
+        if ($term === '') {
+            return $this->workOrderItems;
+        }
+
+        $needle = mb_strtolower($term);
+
+        return array_filter($this->workOrderItems, function ($item) use ($needle) {
+            foreach (['wo', 'po_number', 'part_number', 'part_description'] as $field) {
+                if (mb_strpos(mb_strtolower((string) ($item[$field] ?? '')), $needle) !== false) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
     public function removeWorkOrderItem(int $index)
     {
         if (isset($this->workOrderItems[$index])) {
@@ -528,15 +562,16 @@ class CapacityWizard extends Component
         $existingLots = $this->lotNumbers[$index] ?? [];
         
         if (empty($existingLots)) {
-            $this->tempLots = [['number' => '', 'quantity' => '']];
+            $this->tempLots = [['number' => '', 'quantity' => '', 'comment' => '']];
         } else {
             // Ensure existing lots have the new structure
             $this->tempLots = array_map(function($lot) {
                 if (is_array($lot) && isset($lot['number'])) {
-                    return $lot;
+                    // Garantiza la clave 'comment' en lotes existentes.
+                    return array_merge(['comment' => ''], $lot);
                 }
                 // Convert old format (string) to new format
-                return ['number' => $lot, 'quantity' => ''];
+                return ['number' => $lot, 'quantity' => '', 'comment' => ''];
             }, $existingLots);
         }
         
@@ -553,7 +588,7 @@ class CapacityWizard extends Component
 
     public function addLotInput()
     {
-        $this->tempLots[] = ['number' => '', 'quantity' => ''];
+        $this->tempLots[] = ['number' => '', 'quantity' => '', 'comment' => ''];
     }
 
     public function removeLotInput(int $lotIndex)
@@ -562,7 +597,7 @@ class CapacityWizard extends Component
         $this->tempLots = array_values($this->tempLots);
 
         if (empty($this->tempLots)) {
-            $this->tempLots = [['number' => '', 'quantity' => '']];
+            $this->tempLots = [['number' => '', 'quantity' => '', 'comment' => '']];
         }
     }
 
@@ -896,6 +931,7 @@ class CapacityWizard extends Component
                             foreach ($lotNumbersArray as $lot) {
                                 $lotNumber = trim($lot['number'] ?? '');
                                 $lotQuantity = isset($lot['quantity']) && $lot['quantity'] !== '' ? intval($lot['quantity']) : 0;
+                                $lotComment = trim($lot['comment'] ?? '');
 
                                 if (!empty($lotNumber)) {
                                     $existingLot = Lot::where('work_order_id', $workOrder->id)
@@ -909,11 +945,19 @@ class CapacityWizard extends Component
                                             'description' => $partDescription,
                                             'quantity' => $lotQuantity,
                                             'status' => Lot::STATUS_PENDING,
-                                            'comments' => "Generado automáticamente desde Capacity Wizard",
+                                            // Si el usuario escribió comentario, se guarda ESE;
+                                            // si no, se conserva la nota auto-generada (que el PDF oculta).
+                                            'comments' => $lotComment !== ''
+                                                ? $lotComment
+                                                : 'Generado automáticamente desde Capacity Wizard',
                                         ]);
                                         $createdLotIds[] = $newLot->id;
                                         $lotIdByNumber[$lotNumber] = $newLot->id;
                                     } else {
+                                        // Lote existente: si el usuario escribió comentario, actualizarlo.
+                                        if ($lotComment !== '') {
+                                            $existingLot->update(['comments' => $lotComment]);
+                                        }
                                         $createdLotIds[] = $existingLot->id;
                                         $lotIdByNumber[$lotNumber] = $existingLot->id;
                                     }
@@ -979,6 +1023,8 @@ class CapacityWizard extends Component
             'totalAvailableHours',
             'shiftDetails',
             'workOrderItems',
+            'selectedPOs',
+            'poConfigurations',
             'totalRequiredHours',
             'remainingHours',
             'suggestedOvertime',

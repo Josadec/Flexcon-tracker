@@ -45,6 +45,7 @@ Route::middleware(['auth', 'verified', 'role:admin|Materiales|Produccion|Calidad
     Route::get('/sent-lists/display/sl/{sentList}', \App\Livewire\Admin\SentLists\ShippingListDisplay::class)->name('sent-lists.display.sl');
     Route::get('/sent-lists/tv', \App\Livewire\Admin\SentLists\TvDisplay::class)->name('sent-lists.tv');
     Route::get('/sent-lists/{sentList}', [\App\Http\Controllers\SentListController::class, 'show'])->name('sent-lists.show');
+    Route::get('/sent-lists/{sentList}/export/pdf', [\App\Http\Controllers\SentListController::class, 'exportPdf'])->name('sent-lists.export-pdf');
     Route::get('/sent-lists/{sentList}/edit', [\App\Http\Controllers\SentListController::class, 'edit'])->name('sent-lists.edit');
     Route::put('/sent-lists/{sentList}', [\App\Http\Controllers\SentListController::class, 'update'])->name('sent-lists.update');
     Route::delete('/sent-lists/{sentList}', [\App\Http\Controllers\SentListController::class, 'destroy'])->name('sent-lists.destroy');
