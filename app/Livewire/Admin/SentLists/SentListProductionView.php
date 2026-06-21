@@ -15,7 +15,6 @@ class SentListProductionView extends Component
     public bool $showWeighingModal = false;
     public ?int $weighingLotId = null;
     public int $weighingQuantity = 0;
-    public ?int $weighingKitId = null;
     public string $weighingComments = '';
     public string $weighingAt = '';
     public ?int $editingWeighingId = null;
@@ -34,18 +33,6 @@ class SentListProductionView extends Component
     {
         $this->weighingLotId       = $lotId;
         $this->weighingQuantity    = 0;
-        $this->weighingKitId       = null;
-        $this->weighingComments    = '';
-        $this->weighingAt          = now()->format('Y-m-d\TH:i');
-        $this->editingWeighingId   = null;
-        $this->showWeighingModal   = true;
-    }
-
-    public function openKitWeighingModal(int $lotId, int $kitId): void
-    {
-        $this->weighingLotId       = $lotId;
-        $this->weighingQuantity    = 0;
-        $this->weighingKitId       = $kitId;
         $this->weighingComments    = '';
         $this->weighingAt          = now()->format('Y-m-d\TH:i');
         $this->editingWeighingId   = null;
@@ -59,7 +46,6 @@ class SentListProductionView extends Component
 
         $this->weighingLotId       = $w->lot_id;
         $this->weighingQuantity    = $w->good_pieces;
-        $this->weighingKitId       = $w->kit_id;
         $this->weighingComments    = $w->comments ?? '';
         $this->weighingAt          = $w->weighed_at->format('Y-m-d\TH:i');
         $this->editingWeighingId   = $w->id;
@@ -82,7 +68,6 @@ class SentListProductionView extends Component
 
         $data = [
             'lot_id'      => $this->weighingLotId,
-            'kit_id'      => $this->weighingKitId ?: null,
             'quantity'    => $lot->quantity,
             'good_pieces' => $this->weighingQuantity,
             'bad_pieces'  => 0,
@@ -94,6 +79,7 @@ class SentListProductionView extends Component
         if ($this->editingWeighingId) {
             $w = Weighing::find($this->editingWeighingId);
             if ($w) {
+                // Pesadas existentes conservan su kit_id (historial); no se reasigna.
                 $w->update($data);
                 $message = 'Pesada actualizada correctamente.';
             } else {
@@ -101,6 +87,8 @@ class SentListProductionView extends Component
                 return;
             }
         } else {
+            // Pesada a nivel viajero: kit_id = null (CRIMP ya no usa kit).
+            $data['kit_id'] = null;
             Weighing::create($data);
             $message = 'Pesada registrada correctamente.';
         }
@@ -113,7 +101,6 @@ class SentListProductionView extends Component
         $this->showWeighingModal  = false;
         $this->weighingLotId      = null;
         $this->weighingQuantity   = 0;
-        $this->weighingKitId      = null;
         $this->weighingComments   = '';
         $this->editingWeighingId  = null;
         $this->sentList->refresh();
@@ -125,7 +112,6 @@ class SentListProductionView extends Component
         $this->showWeighingModal  = false;
         $this->weighingLotId      = null;
         $this->weighingQuantity   = 0;
-        $this->weighingKitId      = null;
         $this->weighingComments   = '';
         $this->editingWeighingId  = null;
     }
@@ -183,10 +169,8 @@ class SentListProductionView extends Component
         $this->sentList->load([
             'purchaseOrders.workOrder.purchaseOrder.part',
             'purchaseOrders.workOrder.lots.weighings.weighedBy',
-            'purchaseOrders.workOrder.kits',
             'workOrders.purchaseOrder.part',
             'workOrders.lots.weighings.weighedBy',
-            'workOrders.kits',
         ]);
 
         $workOrders = $this->sentList->getEffectiveWorkOrders();

@@ -3,9 +3,7 @@
 namespace App\Livewire\Admin\Quality;
 
 use App\Models\Lot;
-use App\Models\Kit;
 use App\Models\QualityWeighing;
-use App\Models\WorkOrder;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -38,10 +36,7 @@ class QualityWeighings extends Component
     public int $qualBadPieces = 0;
     public string $qualWeighedAt = '';
     public string $qualComments = '';
-    public ?int $qualKitId = null;
-    public $qualKits = [];
     public int $qualRemainingPieces = 0;
-    public bool $qualIsCrimp = true;
 
     public function updatingSearch(): void
     {
@@ -70,7 +65,6 @@ class QualityWeighings extends Component
     {
         $lot = Lot::with([
             'workOrder.purchaseOrder.part',
-            'kits',
             'weighings.weighedBy',
             'qualityWeighings.weighedBy',
         ])->find($lotId);
@@ -141,9 +135,6 @@ class QualityWeighings extends Component
         $this->qualBadPieces = 0;
         $this->qualWeighedAt = now()->format('Y-m-d\TH:i');
         $this->qualComments = '';
-        $this->qualIsCrimp = (bool) ($this->selectedLot->workOrder->purchaseOrder->part->is_crimp ?? true);
-        $this->qualKitId = null;
-        $this->qualKits = $this->qualIsCrimp ? $this->selectedLot->kits : collect([]);
         $this->showWeighingModal = true;
     }
 
@@ -155,10 +146,7 @@ class QualityWeighings extends Component
         $this->qualBadPieces = 0;
         $this->qualWeighedAt = '';
         $this->qualComments = '';
-        $this->qualKitId = null;
-        $this->qualKits = [];
         $this->qualRemainingPieces = 0;
-        $this->qualIsCrimp = true;
         $this->resetErrorBag();
     }
 
@@ -175,9 +163,6 @@ class QualityWeighings extends Component
         $this->qualBadPieces = $qw->bad_pieces;
         $this->qualWeighedAt = $qw->weighed_at->format('Y-m-d\TH:i');
         $this->qualComments = $qw->comments ?? '';
-        $this->qualKitId = $qw->kit_id;
-        $this->qualIsCrimp = (bool) ($this->selectedLot->workOrder->purchaseOrder->part->is_crimp ?? true);
-        $this->qualKits = $this->qualIsCrimp ? $this->selectedLot->kits : collect([]);
 
         // Remaining = pending + current weighing pieces (so user can redistribute)
         $this->qualRemainingPieces = $this->qualPending + $qw->good_pieces + $qw->bad_pieces;
@@ -222,7 +207,7 @@ class QualityWeighings extends Component
                 return;
             }
             $qw->update([
-                'kit_id' => $this->qualKitId ?: null,
+                // kit_id no se reasigna: las pesadas viejas conservan su historial.
                 'production_good_pieces' => $lot->getProductionGoodPieces(),
                 'good_pieces' => $this->qualGoodPieces,
                 'bad_pieces' => $this->qualBadPieces,
@@ -235,7 +220,8 @@ class QualityWeighings extends Component
         } else {
             QualityWeighing::create([
                 'lot_id' => $lot->id,
-                'kit_id' => $this->qualKitId ?: null,
+                // Pesada de calidad a nivel viajero: kit_id = null (CRIMP ya no usa kit).
+                'kit_id' => null,
                 'production_good_pieces' => $lot->getProductionGoodPieces(),
                 'good_pieces' => $this->qualGoodPieces,
                 'bad_pieces' => $this->qualBadPieces,
@@ -278,7 +264,6 @@ class QualityWeighings extends Component
         // Get lots that have production weighings (candidates for quality)
         $query = Lot::with([
             'workOrder.purchaseOrder.part',
-            'kits',
             'weighings',
             'qualityWeighings',
         ])

@@ -143,11 +143,9 @@ class SentListInspectionView extends Component
     {
         $this->sentList->load([
             'purchaseOrders.workOrder.purchaseOrder.part',
-            'purchaseOrders.workOrder.lots',
-            'purchaseOrders.workOrder.kits',
+            'purchaseOrders.workOrder.lots.crimpLots',
             'workOrders.purchaseOrder.part',
-            'workOrders.lots',
-            'workOrders.kits',
+            'workOrders.lots.crimpLots',
         ]);
 
         $workOrders  = $this->sentList->getEffectiveWorkOrders();

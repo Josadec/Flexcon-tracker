@@ -183,34 +183,26 @@
                 </div>
             </div>
 
-            <!-- Kit Asociado Card -->
+            <!-- Lotes de CRIMP Card -->
             <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg">
                 <div class="p-6">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Kit Asociado</h2>
-                    @if($lot->kits->count() > 0)
-                        @foreach($lot->kits as $kit)
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Lotes de CRIMP</h2>
+                    @if($lot->crimpLots->count() > 0)
+                        @foreach($lot->crimpLots as $cl)
                             <div class="p-3 bg-gray-50 dark:bg-gray-900/50 border-2 border-gray-200 dark:border-gray-700 rounded-lg mb-2">
                                 <div class="flex items-center justify-between">
-                                    <a href="{{ route('admin.kits.show', $kit) }}" class="text-sm font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-                                        {{ $kit->kit_number }}
-                                    </a>
-                                    @php
-                                        $kitStatusColors = [
-                                            'preparing' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-2 border-yellow-200 dark:border-yellow-700',
-                                            'ready' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-2 border-blue-200 dark:border-blue-700',
-                                            'released' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-2 border-green-200 dark:border-green-700',
-                                            'in_assembly' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border-2 border-orange-200 dark:border-orange-700',
-                                            'rejected' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-2 border-red-200 dark:border-red-700',
-                                        ];
-                                    @endphp
-                                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ $kitStatusColors[$kit->status] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-600' }}">
-                                        {{ $kit->status_label }}
+                                    <span class="text-sm font-semibold font-mono text-purple-700 dark:text-purple-300">{{ $cl->crimp_lot_number }}</span>
+                                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-2 border-purple-200 dark:border-purple-700">
+                                        {{ number_format($cl->quantity) }} pz
                                     </span>
                                 </div>
+                                @if($cl->lote_fabricante)
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Fab: {{ $cl->lote_fabricante }}</div>
+                                @endif
                             </div>
                         @endforeach
                     @else
-                        <p class="text-sm text-gray-400 dark:text-gray-500 italic">Sin kit asociado</p>
+                        <p class="text-sm text-gray-400 dark:text-gray-500 italic">Sin lotes de CRIMP</p>
                     @endif
                 </div>
             </div>

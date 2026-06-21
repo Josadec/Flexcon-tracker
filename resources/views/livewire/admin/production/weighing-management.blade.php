@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Producción - Pesadas</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Registro de pesadas por lote y kit</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Registro de pesadas por lote (viajero)</p>
         </div>
         <div class="flex gap-2">
             <a href="{{ route('admin.sent-lists.display') }}"
@@ -207,20 +207,6 @@
                                 <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                             @enderror
                         </div>
-
-                        {{-- Kit (opcional, solo si es CRIMP) --}}
-                        @if ($isCrimp && count($kits) > 0)
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kit (opcional)</label>
-                                <select wire:model="selectedKitId"
-                                    class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Sin kit</option>
-                                    @foreach ($kits as $kit)
-                                        <option value="{{ $kit->id }}">{{ $kit->kit_number }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        @endif
 
                         {{-- Cantidad (solo visual) --}}
                         <div>

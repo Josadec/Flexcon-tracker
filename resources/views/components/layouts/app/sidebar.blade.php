@@ -50,9 +50,6 @@
             </flux:navlist.group>
 
             <flux:navlist.group :heading="__('Producción')" class="grid">
-                <flux:navlist.item icon="cube" :href="route('admin.kits.index')"
-                    :current="request()->routeIs('admin.kits.*')" wire:navigate>{{ __('Kits') }}
-                </flux:navlist.item>
                 <flux:navlist.item icon="queue-list" :href="route('admin.lots.index')"
                     :current="request()->routeIs('admin.lots.*')" wire:navigate>{{ __('Lotes') }}
                 </flux:navlist.item>

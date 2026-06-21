@@ -17,7 +17,6 @@ class SentListQualityView extends Component
     public ?int $weighingLotId = null;
     public int $goodPieces = 0;
     public int $badPieces = 0;
-    public ?int $weighingKitId = null;
     public string $weighingComments = '';
     public string $weighingAt = '';
     public ?int $editingId = null;
@@ -68,42 +67,6 @@ class SentListQualityView extends Component
 
         $this->goodPieces       = 0;
         $this->badPieces        = 0;
-        $this->weighingKitId    = null;
-        $this->weighingComments = '';
-        $this->weighingAt       = now()->format('Y-m-d\TH:i');
-        $this->showWeighingModal = true;
-    }
-
-    public function openKitWeighingModal(int $lotId, int $kitId): void
-    {
-        $lot = Lot::with(['weighings', 'qualityWeighings.weighedBy'])->findOrFail($lotId);
-
-        $this->weighingLotId = $lotId;
-        $this->weighingKitId = $kitId;
-        $this->editingId     = null;
-
-        // Production good pieces for this kit
-        $prodGood = (int) $lot->weighings->where('kit_id', $kitId)->sum('good_pieces');
-        $this->productionGoodPieces = $prodGood;
-
-        // Already weighed in quality for this kit
-        $kitQualWeighings = $lot->qualityWeighings->where('kit_id', $kitId);
-        $qualAlready = (int) $kitQualWeighings->sum(fn($qw) => $qw->good_pieces + $qw->bad_pieces);
-        $this->alreadyWeighed  = $qualAlready;
-        $this->remainingPieces = max(0, $prodGood - $qualAlready);
-
-        $this->weighingsList = $kitQualWeighings->map(fn($qw) => [
-            'id'          => $qw->id,
-            'good_pieces' => $qw->good_pieces,
-            'bad_pieces'  => $qw->bad_pieces,
-            'disposition' => $qw->disposition,
-            'weighed_at'  => $qw->weighed_at->format('d/m/Y H:i'),
-            'weighed_by'  => $qw->weighedBy->name ?? 'N/A',
-            'comments'    => $qw->comments,
-        ])->values()->toArray();
-
-        $this->goodPieces       = 0;
-        $this->badPieces        = 0;
         $this->weighingComments = '';
         $this->weighingAt       = now()->format('Y-m-d\TH:i');
         $this->showWeighingModal = true;
@@ -114,12 +77,8 @@ class SentListQualityView extends Component
         $qw = QualityWeighing::find($id);
         if (!$qw) return;
 
-        // Open the right modal depending on whether it's a kit weighing
-        if ($qw->kit_id) {
-            $this->openKitWeighingModal($lotId, $qw->kit_id);
-        } else {
-            $this->openWeighingModal($lotId);
-        }
+        // Pesada a nivel viajero (CRIMP ya no usa kit).
+        $this->openWeighingModal($lotId);
 
         $this->editingId        = $id;
         $this->goodPieces       = $qw->good_pieces;
@@ -174,7 +133,6 @@ class SentListQualityView extends Component
 
         $data = [
             'lot_id'                 => $this->weighingLotId,
-            'kit_id'                 => $this->weighingKitId ?: null,
             'production_good_pieces' => $this->productionGoodPieces,
             'good_pieces'            => $this->goodPieces,
             'bad_pieces'             => $this->badPieces,
@@ -188,6 +146,7 @@ class SentListQualityView extends Component
         if ($this->editingId) {
             $qw = QualityWeighing::find($this->editingId);
             if ($qw) {
+                // Pesadas existentes conservan su kit_id (historial); no se reasigna.
                 $qw->update($data);
                 $message = 'Pesada de calidad actualizada.';
             } else {
@@ -195,6 +154,8 @@ class SentListQualityView extends Component
                 return;
             }
         } else {
+            // Pesada a nivel viajero: kit_id = null (CRIMP ya no usa kit).
+            $data['kit_id'] = null;
             QualityWeighing::create($data);
             $message = 'Pesada de calidad registrada.';
         }
@@ -215,7 +176,6 @@ class SentListQualityView extends Component
         $this->weighingLotId     = null;
         $this->goodPieces        = 0;
         $this->badPieces         = 0;
-        $this->weighingKitId     = null;
         $this->weighingComments  = '';
         $this->editingId         = null;
         $this->productionGoodPieces = 0;
@@ -227,16 +187,11 @@ class SentListQualityView extends Component
     public function deleteWeighing(int $id): void
     {
         $qw = QualityWeighing::findOrFail($id);
-        $kitId = $qw->kit_id;
         $qw->delete();
 
-        // Refresh the correct modal if open
+        // Refresh the modal if open (pesada a nivel viajero).
         if ($this->weighingLotId && $this->showWeighingModal) {
-            if ($kitId) {
-                $this->openKitWeighingModal($this->weighingLotId, $kitId);
-            } else {
-                $this->openWeighingModal($this->weighingLotId);
-            }
+            $this->openWeighingModal($this->weighingLotId);
         }
 
         $this->sentList->refresh();
@@ -274,11 +229,9 @@ class SentListQualityView extends Component
             'purchaseOrders.workOrder.purchaseOrder.part',
             'purchaseOrders.workOrder.lots.weighings',
             'purchaseOrders.workOrder.lots.qualityWeighings.weighedBy',
-            'purchaseOrders.workOrder.kits',
             'workOrders.purchaseOrder.part',
             'workOrders.lots.weighings',
             'workOrders.lots.qualityWeighings.weighedBy',
-            'workOrders.kits',
         ]);
 
         $workOrders = $this->sentList->getEffectiveWorkOrders();

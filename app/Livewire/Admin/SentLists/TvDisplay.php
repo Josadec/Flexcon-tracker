@@ -24,7 +24,7 @@ class TvDisplay extends Component
             'lots.weighings',
             'lots.qualityWeighings',
             'lots.packagingRecords',
-            'lots.kits',
+            'lots.crimpLots',
             'sentList',
         ])
         ->whereHas('lots', fn ($q) => $q->whereIn('status', ['pending', 'in_progress']))
@@ -68,27 +68,23 @@ class TvDisplay extends Component
                 $packed = $lot->packagingRecords->sum('packed_pieces');
                 $pkgTarget = $qualGood; // packaging uses quality approved
 
-                // Kit info (for crimp)
+                // Lotes de CRIMP (para crimp). El indicador usa la liberación del
+                // viajero (material_status); CRIMP ya no usa Kit.
                 $kitsInfo = [];
                 if ($isCrimp) {
-                    foreach ($lot->kits as $kit) {
+                    $matReleased = ($lot->material_status ?? 'pending') === 'released';
+                    foreach ($lot->crimpLots as $cl) {
                         $kitsInfo[] = [
-                            'kit_number' => $kit->kit_number,
-                            'quantity' => $kit->quantity,
-                            'status' => $kit->status,
-                            'status_label' => ucfirst(str_replace('_', ' ', $kit->status)),
+                            'kit_number' => $cl->crimp_lot_number,
+                            'quantity' => $cl->quantity,
+                            'status' => $matReleased ? 'released' : 'preparing',
+                            'status_label' => $matReleased ? 'Liberado' : 'Pendiente',
                         ];
                     }
-                    $lotKit = $lot->kits->sortByDesc('created_at')->first();
-                    $kitStatus = $lotKit?->status ?? 'none';
-                    if ($kitStatus === 'released') { $kitGreen++; }
-                    elseif ($kitStatus !== 'none') { $kitYellow++; }
-                    else { $kitGray++; }
-                } else {
-                    $matStatus = $lot->material_status ?? 'pending';
-                    if ($matStatus === 'released') { $kitGreen++; }
-                    else { $kitGray++; }
                 }
+                $matStatus = $lot->material_status ?? 'pending';
+                if ($matStatus === 'released') { $kitGreen++; }
+                else { $kitGray++; }
 
                 // Semaphore counts
                 $inspStatus = $lot->inspection_status ?? 'pending';

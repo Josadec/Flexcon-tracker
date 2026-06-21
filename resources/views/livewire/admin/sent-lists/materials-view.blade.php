@@ -70,8 +70,8 @@
                         <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">WO #</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Parte</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cant. WO</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lotes</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kits</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lotes / Viajeros</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lotes de CRIMP</th>
                         <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
                         <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
                     </tr>
@@ -81,12 +81,12 @@
                         @php
                             $isCrimp        = $wo->purchaseOrder->part->is_crimp ?? false;
                             $hasLots        = $wo->lots->isNotEmpty();
-                            $hasKits        = $wo->kits->isNotEmpty();
-                            $isReady        = $hasLots && (!$isCrimp || $hasKits);
-                            $semaphore      = $isReady ? 'green' : ($hasLots && $isCrimp && !$hasKits ? 'yellow' : 'red');
+                            $hasCrimpLots   = $wo->lots->contains(fn($l) => $l->crimpLots->isNotEmpty());
+                            $isReady        = $hasLots && (!$isCrimp || $hasCrimpLots);
+                            $semaphore      = $isReady ? 'green' : ($hasLots && $isCrimp && !$hasCrimpLots ? 'yellow' : 'red');
                             $rejectedLotIds = $sentList->unresolvedRejections->pluck('lot_id')->filter()->toArray();
                         @endphp
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {{ $wo->lots->pluck('id')->intersect($rejectedLotIds)->isNotEmpty() ? 'bg-red-50 dark:bg-red-900/10 border-l-4 border-red-400' : '' }}">
+                        <tr wire:key="wo-{{ $wo->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {{ $wo->lots->pluck('id')->intersect($rejectedLotIds)->isNotEmpty() ? 'bg-red-50 dark:bg-red-900/10 border-l-4 border-red-400' : '' }}">
                             <td class="px-4 py-3 font-mono font-medium">
                                 <a href="{{ route('admin.sent-lists.display.wo', $wo->id) }}"
                                     wire:navigate
@@ -109,18 +109,16 @@
                                 @if ($hasLots)
                                     <div class="space-y-1">
                                         @foreach ($wo->lots as $lot)
-                                            @php $isRejectedLot = in_array($lot->id, $rejectedLotIds); @endphp
+                                            @php
+                                                $isRejectedLot = in_array($lot->id, $rejectedLotIds);
+                                                $matSt    = $lot->material_status ?? 'pending';
+                                                $matColor = match($matSt) { 'released' => 'bg-green-500', 'rejected' => 'bg-red-500', default => 'bg-gray-400' };
+                                                $matTitle = match($matSt) { 'released' => 'Aprobado', 'rejected' => 'Rechazado', default => 'Pendiente' };
+                                            @endphp
                                             <div class="flex items-center gap-2 text-xs">
-                                                @if (!$isCrimp)
-                                                    @php
-                                                        $matSt    = $lot->material_status ?? 'pending';
-                                                        $matColor = match($matSt) { 'released' => 'bg-green-500', 'rejected' => 'bg-red-500', default => 'bg-gray-400' };
-                                                        $matTitle = match($matSt) { 'released' => 'Aprobado', 'rejected' => 'Rechazado', default => 'Pendiente' };
-                                                    @endphp
-                                                    <button wire:click="openMaterialModal({{ $lot->id }})"
-                                                        class="w-3 h-3 rounded-full {{ $matColor }} hover:opacity-75 flex-shrink-0 cursor-pointer"
-                                                        title="Material: {{ $matTitle }}"></button>
-                                                @endif
+                                                <button wire:click="openMaterialModal({{ $lot->id }})"
+                                                    class="w-3 h-3 rounded-full {{ $matColor }} hover:opacity-75 flex-shrink-0 cursor-pointer"
+                                                    title="Material: {{ $matTitle }}"></button>
                                                 <span class="px-2 py-0.5 rounded font-mono
                                                     {{ $isRejectedLot
                                                         ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-600 font-bold'
@@ -150,37 +148,37 @@
                             </td>
                             <td class="px-4 py-3">
                                 @if ($isCrimp)
-                                    @if ($hasKits)
-                                        <div class="space-y-1">
-                                            @foreach ($wo->kits as $kit)
-                                                @php
-                                                    $kitSt    = $kit->status ?? 'preparing';
-                                                    $kitColor = match($kitSt) {
-                                                        'released'    => 'bg-green-500',
-                                                        'ready'       => 'bg-indigo-500',
-                                                        'in_assembly' => 'bg-orange-500',
-                                                        'rejected'    => 'bg-red-500',
-                                                        default       => 'bg-yellow-400',
-                                                    };
-                                                    $kitTitle = match($kitSt) {
-                                                        'released'    => 'Liberado',
-                                                        'ready'       => 'Listo',
-                                                        'in_assembly' => 'En ensamble',
-                                                        'rejected'    => 'Rechazado',
-                                                        default       => 'Preparando',
-                                                    };
-                                                @endphp
-                                                <div class="flex items-center gap-2 text-xs">
-                                                    <button wire:click="openKitStatusModal({{ $kit->id }})"
-                                                        class="w-3 h-3 rounded-full {{ $kitColor }} hover:opacity-75 flex-shrink-0 cursor-pointer"
-                                                        title="Kit: {{ $kitTitle }}"></button>
-                                                    <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded font-mono">{{ $kit->kit_number }}</span>
-                                                    <span class="text-gray-500 dark:text-gray-400">{{ number_format($kit->quantity) }} pzas</span>
+                                    @if ($hasLots)
+                                        <div class="space-y-2">
+                                            @foreach ($wo->lots as $lot)
+                                                <div class="text-xs">
+                                                    <div class="flex items-center justify-between gap-2 mb-1">
+                                                        <span class="font-mono text-gray-500 dark:text-gray-400">Viajero {{ $lot->lot_number }}</span>
+                                                        <button wire:click="openCrimpLotModal({{ $lot->id }})"
+                                                            class="px-2 py-0.5 text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors">
+                                                            Gestionar
+                                                        </button>
+                                                    </div>
+                                                    @if ($lot->crimpLots->isNotEmpty())
+                                                        <div class="space-y-1 pl-2">
+                                                            @foreach ($lot->crimpLots as $cl)
+                                                                <div class="flex items-center flex-wrap gap-2">
+                                                                    <span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded font-mono">{{ $cl->crimp_lot_number }}</span>
+                                                                    @if ($cl->lote_fabricante)
+                                                                        <span class="text-gray-500 dark:text-gray-400" title="Lote de fabricante">Fab: {{ $cl->lote_fabricante }}</span>
+                                                                    @endif
+                                                                    <span class="text-gray-500 dark:text-gray-400">{{ number_format($cl->quantity) }} pzas</span>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    @else
+                                                        <span class="text-gray-400 dark:text-gray-500 italic pl-2">Sin lotes de CRIMP</span>
+                                                    @endif
                                                 </div>
                                             @endforeach
                                         </div>
                                     @else
-                                        <span class="text-xs text-gray-400 dark:text-gray-500 italic">Sin kits</span>
+                                        <span class="text-xs text-gray-400 dark:text-gray-500 italic">Crea viajeros primero</span>
                                     @endif
                                 @else
                                     <span class="text-xs text-gray-400 dark:text-gray-500">N/A</span>
@@ -193,7 +191,7 @@
                                     </span>
                                 @elseif ($semaphore === 'yellow')
                                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300">
-                                        <span class="w-2 h-2 rounded-full bg-yellow-500"></span> Sin kits
+                                        <span class="w-2 h-2 rounded-full bg-yellow-500"></span> Sin lotes CRIMP
                                     </span>
                                 @else
                                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
@@ -207,12 +205,6 @@
                                         class="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
                                         Gestionar Lotes
                                     </button>
-                                    @if ($isCrimp)
-                                        <button wire:click="openKitModal({{ $wo->id }})"
-                                            class="px-3 py-1.5 text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
-                                            Crear Kit
-                                        </button>
-                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -239,7 +231,7 @@
         </button>
     </div>
 
-    {{-- ===== LOT MODAL ===== --}}
+    {{-- ===== LOT (VIAJERO) MODAL ===== --}}
     @if ($showLotModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4" x-data>
             <div class="absolute inset-0 bg-black/60" wire:click="closeLotModal"></div>
@@ -329,21 +321,20 @@
         </div>
     @endif
 
-    {{-- ===== KIT MODAL ===== --}}
-    @if ($showKitModal)
-        @php $kitWo = $workOrders->firstWhere('id', $kitWorkOrderId); @endphp
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60" wire:click="closeKitModal"></div>
-            <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+    {{-- ===== CRIMP LOT MODAL (CRIMP) ===== --}}
+    @if ($showCrimpLotModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4" x-data>
+            <div class="absolute inset-0 bg-black/60" wire:click="closeCrimpLotModal"></div>
+            <div class="relative w-full max-w-3xl bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
                 {{-- Header --}}
                 <div class="flex items-center justify-between px-6 py-4 bg-purple-600 dark:bg-purple-700">
                     <div>
-                        <h3 class="text-lg font-bold text-white">Crear Kit (CRIMP)</h3>
-                        @if ($kitWo)
-                            <p class="text-sm text-purple-100 mt-0.5">{{ $kitWo->purchaseOrder->wo ?? $kitWo->wo_number }} &mdash; {{ $kitWo->purchaseOrder->part->number ?? '' }}</p>
+                        <h3 class="text-lg font-bold text-white">Lotes de CRIMP</h3>
+                        @if ($crimpLotViajeroLabel)
+                            <p class="text-sm text-purple-100 mt-0.5">{{ $crimpLotViajeroLabel }}</p>
                         @endif
                     </div>
-                    <button wire:click="closeKitModal" class="text-white/80 hover:text-white transition-colors">
+                    <button wire:click="closeCrimpLotModal" class="text-white/80 hover:text-white transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -351,58 +342,71 @@
                 </div>
 
                 {{-- Body --}}
-                <div class="px-6 py-4 space-y-4">
-                    {{-- Lot checkboxes --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Lotes a incluir en el Kit</label>
-                        @error('kitLots')
-                            <p class="text-xs text-red-600 dark:text-red-400 mb-2">{{ $message }}</p>
-                        @enderror
-                        @if ($kitWo && $kitWo->lots->isNotEmpty())
-                            <div class="space-y-2">
-                                @foreach ($kitWo->lots as $lot)
-                                    <label class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                        <input type="checkbox" wire:model="kitLots" value="{{ $lot->id }}"
-                                            class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500">
-                                        <div>
-                                            <span class="font-mono text-sm font-medium text-gray-900 dark:text-gray-100">{{ $lot->lot_number }}</span>
-                                            <span class="text-gray-500 dark:text-gray-400 ml-2 text-sm">{{ number_format($lot->quantity) }} pzas</span>
-                                        </div>
-                                    </label>
-                                @endforeach
+                <div class="px-6 py-4 max-h-[55vh] overflow-y-auto space-y-3">
+                    @forelse ($crimpLots as $index => $cl)
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">No. Lote CRIMP</label>
+                                    <input type="text" wire:model="crimpLots.{{ $index }}.crimp_lot_number"
+                                        placeholder="Ej: CL-001"
+                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                    @error("crimpLots.{$index}.crimp_lot_number")
+                                        <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Lote de fabricante <span class="text-gray-400">(opcional)</span></label>
+                                    <input type="text" wire:model="crimpLots.{{ $index }}.lote_fabricante"
+                                        placeholder="Ej: FAB-2024"
+                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cantidad</label>
+                                    <input type="number" wire:model="crimpLots.{{ $index }}.quantity"
+                                        placeholder="0" min="1"
+                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                    @error("crimpLots.{$index}.quantity")
+                                        <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Comentarios <span class="text-gray-400">(opcional)</span></label>
+                                    <input type="text" wire:model="crimpLots.{{ $index }}.comments"
+                                        placeholder="Observaciones..."
+                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
                             </div>
-                        @else
-                            <p class="text-sm text-gray-400 dark:text-gray-500 italic">Este WO no tiene lotes. Crea lotes primero.</p>
-                        @endif
-                    </div>
+                            <button wire:click="removeCrimpLotRow({{ $index }})"
+                                class="mt-5 p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                title="Eliminar lote de CRIMP">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    @empty
+                        <p class="text-center text-sm text-gray-400 dark:text-gray-500 py-4">No hay lotes de CRIMP. Agrega uno nuevo.</p>
+                    @endforelse
 
-                    {{-- Quantity --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad del Kit</label>
-                        <input type="number" wire:model="kitQuantity" min="1" placeholder="0"
-                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        @error('kitQuantity')
-                            <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    {{-- Notes --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notas (opcional)</label>
-                        <textarea wire:model="kitNotes" rows="2" placeholder="Observaciones del kit..."
-                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"></textarea>
-                    </div>
+                    <button wire:click="addCrimpLotRow"
+                        class="w-full py-2.5 border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-purple-400 hover:text-purple-500 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Agregar Lote de CRIMP
+                    </button>
                 </div>
 
                 {{-- Footer --}}
                 <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeKitModal"
+                    <button wire:click="closeCrimpLotModal"
                         class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         Cancelar
                     </button>
-                    <button wire:click="saveKit"
+                    <button wire:click="saveCrimpLots"
                         class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors">
-                        Crear Kit
+                        Guardar Lotes de CRIMP
                     </button>
                 </div>
             </div>
@@ -449,7 +453,7 @@
         </div>
     @endif
 
-    {{-- ===== MATERIAL STATUS MODAL (non-CRIMP) ===== --}}
+    {{-- ===== MATERIAL STATUS MODAL (viajero / lote) ===== --}}
     @if ($showMaterialModal)
         @php $matLot = \App\Models\Lot::find($materialLotId); @endphp
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -488,58 +492,6 @@
                     </button>
                     <button wire:click="saveMaterial"
                         class="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors">
-                        Guardar
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- ===== KIT STATUS MODAL (CRIMP) ===== --}}
-    @if ($showKitStatusModal)
-        @php $statusKit = \App\Models\Kit::find($kitStatusId); @endphp
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60" wire:click="closeKitStatusModal"></div>
-            <div class="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 bg-purple-600 dark:bg-purple-700">
-                    <div>
-                        <h3 class="text-lg font-bold text-white">Estado del Kit</h3>
-                        @if ($statusKit)
-                            <p class="text-sm text-purple-100 mt-0.5">{{ $statusKit->kit_number }} &mdash; {{ number_format($statusKit->quantity) }} pzas</p>
-                        @endif
-                    </div>
-                    <button wire:click="closeKitStatusModal" class="text-white/80 hover:text-white transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="px-6 py-5 space-y-3">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Estado del kit</label>
-                    <div class="space-y-2">
-                        @foreach ([
-                            'preparing'   => ['Preparando',   'bg-yellow-400'],
-                            'ready'       => ['Listo',         'bg-indigo-500'],
-                            'released'    => ['Liberado',      'bg-green-500'],
-                            'in_assembly' => ['En ensamble',   'bg-orange-500'],
-                            'rejected'    => ['Rechazado',     'bg-red-500'],
-                        ] as $val => [$label, $dot])
-                            <label class="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors
-                                {{ $kitStatusValue === $val ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' }}">
-                                <input type="radio" wire:model.live="kitStatusValue" value="{{ $val }}" class="sr-only">
-                                <span class="w-4 h-4 rounded-full {{ $dot }} flex-shrink-0"></span>
-                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $label }}</span>
-                            </label>
-                        @endforeach
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeKitStatusModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        Cancelar
-                    </button>
-                    <button wire:click="saveKitStatus"
-                        class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors">
                         Guardar
                     </button>
                 </div>

@@ -150,7 +150,7 @@
                                             <th class="px-3 py-2 text-left text-sm font-bold">Lote</th>
                                             <th class="px-3 py-2 text-right text-sm font-bold">Piezas</th>
                                             @if ($card['is_crimp'])
-                                                <th class="px-3 py-2 text-left text-sm font-bold">Kit</th>
+                                                <th class="px-3 py-2 text-left text-sm font-bold">Lotes CRIMP</th>
                                             @endif
                                             <th class="px-3 py-2 text-center text-sm font-bold" style="width:28%">Producción</th>
                                             <th class="px-3 py-2 text-center text-sm font-bold" style="width:28%">Calidad</th>

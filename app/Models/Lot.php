@@ -55,6 +55,11 @@ class Lot extends Model
         'surplus_delivered_at',
         'surplus_delivered_by',
         'completion_count',
+        'packaging_label_count',
+        'packaging_notified_at',
+        'packaging_notified_by',
+        'complete_crimp_qty',
+        'complete_pieces_qty',
     ];
 
     protected $casts = [
@@ -75,6 +80,10 @@ class Lot extends Model
         'surplus_delivered' => 'boolean',
         'surplus_delivered_at' => 'datetime',
         'completion_count' => 'integer',
+        'packaging_label_count' => 'integer',
+        'packaging_notified_at' => 'datetime',
+        'complete_crimp_qty' => 'integer',
+        'complete_pieces_qty' => 'integer',
     ];
 
     /**
@@ -495,21 +504,14 @@ class Lot extends Model
 
     /**
      * Check if the lot can be inspected.
-     * For crimp parts: requires an associated Kit with status "released".
-     * For non-crimp parts: lote = kit, so inspection is allowed if material_status is "released".
+     *
+     * Para CRIMP y NO-CRIMP la liberación se evalúa a nivel viajero (material_status).
+     * El Kit dejó de ser el gate del flujo CRIMP: Materiales libera el viajero
+     * (lots.material_status = 'released'), no por estado de Kit (M1/M7 reajuste CRIMP).
      */
     public function canBeInspected(): bool
     {
-        $isCrimp = (bool) ($this->workOrder->purchaseOrder->part->is_crimp ?? true);
-
-        if (! $isCrimp) {
-            // Non-crimp: lote = kit, allow inspection if material approved
-            return ($this->material_status ?? 'pending') === 'released';
-        }
-
-        return $this->kits()
-            ->where('status', Kit::STATUS_RELEASED)
-            ->exists();
+        return ($this->material_status ?? 'pending') === 'released';
     }
 
     /**
@@ -531,30 +533,23 @@ class Lot extends Model
             return null;
         }
 
+        // Crimp y no-crimp: el gate es la liberación de material a nivel viajero/lote.
+        // El texto NO-CRIMP se mantiene idéntico al original; solo CRIMP dice "viajero".
         $isCrimp = (bool) ($this->workOrder->purchaseOrder->part->is_crimp ?? true);
+        $matStatus = $this->material_status ?? 'pending';
 
-        if (! $isCrimp) {
-            $matStatus = $this->material_status ?? 'pending';
-
+        if ($isCrimp) {
             return match ($matStatus) {
-                'pending' => 'El material de este lote aun no ha sido aprobado. Materiales debe aprobar el material primero.',
-                'rejected' => 'El material de este lote fue rechazado. Materiales debe corregir y aprobar el material.',
-                default => 'El material de este lote no tiene un status valido para inspeccion.',
+                'pending' => 'El material de este viajero aun no ha sido aprobado. Materiales debe aprobarlo primero.',
+                'rejected' => 'El material de este viajero fue rechazado. Materiales debe corregir y aprobarlo.',
+                default => 'El material de este viajero no tiene un status valido para inspeccion.',
             };
         }
 
-        $kit = $this->kits()->first();
-
-        if (! $kit) {
-            return 'Este lote no tiene un kit asociado. Materiales debe crear un kit primero.';
-        }
-
-        return match ($kit->status) {
-            Kit::STATUS_PREPARING => 'El kit esta en preparacion. Materiales debe completar y liberar el kit primero.',
-            Kit::STATUS_READY => 'El kit esta listo pero aun no ha sido liberado por Materiales.',
-            Kit::STATUS_REJECTED => 'El kit fue rechazado. Materiales debe corregir y re-liberar el kit.',
-            Kit::STATUS_IN_ASSEMBLY => 'El kit ya esta en ensamble.',
-            default => 'El kit no tiene un status valido para inspeccion.',
+        return match ($matStatus) {
+            'pending' => 'El material de este lote aun no ha sido aprobado. Materiales debe aprobar el material primero.',
+            'rejected' => 'El material de este lote fue rechazado. Materiales debe corregir y aprobar el material.',
+            default => 'El material de este lote no tiene un status valido para inspeccion.',
         };
     }
 
@@ -864,6 +859,66 @@ class Lot extends Model
         return $this->packagingRecords()->exists();
     }
 
+    // =====================================================
+    // CRIMP PACKAGING HELPERS (M6 — pesadas piezas + CRIMP)
+    // =====================================================
+
+    /**
+     * Pesadas de PIEZAS ("manguitas") de Empaque (flujo CRIMP) para este viajero.
+     */
+    public function packagingPieceWeighings(): HasMany
+    {
+        return $this->hasMany(PackagingPieceWeighing::class);
+    }
+
+    /**
+     * Pesadas de CRIMP de Empaque para este viajero.
+     */
+    public function packagingCrimpWeighings(): HasMany
+    {
+        return $this->hasMany(PackagingCrimpWeighing::class);
+    }
+
+    /**
+     * Total de piezas empacadas (suma de pesadas de piezas) del viajero.
+     */
+    public function getPackagedPiecesTotal(): int
+    {
+        return (int) $this->packagingPieceWeighings()->sum('quantity');
+    }
+
+    /**
+     * Total de CRIMP empacados (suma de pesadas de CRIMP) del viajero.
+     */
+    public function getPackagedCrimpTotal(): int
+    {
+        return (int) $this->packagingCrimpWeighings()->sum('quantity');
+    }
+
+    /**
+     * Objetivo de CRIMP del viajero = suma de cantidades de sus lotes de CRIMP.
+     */
+    public function getCrimpTargetTotal(): int
+    {
+        return (int) $this->crimpLots()->sum('quantity');
+    }
+
+    /**
+     * Sobrante de piezas del viajero = disponibles (Calidad) − empacadas.
+     */
+    public function getPackagedPiecesSurplus(): int
+    {
+        return max(0, $this->getPackagingAvailablePieces() - $this->getPackagedPiecesTotal());
+    }
+
+    /**
+     * Sobrante de CRIMP del viajero = objetivo − empacados.
+     */
+    public function getPackagedCrimpSurplus(): int
+    {
+        return max(0, $this->getCrimpTargetTotal() - $this->getPackagedCrimpTotal());
+    }
+
     /**
      * Check if viajero has been received.
      */
@@ -940,6 +995,13 @@ class Lot extends Model
 
     public const CLOSURE_CLOSE_AS_IS = 'close_as_is';
 
+    // Decisiones del Paso 6 para CRIMP (diagrama 4): D2a / D2b / D2c.
+    public const CLOSURE_COMPLETE_CRIMP = 'complete_crimp';
+
+    public const CLOSURE_COMPLETE_PIECES = 'complete_pieces';
+
+    public const CLOSURE_COMPLETE_BOTH = 'complete_both';
+
     /**
      * Get the post-quality lifecycle state for visual indicators.
      * Returns 3 phases (viajero, decision, material) each with:
@@ -973,6 +1035,9 @@ class Lot extends Model
                 self::CLOSURE_COMPLETE_LOT => 'Decisión: Completar Lote',
                 self::CLOSURE_NEW_LOT => 'Decisión: Nuevo Lote',
                 self::CLOSURE_CLOSE_AS_IS => 'Decisión: Cerrar Lote',
+                self::CLOSURE_COMPLETE_CRIMP => 'Decisión: Completar CRIMP',
+                self::CLOSURE_COMPLETE_PIECES => 'Decisión: Completar piezas',
+                self::CLOSURE_COMPLETE_BOTH => 'Decisión: Completar piezas y CRIMP',
                 default => 'Decisión tomada',
             };
             $decision = ['state' => 'done', 'actor' => null, 'label' => $decLabel];

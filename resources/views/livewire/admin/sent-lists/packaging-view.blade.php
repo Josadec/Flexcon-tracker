@@ -58,9 +58,21 @@
                             $available     = (int) $lot->qualityWeighings->sum('good_pieces');
                             $packed        = (int) $lot->packagingRecords->sum('packed_pieces');
                             $surplus       = max(0, $available - $packed);
+                            $hasRecords    = $lot->packagingRecords->isNotEmpty();
+
+                            // CRIMP: empaque por pesadas separadas (piezas + CRIMP) a nivel viajero.
+                            $crimpPiecesPacked  = (int) $lot->packagingPieceWeighings->sum('quantity');
+                            $crimpPacked        = (int) $lot->packagingCrimpWeighings->sum('quantity');
+                            $crimpTarget        = (int) $lot->crimpLots->sum('quantity');
+                            $crimpPiecesSurplus = max(0, $available - $crimpPiecesPacked);
+                            $crimpSurplus       = max(0, $crimpTarget - $crimpPacked);
+                            if ($isCrimp) {
+                                $packed     = $crimpPiecesPacked;
+                                $surplus    = $crimpPiecesSurplus;
+                                $hasRecords = $lot->packagingPieceWeighings->isNotEmpty() || $lot->packagingCrimpWeighings->isNotEmpty();
+                            }
                             $progressPct   = $available > 0 ? min(100, round(($packed / $available) * 100)) : 0;
                             $progressColor = $progressPct >= 100 ? 'bg-green-500' : ($progressPct > 0 ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600');
-                            $hasRecords    = $lot->packagingRecords->isNotEmpty();
                         @endphp
 
                         <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
@@ -158,13 +170,46 @@
                                             </button>
                                         @endif
                                     @endif
-                                    <button wire:click="openPackagingModal({{ $lot->id }})"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                        </svg>
-                                        Registrar Empaque
-                                    </button>
+                                    @if ($isCrimp)
+                                        <button wire:click="openPieceWeighingModal({{ $lot->id }})"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                            </svg>
+                                            Pesar Piezas
+                                        </button>
+                                        <button wire:click="openCrimpWeighingModal({{ $lot->id }})"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                            </svg>
+                                            Pesar CRIMP
+                                        </button>
+                                        @if ($hasRecords)
+                                            @if ($lot->packaging_notified_at)
+                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg"
+                                                    title="Notificado el {{ \Carbon\Carbon::parse($lot->packaging_notified_at)->format('d/m/Y H:i') }}">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                    Notificado
+                                                </span>
+                                            @endif
+                                            <button wire:click="openNotifyModal({{ $lot->id }})"
+                                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                                </svg>
+                                                {{ $lot->packaging_notified_at ? 'Reenviar correo' : 'Confirmar y Notificar' }}
+                                            </button>
+                                        @endif
+                                    @else
+                                        <button wire:click="openPackagingModal({{ $lot->id }})"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                            </svg>
+                                            Registrar Empaque
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
 
@@ -182,7 +227,8 @@
                                 </div>
                             @endif
 
-                            {{-- Packaging Records --}}
+                            {{-- Packaging / Pesadas --}}
+                            @if (!$isCrimp)
                             @if ($hasRecords)
                                 <div class="border-t border-gray-100 dark:border-gray-700">
                                     <table class="w-full text-xs">
@@ -249,6 +295,110 @@
                                     Sin registros de empaque. Usa "Registrar Empaque" para comenzar.
                                 </div>
                             @endif
+                            @else
+                                {{-- CRIMP: pesadas separadas (piezas + CRIMP) + resumen Empaque Terminado --}}
+                                <div class="border-t border-gray-100 dark:border-gray-700 p-4 space-y-4">
+                                    {{-- Resumen "Empaque Terminado" --}}
+                                    <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-center">
+                                        <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 p-2">
+                                            <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">En viajero</div>
+                                            <div class="text-sm font-bold text-gray-800 dark:text-gray-200">{{ number_format($lot->quantity) }}</div>
+                                        </div>
+                                        <div class="rounded-lg bg-green-50 dark:bg-green-900/20 p-2">
+                                            <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Piezas compl.</div>
+                                            <div class="text-sm font-bold text-green-700 dark:text-green-300">{{ number_format($crimpPiecesPacked) }}</div>
+                                        </div>
+                                        <div class="rounded-lg bg-purple-50 dark:bg-purple-900/20 p-2">
+                                            <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">CRIMP compl.</div>
+                                            <div class="text-sm font-bold text-purple-700 dark:text-purple-300">{{ number_format($crimpPacked) }}</div>
+                                        </div>
+                                        <div class="rounded-lg bg-orange-50 dark:bg-orange-900/20 p-2">
+                                            <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Sobrante piezas</div>
+                                            <div class="text-sm font-bold text-orange-700 dark:text-orange-300">{{ number_format($crimpPiecesSurplus) }}</div>
+                                        </div>
+                                        <div class="rounded-lg bg-orange-50 dark:bg-orange-900/20 p-2">
+                                            <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Sobrante CRIMP</div>
+                                            <div class="text-sm font-bold text-orange-700 dark:text-orange-300">{{ number_format($crimpSurplus) }}</div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Pesadas de piezas ("manguitas") --}}
+                                    <div>
+                                        <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Pesadas de piezas ("manguitas")</div>
+                                        @if ($lot->packagingPieceWeighings->isNotEmpty())
+                                            <table class="w-full text-xs">
+                                                <thead class="bg-gray-50/70 dark:bg-gray-900/30">
+                                                    <tr>
+                                                        <th class="px-3 py-1.5 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Fecha/Hora</th>
+                                                        <th class="px-3 py-1.5 text-right font-semibold text-gray-500 dark:text-gray-400 uppercase">Cantidad</th>
+                                                        <th class="px-3 py-1.5 text-right font-semibold text-gray-500 dark:text-gray-400 uppercase">Peso</th>
+                                                        <th class="px-3 py-1.5 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Pesó</th>
+                                                        <th class="px-3 py-1.5 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Coment.</th>
+                                                        <th class="px-3 py-1.5 text-center font-semibold text-gray-500 dark:text-gray-400 uppercase">Acción</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                                    @foreach ($lot->packagingPieceWeighings as $pw)
+                                                        <tr wire:key="pw-{{ $pw->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                                            <td class="px-3 py-1.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ \Carbon\Carbon::parse($pw->weighed_at)->format('d/m/Y H:i') }}</td>
+                                                            <td class="px-3 py-1.5 text-right font-semibold text-green-700 dark:text-green-400">{{ number_format($pw->quantity) }}</td>
+                                                            <td class="px-3 py-1.5 text-right text-gray-600 dark:text-gray-400">{{ $pw->weight !== null ? number_format($pw->weight, 3) : '—' }}</td>
+                                                            <td class="px-3 py-1.5 text-gray-600 dark:text-gray-400">{{ $pw->weighedBy->name ?? 'N/A' }}</td>
+                                                            <td class="px-3 py-1.5 text-gray-500 dark:text-gray-400 max-w-xs truncate">{{ $pw->comments ?: '-' }}</td>
+                                                            <td class="px-3 py-1.5 text-center">
+                                                                <button wire:click="deletePieceWeighing({{ $pw->id }})" wire:confirm="¿Eliminar esta pesada de piezas?" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        @else
+                                            <p class="text-xs text-gray-400 dark:text-gray-500 italic">Sin pesadas de piezas. Usa "Pesar Piezas".</p>
+                                        @endif
+                                    </div>
+
+                                    {{-- Pesadas de CRIMP --}}
+                                    <div>
+                                        <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Pesadas de CRIMP <span class="font-normal text-gray-400">(objetivo: {{ number_format($crimpTarget) }})</span></div>
+                                        @if ($lot->packagingCrimpWeighings->isNotEmpty())
+                                            <table class="w-full text-xs">
+                                                <thead class="bg-gray-50/70 dark:bg-gray-900/30">
+                                                    <tr>
+                                                        <th class="px-3 py-1.5 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Fecha/Hora</th>
+                                                        <th class="px-3 py-1.5 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Lote CRIMP</th>
+                                                        <th class="px-3 py-1.5 text-right font-semibold text-gray-500 dark:text-gray-400 uppercase">Cantidad</th>
+                                                        <th class="px-3 py-1.5 text-right font-semibold text-gray-500 dark:text-gray-400 uppercase">Peso</th>
+                                                        <th class="px-3 py-1.5 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Pesó</th>
+                                                        <th class="px-3 py-1.5 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Coment.</th>
+                                                        <th class="px-3 py-1.5 text-center font-semibold text-gray-500 dark:text-gray-400 uppercase">Acción</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                                    @foreach ($lot->packagingCrimpWeighings as $cw)
+                                                        <tr wire:key="cw-{{ $cw->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                                            <td class="px-3 py-1.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ \Carbon\Carbon::parse($cw->weighed_at)->format('d/m/Y H:i') }}</td>
+                                                            <td class="px-3 py-1.5 font-mono text-purple-700 dark:text-purple-300">{{ $cw->crimpLot?->crimp_lot_number ?? '—' }}</td>
+                                                            <td class="px-3 py-1.5 text-right font-semibold text-purple-700 dark:text-purple-400">{{ number_format($cw->quantity) }}</td>
+                                                            <td class="px-3 py-1.5 text-right text-gray-600 dark:text-gray-400">{{ $cw->weight !== null ? number_format($cw->weight, 3) : '—' }}</td>
+                                                            <td class="px-3 py-1.5 text-gray-600 dark:text-gray-400">{{ $cw->weighedBy->name ?? 'N/A' }}</td>
+                                                            <td class="px-3 py-1.5 text-gray-500 dark:text-gray-400 max-w-xs truncate">{{ $cw->comments ?: '-' }}</td>
+                                                            <td class="px-3 py-1.5 text-center">
+                                                                <button wire:click="deleteCrimpWeighing({{ $cw->id }})" wire:confirm="¿Eliminar esta pesada de CRIMP?" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        @else
+                                            <p class="text-xs text-gray-400 dark:text-gray-500 italic">Sin pesadas de CRIMP. Usa "Pesar CRIMP".</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>
@@ -267,7 +417,10 @@
         {{-- Warning lotes sin viajero --}}
         @php
             $allLots            = $workOrders->flatMap->lots;
-            $lotsWithoutViajero = $allLots->filter(fn($l) => !$l->viajero_received && $l->packagingRecords->isNotEmpty());
+            $lotsWithoutViajero = $allLots->filter(fn($l) => !$l->viajero_received
+                && ($l->packagingRecords->isNotEmpty()
+                    || $l->packagingPieceWeighings->isNotEmpty()
+                    || $l->packagingCrimpWeighings->isNotEmpty()));
         @endphp
         @if ($lotsWithoutViajero->isNotEmpty())
             <div class="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 px-4 py-2 rounded-lg border border-amber-200 dark:border-amber-700 mr-auto">
@@ -303,6 +456,177 @@
             Ver pantalla de Toma de Decision
         </a>
     </div>
+
+    {{-- ===== PIECE WEIGHING MODAL (CRIMP) ===== --}}
+    @if ($showPieceWeighingModal)
+        @php $pwLot = $workOrders->flatMap->lots->firstWhere('id', $pieceWeighingLotId); @endphp
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/60" wire:click="closePieceWeighingModal"></div>
+            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+                <div class="flex items-center justify-between px-6 py-4 bg-indigo-600 dark:bg-indigo-700">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Pesar Piezas</h3>
+                        @if ($pwLot)
+                            <p class="text-sm text-indigo-100 mt-0.5">Viajero {{ $pwLot->lot_number }}</p>
+                        @endif
+                    </div>
+                    <button wire:click="closePieceWeighingModal" class="text-white/80 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="px-6 py-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad de piezas <span class="text-red-500">*</span></label>
+                        <input type="number" wire:model="pieceQty" min="1" placeholder="0"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        @error('pieceQty') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Peso <span class="text-gray-400">(opcional)</span></label>
+                        <input type="number" step="0.001" wire:model="pieceWeight" min="0" placeholder="0.000"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        @error('pieceWeight') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha / Hora <span class="text-red-500">*</span></label>
+                        <input type="datetime-local" wire:model="pieceWeighedAt"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        @error('pieceWeighedAt') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comentarios <span class="text-gray-400">(opcional)</span></label>
+                        <textarea wire:model="pieceComments" rows="2" placeholder="Observaciones..."
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+                    <button wire:click="closePieceWeighingModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
+                    <button wire:click="savePieceWeighing" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Guardar</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ===== CRIMP WEIGHING MODAL ===== --}}
+    @if ($showCrimpWeighingModal)
+        @php $cwLot = $workOrders->flatMap->lots->firstWhere('id', $crimpWeighingLotId); @endphp
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/60" wire:click="closeCrimpWeighingModal"></div>
+            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+                <div class="flex items-center justify-between px-6 py-4 bg-purple-600 dark:bg-purple-700">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Pesar CRIMP</h3>
+                        @if ($cwLot)
+                            <p class="text-sm text-purple-100 mt-0.5">Viajero {{ $cwLot->lot_number }}</p>
+                        @endif
+                    </div>
+                    <button wire:click="closeCrimpWeighingModal" class="text-white/80 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="px-6 py-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lote de CRIMP <span class="text-gray-400">(opcional)</span></label>
+                        <select wire:model="crimpWeighingCrimpLotId"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="">— Sin especificar —</option>
+                            @foreach (($cwLot->crimpLots ?? []) as $cl)
+                                <option value="{{ $cl->id }}">{{ $cl->crimp_lot_number }}@if($cl->lote_fabricante) · Fab: {{ $cl->lote_fabricante }}@endif · {{ number_format($cl->quantity) }} pz</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad de CRIMP <span class="text-red-500">*</span></label>
+                        <input type="number" wire:model="crimpQty" min="1" placeholder="0"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        @error('crimpQty') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Peso <span class="text-gray-400">(opcional)</span></label>
+                        <input type="number" step="0.001" wire:model="crimpWeight" min="0" placeholder="0.000"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        @error('crimpWeight') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha / Hora <span class="text-red-500">*</span></label>
+                        <input type="datetime-local" wire:model="crimpWeighedAt"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        @error('crimpWeighedAt') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comentarios <span class="text-gray-400">(opcional)</span></label>
+                        <textarea wire:model="crimpComments" rows="2" placeholder="Observaciones..."
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+                    <button wire:click="closeCrimpWeighingModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
+                    <button wire:click="saveCrimpWeighing" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg">Guardar</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ===== NOTIFY MODAL (Empaque terminado CRIMP) ===== --}}
+    @if ($showNotifyModal)
+        @php $nLot = $workOrders->flatMap->lots->firstWhere('id', $notifyLotId); @endphp
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/60" wire:click="closeNotifyModal"></div>
+            <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+                <div class="flex items-center justify-between px-6 py-4 bg-green-600 dark:bg-green-700">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Confirmar empaque y notificar</h3>
+                        @if ($nLot)
+                            <p class="text-sm text-green-100 mt-0.5">Viajero {{ $nLot->lot_number }}</p>
+                        @endif
+                    </div>
+                    <button wire:click="closeNotifyModal" class="text-white/80 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="px-6 py-4 space-y-4">
+                    @if ($nLot)
+                        {{-- Resumen Empaque Terminado --}}
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
+                            <div class="rounded-lg bg-green-50 dark:bg-green-900/20 p-2">
+                                <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Piezas compl.</div>
+                                <div class="text-sm font-bold text-green-700 dark:text-green-300">{{ number_format($nLot->getPackagedPiecesTotal()) }}</div>
+                            </div>
+                            <div class="rounded-lg bg-purple-50 dark:bg-purple-900/20 p-2">
+                                <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">CRIMP compl.</div>
+                                <div class="text-sm font-bold text-purple-700 dark:text-purple-300">{{ number_format($nLot->getPackagedCrimpTotal()) }}</div>
+                            </div>
+                            <div class="rounded-lg bg-orange-50 dark:bg-orange-900/20 p-2">
+                                <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Sobr. piezas</div>
+                                <div class="text-sm font-bold text-orange-700 dark:text-orange-300">{{ number_format($nLot->getPackagedPiecesSurplus()) }}</div>
+                            </div>
+                            <div class="rounded-lg bg-orange-50 dark:bg-orange-900/20 p-2">
+                                <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Sobr. CRIMP</div>
+                                <div class="text-sm font-bold text-orange-700 dark:text-orange-300">{{ number_format($nLot->getPackagedCrimpSurplus()) }}</div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">No. de etiquetas <span class="text-gray-400">(opcional)</span></label>
+                        <input type="number" wire:model="notifyLabelCount" min="0" placeholder="—"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        @error('notifyLabelCount') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comentarios <span class="text-gray-400">(opcional)</span></label>
+                        <textarea wire:model="notifyComments" rows="2" placeholder="Observaciones para Empaque/Materiales..."
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"></textarea>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Se enviará el correo "Empaque terminado CRIMP" a Empaques y Materiales.</p>
+                </div>
+                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+                    <button wire:click="closeNotifyModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
+                    <button wire:click="confirmAndNotify" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg">Confirmar y Enviar</button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     {{-- ===== PACKAGING MODAL ===== --}}
     @if ($showPackagingModal)
@@ -452,6 +776,68 @@
 
                         {{-- Decision options (only if no closure decision yet) --}}
                         @if (!$decClosureDecision)
+                            @if ($decIsCrimp)
+                                {{-- CRIMP · Paso 6 (diagrama 4): D1 / D2a / D2b / D2c / D3 --}}
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div class="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg text-center">
+                                        <div class="text-xs text-purple-600 dark:text-purple-400 mb-1">CRIMP empacado</div>
+                                        <div class="text-lg font-bold text-purple-700 dark:text-purple-300">{{ number_format($decCrimpPacked) }}</div>
+                                    </div>
+                                    <div class="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg text-center">
+                                        <div class="text-xs text-orange-600 dark:text-orange-400 mb-1">CRIMP sobrante</div>
+                                        <div class="text-lg font-bold text-orange-700 dark:text-orange-300">{{ number_format($decCrimpSurplus) }}</div>
+                                    </div>
+                                    <div class="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg text-center">
+                                        <div class="text-xs text-indigo-600 dark:text-indigo-400 mb-1">Completar CRIMP</div>
+                                        <div class="text-lg font-bold text-indigo-700 dark:text-indigo-300">{{ number_format($decCompletarCrimp) }}</div>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Completar CRIMP = piezas sobrantes − CRIMP sobrante</p>
+
+                                @if ($decSurplus > 0 || $decCrimpSurplus > 0 || $decMissing > 0 || $decCompletarCrimp > 0)
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        @if ($decCompletarCrimp > 0)
+                                            <button wire:click="decisionCompleteCrimp"
+                                                class="p-4 border-2 border-purple-200 dark:border-purple-700 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors cursor-pointer text-left">
+                                                <div class="text-sm font-semibold text-purple-700 dark:text-purple-300">D2a · Completar CRIMP</div>
+                                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format($decCompletarCrimp) }} CRIMP por completar (Materiales)</div>
+                                            </button>
+                                        @endif
+                                        @if ($decSurplus > 0)
+                                            <button wire:click="decisionCompletePieces"
+                                                class="p-4 border-2 border-green-200 dark:border-green-700 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer text-left">
+                                                <div class="text-sm font-semibold text-green-700 dark:text-green-300">D2b · Completar piezas</div>
+                                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format($decSurplus) }} piezas (manguitas) por completar</div>
+                                            </button>
+                                        @endif
+                                        @if ($decSurplus > 0 && $decCompletarCrimp > 0)
+                                            <button wire:click="decisionCompleteBoth"
+                                                class="p-4 border-2 border-teal-200 dark:border-teal-700 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors cursor-pointer text-left">
+                                                <div class="text-sm font-semibold text-teal-700 dark:text-teal-300">D2c · Completar piezas y CRIMP</div>
+                                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format($decSurplus) }} pz + {{ number_format($decCompletarCrimp) }} CRIMP</div>
+                                            </button>
+                                        @endif
+                                        <button wire:click="decisionNewLot"
+                                            class="p-4 border-2 border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors cursor-pointer text-left">
+                                            <div class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">D3 · Nuevo Lote</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format(intdiv(max(0, $decSurplus), 100) * 100) }} pz (sobrante ↓ múltiplos de 100)</div>
+                                        </button>
+                                        <button wire:click="decisionCloseAsIs"
+                                            wire:confirm="¿Cerrar el viajero así como está, sin nuevo lote?"
+                                            class="p-4 border-2 border-orange-200 dark:border-orange-700 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors cursor-pointer text-left">
+                                            <div class="text-sm font-semibold text-orange-700 dark:text-orange-300">D1 · Cerrar Lote</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Así como está, sin nuevo lote</div>
+                                        </button>
+                                    </div>
+                                @else
+                                    <button wire:click="decisionCloseAsIs"
+                                        wire:confirm="¿Cerrar el viajero? No hay faltantes ni sobrantes."
+                                        class="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        Cerrar Viajero (Completo)
+                                    </button>
+                                @endif
+                            @else
                             @if ($decSurplus > 0 || $decMissing > 0)
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     {{-- Opción 1: Completar Lote --}}
@@ -477,7 +863,7 @@
                                             </svg>
                                         </div>
                                         <div class="text-sm font-semibold text-green-700 dark:text-green-300">Nuevo Lote</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format(max(0, $decLotTotal - $decPacked)) }} pz en {{ $decIsCrimp ? 'lote + kit' : 'lote' }} nuevo</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format(max(0, $decLotTotal - $decPacked)) }} pz en {{ $decIsCrimp ? 'viajero' : 'lote' }} nuevo</div>
                                     </button>
 
                                     {{-- Opción 3: Cerrar Lote como está --}}
@@ -504,14 +890,18 @@
                                     Cerrar Lote (Completo)
                                 </button>
                             @endif
+                            @endif
                         @else
                             {{-- Decisión ya tomada --}}
                             @php
                                 $closureLabel = match ($decClosureDecision) {
-                                    'complete_lot' => 'Completar Lote',
-                                    'new_lot'      => 'Nuevo Lote Creado',
-                                    'close_as_is'  => 'Lote Cerrado (faltantes aceptados)',
-                                    default        => $decClosureDecision,
+                                    'complete_lot'    => 'Completar Lote',
+                                    'new_lot'         => 'Nuevo Lote Creado',
+                                    'close_as_is'     => 'Lote Cerrado (faltantes aceptados)',
+                                    'complete_crimp'  => 'Completar CRIMP'.($decCompletarCrimp ? ' ('.number_format($decCompletarCrimp).')' : ''),
+                                    'complete_pieces' => 'Completar piezas',
+                                    'complete_both'   => 'Completar piezas y CRIMP',
+                                    default           => $decClosureDecision,
                                 };
                                 $closureColor = match ($decClosureDecision) {
                                     'complete_lot' => 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700 text-indigo-800 dark:text-indigo-200',
@@ -604,7 +994,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 id="create-lot-modal-title" class="text-lg font-semibold text-white">
-                                    Crear {{ $decIsCrimp ? 'Lote + Kit' : 'Nuevo Lote' }}
+                                    Crear {{ $decIsCrimp ? 'Nuevo Viajero' : 'Nuevo Lote' }}
                                 </h3>
                                 <p class="text-sm text-indigo-100 mt-1">
                                     {{ $createLotType === 'complete' ? 'Completar lote con piezas faltantes' : 'Cerrar lote actual y crear nuevo' }}
@@ -623,7 +1013,7 @@
                         @if ($decIsCrimp)
                             <div class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-3">
                                 <p class="text-xs text-purple-700 dark:text-purple-300">
-                                    <strong>Parte con CRIMP:</strong> Se creará un lote y un kit automáticamente. El kit pasará por el flujo Kit → Producción → Calidad.
+                                    <strong>Parte con CRIMP:</strong> Se creará un nuevo viajero. Sus <strong>lotes de CRIMP</strong> se capturan en <strong>Materiales</strong> (ya no se usa Kit).
                                 </p>
                             </div>
                         @endif
@@ -669,8 +1059,8 @@
                             </div>
                             @if ($decIsCrimp)
                                 <div class="flex justify-between text-gray-600 dark:text-gray-400 mt-1">
-                                    <span>Kit automático:</span>
-                                    <span class="font-medium text-purple-700 dark:text-purple-300">Sí (CRIMP)</span>
+                                    <span>Lotes de CRIMP:</span>
+                                    <span class="font-medium text-purple-700 dark:text-purple-300">Se capturan en Materiales</span>
                                 </div>
                             @endif
                         </div>

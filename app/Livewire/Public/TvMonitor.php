@@ -53,18 +53,11 @@ class TvMonitor extends Component
             $pkgGreen = 0; $pkgYellow = 0; $pkgGray = 0;
 
             foreach ($wo->lots as $lot) {
-                // --- Kit (usa colección ya cargada) ---
-                if ($part->is_crimp) {
-                    $lotKit = $lot->kits->sortByDesc('created_at')->first();
-                    $kitStatus = $lotKit?->status ?? 'none';
-                    if ($kitStatus === 'released') { $kitGreen++; }
-                    elseif ($kitStatus !== 'none') { $kitYellow++; }
-                    else { $kitGray++; }
-                } else {
-                    $matStatus = $lot->material_status ?? 'pending';
-                    if ($matStatus === 'released') { $kitGreen++; }
-                    else { $kitGray++; }
-                }
+                // --- Kit / Material (a nivel viajero) ---
+                // CRIMP ya no usa Kit: liberación por material_status, igual que NO-CRIMP.
+                $matStatus = $lot->material_status ?? 'pending';
+                if ($matStatus === 'released') { $kitGreen++; }
+                else { $kitGray++; }
 
                 // --- Inspección (columna directa, sin query) ---
                 $inspStatus = $lot->inspection_status ?? 'pending';
@@ -94,7 +87,7 @@ class TvMonitor extends Component
                 $qualGoodPieces = $lot->qualityWeighings->sum('good_pieces');
                 if ($qualGoodPieces <= 0) {
                     $pkgGray++;
-                } elseif ($lot->surplus_received || in_array($lot->closure_decision, ['complete_lot', 'close_as_is', 'new_lot'])) {
+                } elseif ($lot->surplus_received || ! empty($lot->closure_decision)) {
                     $pkgGreen++;
                 } elseif ($lot->viajero_received) {
                     $pkgYellow++; // blue → yellow en semáforo TV

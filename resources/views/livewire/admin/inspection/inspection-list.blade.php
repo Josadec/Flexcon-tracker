@@ -121,7 +121,7 @@
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Work Order</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Parte</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Kit</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Lotes de CRIMP</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                             <button wire:click="sortBy('quantity')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
                                 Cantidad
@@ -164,13 +164,12 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                @php
-                                    $kit = $lot->kits->first();
-                                @endphp
-                                @if($kit)
-                                    <a href="{{ route('admin.kits.show', $kit) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">
-                                        {{ $kit->kit_number }}
-                                    </a>
+                                @if($lot->crimpLots->isNotEmpty())
+                                    <div class="flex flex-wrap gap-1">
+                                        @foreach($lot->crimpLots as $cl)
+                                            <span class="px-1.5 py-0.5 text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded font-mono">{{ $cl->crimp_lot_number }}</span>
+                                        @endforeach
+                                    </div>
                                 @else
                                     <span class="text-gray-400">-</span>
                                 @endif

@@ -750,10 +750,7 @@ class DynamicSentListView extends Component
 
         $query = WorkOrder::with([
             'purchaseOrder.part',
-            'lots',
-            'kits.preparedBy',
-            'kits.releasedBy',
-            'kits.lots'
+            'lots.crimpLots',
         ])->whereNotIn('status_id', $closedStatusIds); // Excluir cerrados/cancelados
 
         // Apply search

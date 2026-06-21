@@ -6,7 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use App\Models\WorkOrder;
 use App\Models\Lot;
-use App\Models\Kit;
+use App\Models\CrimpLot;
 use App\Models\SentList;
 
 #[Layout('components.layouts.app')]
@@ -33,9 +33,9 @@ class MaterialsAreaDashboard extends Component
             'total_work_orders' => WorkOrder::whereHas('lots')->count(),
             'total_lots' => Lot::count(),
             'pending_lots' => Lot::where('status', 'pending')->count(),
-            'total_kits' => Kit::count(),
-            'kits_preparing' => Kit::where('status', 'preparing')->count(),
-            'kits_pending_inspection' => Kit::where('status', 'ready')->count(),
+            'total_crimp_lots' => CrimpLot::count(),
+            'crimp_lots_qty' => (int) CrimpLot::sum('quantity'),
+            'viajeros_con_crimp' => Lot::has('crimpLots')->count(),
         ];
     }
 

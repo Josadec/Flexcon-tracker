@@ -147,39 +147,25 @@
             </div>
         </div>
 
-        {{-- Kits por estado --}}
+        {{-- Lotes de CRIMP --}}
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
                 <div>
-                    <h2 class="text-base font-semibold text-gray-900 dark:text-white">Kits (CRIMP)</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ number_format($totalKits) }} total</p>
+                    <h2 class="text-base font-semibold text-gray-900 dark:text-white">Lotes de CRIMP</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ number_format($totalCrimpLots) }} en {{ number_format($viajerosConCrimp) }} {{ Str::plural('viajero', $viajerosConCrimp) }}</p>
                 </div>
-                <a href="{{ route('admin.kits.index') }}" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Ver todos →</a>
             </div>
-            <div class="p-5 space-y-3">
-                @php
-                    $kitStatuses = [
-                        'preparing'   => ['Preparando',   'bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300',         'bg-gray-400'],
-                        'ready'       => ['Listo',         'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300', 'bg-yellow-500'],
-                        'released'    => ['Liberado',      'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300', 'bg-indigo-500'],
-                        'in_assembly' => ['En Ensamble',   'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',         'bg-blue-500'],
-                        'rejected'    => ['Rechazado',     'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',             'bg-red-500'],
-                    ];
-                @endphp
-                @foreach ($kitStatuses as $key => [$label, $badge, $bar])
-                    @php
-                        $count = (int) ($kitsByStatus[$key] ?? 0);
-                        $pct   = $totalKits > 0 ? round(($count / $totalKits) * 100) : 0;
-                    @endphp
-                    <div class="flex items-center gap-3">
-                        <span class="w-24 text-xs font-medium text-gray-600 dark:text-gray-400 shrink-0">{{ $label }}</span>
-                        <div class="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div class="{{ $bar }} h-full rounded-full transition-all" style="width: {{ $pct }}%"></div>
-                        </div>
-                        <span class="w-8 text-xs font-semibold text-gray-700 dark:text-gray-300 text-right">{{ $count }}</span>
-                        <span class="w-8 text-xs text-gray-400 dark:text-gray-500 text-right">{{ $pct }}%</span>
+            <div class="p-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="rounded-lg bg-purple-50 dark:bg-purple-900/20 p-4 text-center">
+                        <div class="text-2xl font-bold text-purple-700 dark:text-purple-300">{{ number_format($totalCrimpLots) }}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Lotes de CRIMP</div>
                     </div>
-                @endforeach
+                    <div class="rounded-lg bg-indigo-50 dark:bg-indigo-900/20 p-4 text-center">
+                        <div class="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{{ number_format($crimpLotsQty) }}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Piezas en CRIMP</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

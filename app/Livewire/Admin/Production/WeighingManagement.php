@@ -3,7 +3,6 @@
 namespace App\Livewire\Admin\Production;
 
 use App\Models\Lot;
-use App\Models\Kit;
 use App\Models\Weighing;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -22,7 +21,6 @@ class WeighingManagement extends Component
     public bool $showFormModal = false;
     public ?int $editingWeighingId = null;
     public ?int $selectedLotId = null;
-    public ?int $selectedKitId = null;
     public int $formQuantity = 0;
     public int $formWeighedPieces = 0;
     public string $formWeighedAt = '';
@@ -36,11 +34,8 @@ class WeighingManagement extends Component
     public bool $confirmingDeletion = false;
     public ?int $weighingToDelete = null;
 
-    public bool $isCrimp = true;
-
     // Datos para selects
     public $lots = [];
-    public $kits = [];
 
     public function mount(): void
     {
@@ -50,26 +45,19 @@ class WeighingManagement extends Component
 
     public function loadLots(): void
     {
-        $this->lots = Lot::with(['workOrder.purchaseOrder.part', 'kits'])
+        $this->lots = Lot::with(['workOrder.purchaseOrder.part'])
             ->orderBy('lot_number')
             ->get();
     }
 
     public function updatedSelectedLotId($value): void
     {
-        $this->kits = [];
-        $this->selectedKitId = null;
         $this->formQuantity = 0;
-        $this->isCrimp = true;
 
         if ($value) {
-            $lot = Lot::with(['kits', 'workOrder.purchaseOrder.part'])->find($value);
+            $lot = Lot::find($value);
             if ($lot) {
                 $this->formQuantity = $lot->quantity;
-                $this->isCrimp = (bool) ($lot->workOrder->purchaseOrder->part->is_crimp ?? true);
-                if ($this->isCrimp) {
-                    $this->kits = $lot->kits;
-                }
             }
         }
     }
@@ -107,7 +95,7 @@ class WeighingManagement extends Component
 
     public function openEditModal(int $id): void
     {
-        $weighing = Weighing::with(['lot.kits', 'lot.workOrder.purchaseOrder.part'])->find($id);
+        $weighing = Weighing::find($id);
 
         if (!$weighing) {
             session()->flash('error', 'Pesada no encontrada.');
@@ -119,19 +107,10 @@ class WeighingManagement extends Component
 
         $this->editingWeighingId = $weighing->id;
         $this->selectedLotId = $weighing->lot_id;
-        $this->selectedKitId = $weighing->kit_id;
         $this->formQuantity = $weighing->quantity;
         $this->formWeighedPieces = $weighing->good_pieces;
         $this->formWeighedAt = $weighing->weighed_at->format('Y-m-d\TH:i');
         $this->formComments = $weighing->comments ?? '';
-
-        // Cargar kits del lote seleccionado y determinar crimp
-        if ($weighing->lot) {
-            $this->isCrimp = (bool) ($weighing->lot->workOrder->purchaseOrder->part->is_crimp ?? true);
-            if ($this->isCrimp) {
-                $this->kits = $weighing->lot->kits;
-            }
-        }
 
         $this->showFormModal = true;
     }
@@ -144,7 +123,6 @@ class WeighingManagement extends Component
     {
         $this->validate([
             'selectedLotId' => 'required|exists:lots,id',
-            'selectedKitId' => 'nullable|exists:kits,id',
             'formWeighedPieces' => 'required|integer|min:1',
             'formWeighedAt' => 'required|date',
             'formComments' => 'nullable|string|max:1000',
@@ -159,7 +137,6 @@ class WeighingManagement extends Component
 
         $data = [
             'lot_id' => $this->selectedLotId,
-            'kit_id' => $this->isCrimp ? ($this->selectedKitId ?: null) : null,
             'quantity' => $lot->quantity,
             'good_pieces' => $this->formWeighedPieces,
             'bad_pieces' => 0,
@@ -171,10 +148,13 @@ class WeighingManagement extends Component
         if ($this->editingWeighingId) {
             $weighing = Weighing::find($this->editingWeighingId);
             if ($weighing) {
+                // Las pesadas existentes conservan su kit_id (historial); no se reasigna.
                 $weighing->update($data);
                 session()->flash('message', 'Pesada actualizada correctamente.');
             }
         } else {
+            // Pesada a nivel viajero: kit_id = null (CRIMP ya no usa kit).
+            $data['kit_id'] = null;
             Weighing::create($data);
             session()->flash('message', 'Pesada registrada correctamente.');
         }
@@ -247,13 +227,10 @@ class WeighingManagement extends Component
     {
         $this->editingWeighingId = null;
         $this->selectedLotId = null;
-        $this->selectedKitId = null;
         $this->formQuantity = 0;
         $this->formWeighedPieces = 0;
-        $this->isCrimp = true;
         $this->formWeighedAt = now()->format('Y-m-d\TH:i');
         $this->formComments = '';
-        $this->kits = [];
         $this->resetErrorBag();
     }
 

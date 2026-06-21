@@ -25,7 +25,7 @@
     @php
         $progress = $workOrder->original_quantity > 0 ? round(($workOrder->sent_pieces / $workOrder->original_quantity) * 100, 1) : 0;
         $lotsCount = $workOrder->lots->count();
-        $kitsCount = $workOrder->kits->count();
+        $crimpLotsCount = $workOrder->lots->sum(fn($l) => $l->crimpLots->count());
         $totalWeighings = $workOrder->lots->sum(fn($l) => $l->weighings->count());
     @endphp
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -44,8 +44,8 @@
                 <p class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ $lotsCount }}</p>
             </div>
             <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Kits</p>
-                <p class="text-lg font-bold text-green-600 dark:text-green-400">{{ $kitsCount }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Lotes de CRIMP</p>
+                <p class="text-lg font-bold text-purple-600 dark:text-purple-400">{{ $crimpLotsCount }}</p>
             </div>
             <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Pesadas</p>
@@ -339,7 +339,7 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Lote #</th>
                                 <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cant.</th>
                                 <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Kits</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Lotes de CRIMP</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Producción</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Calidad</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Empaque</th>
@@ -414,15 +414,14 @@
                                 {{-- Estado --}}
                                 <td class="px-4 py-4 text-center align-top"><flux:badge :color="$lotColor" size="sm">{{ $lot->status_label }}</flux:badge></td>
 
-                                {{-- Kits --}}
+                                {{-- Lotes de CRIMP --}}
                                 <td class="px-4 py-4 align-top">
-                                    @if($lot->kits->isEmpty())
-                                        <span class="text-xs text-gray-400">Sin kits</span>
+                                    @if($lot->crimpLots->isEmpty())
+                                        <span class="text-xs text-gray-400">Sin lotes de CRIMP</span>
                                     @else
                                         <div class="flex flex-wrap gap-1 max-w-[210px]">
-                                            @foreach($lot->kits as $kit)
-                                                @php $kitColor = $kit->status_color === 'gray' ? 'zinc' : $kit->status_color; @endphp
-                                                <flux:badge :color="$kitColor" size="sm">{{ $kit->kit_number }} · {{ $kit->status_label }}</flux:badge>
+                                            @foreach($lot->crimpLots as $cl)
+                                                <flux:badge color="purple" size="sm">{{ $cl->crimp_lot_number }}</flux:badge>
                                             @endforeach
                                         </div>
                                     @endif
@@ -494,74 +493,7 @@
         </div>
         @endif
 
-        {{-- ============================================ --}}
-        {{-- TAB: KITS --}}
-        {{-- ============================================ --}}
-        @if($activeTab === 'kits')
-        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700">
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Kits de esta Work Order</h2>
-                @if($workOrder->lots->isNotEmpty())
-                <button wire:click="openCreateKitModal"
-                    class="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Agregar Kit
-                </button>
-                @else
-                <span class="text-xs text-gray-500 dark:text-gray-400 italic">Crea al menos un lote primero</span>
-                @endif
-            </div>
-            @if($workOrder->kits->isEmpty())
-                <div class="p-12 text-center">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No hay kits creados. {{ $workOrder->lots->isEmpty() ? 'Primero crea un lote.' : 'Haz clic en "Agregar Kit" para crear uno.' }}</p>
-                </div>
-            @else
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-900">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Kit #</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Lotes</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Preparado por</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Liberado por</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                            @foreach($workOrder->kits as $kit)
-                            @php
-                                $kitColor = match($kit->status) {
-                                    'preparing' => 'yellow', 'ready' => 'blue', 'released' => 'green', 'in_assembly' => 'orange', 'rejected' => 'red', default => 'zinc',
-                                };
-                            @endphp
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{{ $kit->kit_number }}</td>
-                                <td class="px-6 py-4 text-center"><flux:badge :color="$kitColor" size="sm">{{ $kit->status_label ?? ucfirst($kit->status) }}</flux:badge></td>
-                                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $kit->lots->pluck('lot_number')->join(', ') ?: 'Sin lotes' }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $kit->preparedBy?->name ?? '—' }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $kit->releasedBy?->name ?? '—' }}</td>
-                                <td class="px-6 py-4 text-right">
-                                    <div class="flex justify-end gap-1">
-                                        <button wire:click="openEditKitModal({{ $kit->id }})" class="p-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Editar kit">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                        </button>
-                                        @if($kit->canBeDeleted())
-                                        <button wire:click="confirmDeleteKit({{ $kit->id }})" class="p-1.5 text-red-600 hover:text-red-800 dark:text-red-400" title="Eliminar kit">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                        </button>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
-        </div>
-        @endif
+        {{-- TAB: KITS eliminado — CRIMP ya no usa Kit (lotes de CRIMP en la Lista de envío) --}}
 
         {{-- ============================================ --}}
         {{-- TAB: PESADAS --}}
@@ -592,7 +524,6 @@
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Fecha</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Lote</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Kit</th>
                                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Buenas</th>
                                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Malas</th>
                                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Total</th>
@@ -605,7 +536,6 @@
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                 <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">{{ $weighing->weighed_at?->format('d/m/Y H:i') ?? '—' }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">{{ $weighing->lot?->lot_number ?? '—' }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $weighing->kit?->kit_number ?? '—' }}</td>
                                 <td class="px-6 py-4 text-center text-sm font-medium text-green-600 dark:text-green-400">{{ number_format($weighing->good_pieces) }}</td>
                                 <td class="px-6 py-4 text-center text-sm font-medium text-red-600 dark:text-red-400">{{ number_format($weighing->bad_pieces) }}</td>
                                 <td class="px-6 py-4 text-center text-sm font-bold text-gray-900 dark:text-white">{{ number_format($weighing->good_pieces + $weighing->bad_pieces) }}</td>
@@ -702,7 +632,7 @@
                     </div>
                     <div>
                         <h3 class="text-lg font-medium text-gray-900 dark:text-white">Eliminar Lote</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">¿Estás seguro? Se eliminarán también sus pesadas y se desasociarán los kits. Esta acción no se puede deshacer.</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">¿Estás seguro? Se eliminarán también sus pesadas. Esta acción no se puede deshacer.</p>
                     </div>
                 </div>
                 <div class="flex justify-end gap-2">
@@ -714,93 +644,7 @@
     </div>
     @endif
 
-    {{-- Kit Modal (Create/Edit) --}}
-    @if($showKitModal)
-    <div class="fixed inset-0 z-50 overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closeKitModal"></div>
-            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full">
-                <form wire:submit="saveKit">
-                    <div class="p-6">
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">{{ $editingKitId ? 'Editar Kit' : 'Crear Kit' }}</h3>
-                        <div class="space-y-4">
-                            @if($editingKitId)
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Número de Kit</label>
-                                @php $editKit = \App\Models\Kit::find($editingKitId); @endphp
-                                <input type="text" disabled value="{{ $editKit?->kit_number ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm">
-                            </div>
-                            @else
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Número de Kit</label>
-                                <input type="text" disabled value="(Se generará automáticamente)" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 shadow-sm">
-                            </div>
-                            @endif
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Estado</label>
-                                <select wire:model="kitStatus" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="preparing">En Preparación</option>
-                                    <option value="ready">Listo</option>
-                                    @if($editingKitId)
-                                    <option value="released">Liberado</option>
-                                    <option value="in_assembly">En Ensamble</option>
-                                    <option value="rejected">Rechazado</option>
-                                    @endif
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Lotes a Incluir <span class="text-xs text-red-500">* (obligatorio)</span></label>
-                                <div class="mt-1 space-y-2 max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-3">
-                                    @forelse($workOrder->lots as $lot)
-                                        <label class="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
-                                            <input type="checkbox" wire:model="selectedLots" value="{{ $lot->id }}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                            <span class="text-sm text-gray-900 dark:text-white">{{ $lot->lot_number }} — {{ number_format($lot->quantity) }} pcs ({{ ucfirst($lot->status) }})</span>
-                                        </label>
-                                    @empty
-                                        <p class="text-sm text-gray-500 dark:text-gray-400 italic">No hay lotes disponibles.</p>
-                                    @endforelse
-                                </div>
-                                @error('selectedLots') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notas de Validación</label>
-                                <textarea wire:model="kitValidationNotes" rows="2" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 dark:bg-gray-700 px-6 py-3 flex justify-end gap-2">
-                        <button type="button" wire:click="closeKitModal" class="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">Cancelar</button>
-                        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg">{{ $editingKitId ? 'Guardar' : 'Crear Kit' }}</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- Delete Kit Confirm --}}
-    @if($showDeleteKitConfirm)
-    <div class="fixed inset-0 z-50 overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="$set('showDeleteKitConfirm', false)"></div>
-            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-sm w-full p-6">
-                <div class="flex items-start gap-3 mb-4">
-                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Eliminar Kit</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">¿Estás seguro? Esta acción no se puede deshacer.</p>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-2">
-                    <button wire:click="$set('showDeleteKitConfirm', false)" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">Cancelar</button>
-                    <button wire:click="deleteKit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg">Eliminar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
+    {{-- Modales de Kit eliminados — CRIMP ya no usa Kit --}}
 
     {{-- Weighing Modal (Create/Edit) --}}
     @if($showWeighingModal)
@@ -842,16 +686,6 @@
                                 </div>
                             </div>
                             @endif
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Kit (opcional)</label>
-                                <select wire:model="weighingKitId" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">— Sin Kit —</option>
-                                    @foreach($workOrder->kits as $kit)
-                                        <option value="{{ $kit->id }}">{{ $kit->kit_number }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
 
                             <div class="grid grid-cols-2 gap-4">
                                 <div>

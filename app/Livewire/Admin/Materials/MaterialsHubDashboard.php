@@ -6,7 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use App\Models\WorkOrder;
 use App\Models\Lot;
-use App\Models\Kit;
+use App\Models\CrimpLot;
 use App\Models\SentList;
 use App\Traits\ComputesAreaStats;
 
@@ -31,13 +31,10 @@ class MaterialsHubDashboard extends Component
         $inProgressLots = Lot::where('status', 'in_progress')->count();
         $completedLots = Lot::where('status', 'completed')->count();
 
-        // ── Kit metrics ──
-        $totalKits = Kit::count();
-        $kitsPreparing = Kit::where('status', Kit::STATUS_PREPARING)->count();
-        $kitsReady = Kit::where('status', Kit::STATUS_READY)->count();
-        $kitsReleased = Kit::where('status', Kit::STATUS_RELEASED)->count();
-        $kitsInAssembly = Kit::where('status', Kit::STATUS_IN_ASSEMBLY)->count();
-        $kitsRejected = Kit::where('status', Kit::STATUS_REJECTED)->count();
+        // ── Lotes de CRIMP (reemplaza a las métricas de Kit) ──
+        $totalCrimpLots   = CrimpLot::count();
+        $crimpLotsQty     = (int) CrimpLot::sum('quantity');
+        $viajerosConCrimp = Lot::has('crimpLots')->count();
 
         // ── Sent List metrics ──
         $totalSentLists = SentList::count();
@@ -55,12 +52,9 @@ class MaterialsHubDashboard extends Component
             'pendingLots' => $pendingLots,
             'inProgressLots' => $inProgressLots,
             'completedLots' => $completedLots,
-            'totalKits' => $totalKits,
-            'kitsPreparing' => $kitsPreparing,
-            'kitsReady' => $kitsReady,
-            'kitsReleased' => $kitsReleased,
-            'kitsInAssembly' => $kitsInAssembly,
-            'kitsRejected' => $kitsRejected,
+            'totalCrimpLots' => $totalCrimpLots,
+            'crimpLotsQty' => $crimpLotsQty,
+            'viajerosConCrimp' => $viajerosConCrimp,
             'totalSentLists' => $totalSentLists,
             'recentSentLists' => $recentSentLists,
         ]);

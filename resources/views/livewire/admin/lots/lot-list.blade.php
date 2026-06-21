@@ -156,7 +156,7 @@
                                 @endif
                             </button>
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Kit</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Lotes de CRIMP</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
@@ -202,14 +202,14 @@
                                 </button>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                @if($lot->kits->count() > 0)
-                                    @php $latestKit = $lot->kits->sortByDesc('created_at')->first(); @endphp
-                                    <a href="{{ route('admin.kits.show', $latestKit) }}" class="text-sm text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
-                                        {{ $latestKit->kit_number }}
-                                    </a>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ $latestKit->status_label }}</div>
+                                @if($lot->crimpLots->count() > 0)
+                                    <div class="flex flex-wrap gap-1">
+                                        @foreach($lot->crimpLots as $cl)
+                                            <span class="px-1.5 py-0.5 text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded font-mono">{{ $cl->crimp_lot_number }}</span>
+                                        @endforeach
+                                    </div>
                                 @else
-                                    <span class="text-xs text-gray-400 dark:text-gray-500">Sin kit</span>
+                                    <span class="text-xs text-gray-400 dark:text-gray-500">Sin lotes de CRIMP</span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right">

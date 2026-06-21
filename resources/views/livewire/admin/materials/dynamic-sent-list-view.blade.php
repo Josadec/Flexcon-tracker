@@ -46,7 +46,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Descripción</th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cantidad</th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Lotes</th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Kits</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Lotes de CRIMP</th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
                         </tr>
                     </thead>
@@ -56,7 +56,7 @@
                                 $po = $workOrder->purchaseOrder;
                                 $part = $po->part ?? null;
                                 $lotsCount = $workOrder->lots->count();
-                                $kitsCount = $workOrder->kits->count();
+                                $crimpLotsCount = $workOrder->lots->sum(fn($l) => $l->crimpLots->count());
                                 $pendingLots = $workOrder->lots->where('status', 'pending')->count();
                                 $completedLots = $workOrder->lots->where('status', 'completed')->count();
                             @endphp
@@ -90,12 +90,12 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     @if ($part && $part->is_crimp)
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                            {{ $kitsCount }}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                            {{ $crimpLotsCount }}
                                         </span>
                                     @else
-                                        {{-- No crimp: mostrar indicador de material por lotes --}}
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" title="No CRIMP — Lote = Kit">
+                                        {{-- No crimp: indicador de material por lotes --}}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" title="No CRIMP — por lote">
                                             Por Lote
                                         </span>
                                     @endif
@@ -187,91 +187,27 @@
                                         @endif
                                     </div>
 
-                                    {{-- Kits Section (solo para partes CRIMP) --}}
+                                    {{-- Lotes de CRIMP (solo lectura — se gestionan en la Lista de envío / Materiales) --}}
                                     @if ($part && $part->is_crimp)
-                                    <div class="pl-4 border-l-2 border-green-300 dark:border-green-600">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                                Kits de esta WO:
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 ml-1">
-                                                    {{ $workOrder->kits->count() }}
-                                                </span>
-                                            </div>
-                                            <button 
-                                                wire:click="openCreateKitModal({{ $workOrder->id }})"
-                                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                            >
-                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                                Agregar Kit
-                                            </button>
+                                    <div class="pl-4 border-l-2 border-purple-300 dark:border-purple-600">
+                                        @php $woCrimpLots = $workOrder->lots->flatMap->crimpLots; @endphp
+                                        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                            Lotes de CRIMP de esta WO:
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 ml-1">
+                                                {{ $woCrimpLots->count() }}
+                                            </span>
                                         </div>
-
-                                        @if($workOrder->kits->isEmpty())
+                                        @if($woCrimpLots->isEmpty())
                                             <div class="text-xs text-gray-500 dark:text-gray-400 italic p-2">
-                                                No hay kits creados para esta WO. Haz clic en "Agregar Kit" para crear uno.
+                                                Sin lotes de CRIMP. Se capturan en la Lista de envío (Materiales).
                                             </div>
                                         @else
                                             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                                @foreach($workOrder->kits as $kit)
-                                                    <div class="p-3 bg-white dark:bg-gray-800 rounded border-2 border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-500 transition-colors">
-                                                        <div class="flex items-start justify-between mb-2">
-                                                            <div class="flex-1">
-                                                                <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                                                    {{ $kit->kit_number }}
-                                                                </div>
-                                                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ number_format($kit->quantity ?? 0) }} pz</div>
-                                                                @php
-                                                                    $kitStatusColor = match($kit->status) {
-                                                                        'preparing' => 'yellow',
-                                                                        'ready' => 'blue',
-                                                                        'released' => 'green',
-                                                                        'in_assembly' => 'orange',
-                                                                        'rejected' => 'red',
-                                                                        default => 'zinc',
-                                                                    };
-                                                                @endphp
-                                                                <flux:badge :color="$kitStatusColor" size="sm" class="mt-1">
-                                                                    {{ $kit->status_label }}
-                                                                </flux:badge>
-                                                            </div>
-                                                            <div class="flex gap-1">
-                                                                <button 
-                                                                    wire:click="openEditKitModal({{ $kit->id }})"
-                                                                    class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                                                                    title="Editar kit"
-                                                                >
-                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                    </svg>
-                                                                </button>
-                                                                @if($kit->canBeDeleted())
-                                                                    <button 
-                                                                        wire:click="confirmDeleteKit({{ $kit->id }})"
-                                                                        class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                                                                        title="Eliminar kit"
-                                                                    >
-                                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                        </svg>
-                                                                    </button>
-                                                                @endif
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                                                            @if($kit->preparedBy)
-                                                                <div>
-                                                                    <span class="font-medium">Preparado:</span> {{ $kit->preparedBy->name }}
-                                                                </div>
-                                                            @endif
-                                                            @if($kit->releasedBy)
-                                                                <div>
-                                                                    <span class="font-medium">Liberado:</span> {{ $kit->releasedBy->name }}
-                                                                </div>
-                                                            @endif
-                                                            <div>
-                                                                <span class="font-medium">Lotes:</span> {{ $kit->lots->count() > 0 ? $kit->lots->pluck('lot_number')->join(', ') : 'Sin lotes' }}
-                                                            </div>
+                                                @foreach($woCrimpLots as $cl)
+                                                    <div class="p-3 bg-white dark:bg-gray-800 rounded border-2 border-gray-200 dark:border-gray-700">
+                                                        <div class="text-sm font-medium text-gray-900 dark:text-white font-mono">{{ $cl->crimp_lot_number }}</div>
+                                                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                            {{ number_format($cl->quantity ?? 0) }} pz@if($cl->lote_fabricante) · Fab: {{ $cl->lote_fabricante }}@endif
                                                         </div>
                                                     </div>
                                                 @endforeach
@@ -283,7 +219,7 @@
                                     <div class="pl-4 border-l-2 border-amber-300 dark:border-amber-600">
                                         <div class="flex items-center justify-between mb-2">
                                             <div class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                                Material por Lote (No CRIMP — Lote = Kit):
+                                                Material por Lote (No CRIMP):
                                             </div>
                                         </div>
 
@@ -471,8 +407,8 @@
     </div>
     @endif
 
-    {{-- Create Kit Modal --}}
-    @if($showCreateKitModal)
+    {{-- Create Kit Modal eliminado — CRIMP ya no usa Kit (lotes de CRIMP en la Lista de envío) --}}
+    @if(false)
     <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closeCreateKitModal"></div>
@@ -551,7 +487,7 @@
     @endif
 
     {{-- Edit Kit Modal --}}
-    @if($showEditKitModal && $selectedKitId && $this->selectedKit)
+    @if(false) {{-- Edit Kit Modal eliminado --}}
     <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closeEditKitModal"></div>
@@ -627,7 +563,7 @@
     @endif
 
     {{-- Delete Kit Confirmation Modal --}}
-    @if($showDeleteKitConfirm && $selectedKitId && $this->selectedKit)
+    @if(false) {{-- Delete Kit Modal eliminado --}}
     <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="cancelDeleteKit"></div>
@@ -717,7 +653,7 @@
     </div>
     @endif
 
-    {{-- Modal de Material (No CRIMP: Lote = Kit) --}}
+    {{-- Modal de Material (No CRIMP) --}}
     @if ($showMaterialModal && $selectedLotForMaterial)
         <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="material-modal-title" role="dialog"
             aria-modal="true">
@@ -778,7 +714,7 @@
                                 <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                                 </svg>
-                                <span>Esta parte <strong>no es CRIMP</strong> — el lote funciona como kit. Apruebe o rechace el material directamente.</span>
+                                <span>Esta parte <strong>no es CRIMP</strong>. Apruebe o rechace el material directamente.</span>
                             </div>
                         </div>
 

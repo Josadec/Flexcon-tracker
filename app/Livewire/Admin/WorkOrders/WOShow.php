@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Admin\WorkOrders;
 
-use App\Models\Kit;
 use App\Models\Lot;
 use App\Models\StatusWO;
 use App\Models\Weighing;
@@ -45,23 +44,12 @@ class WOShow extends Component
     public string $lotComments = '';
 
     // ===============================================
-    // KIT CRUD PROPERTIES
-    // ===============================================
-    public bool $showKitModal = false;
-    public bool $showDeleteKitConfirm = false;
-    public ?int $editingKitId = null;
-    public string $kitStatus = 'preparing';
-    public array $selectedLots = [];
-    public string $kitValidationNotes = '';
-
-    // ===============================================
     // WEIGHING CRUD PROPERTIES
     // ===============================================
     public bool $showWeighingModal = false;
     public bool $showDeleteWeighingConfirm = false;
     public ?int $editingWeighingId = null;
     public ?int $weighingLotId = null;
-    public ?int $weighingKitId = null;
     public int $goodPieces = 0;
     public int $badPieces = 0;
     public string $weighedAt = '';
@@ -87,13 +75,10 @@ class WOShow extends Component
             'statusLogs.fromStatus',
             'statusLogs.toStatus',
             'statusLogs.user',
-            'lots.kits',
+            'lots.crimpLots',
             'lots.weighings.weighedBy',
             'lots.qualityWeighings',
             'lots.packagingRecords',
-            'kits.lots',
-            'kits.preparedBy',
-            'kits.releasedBy',
         ]);
     }
 
@@ -106,13 +91,10 @@ class WOShow extends Component
             'statusLogs.fromStatus',
             'statusLogs.toStatus',
             'statusLogs.user',
-            'lots.kits',
+            'lots.crimpLots',
             'lots.weighings.weighedBy',
             'lots.qualityWeighings',
             'lots.packagingRecords',
-            'kits.lots',
-            'kits.preparedBy',
-            'kits.releasedBy',
         ]);
     }
 
@@ -269,7 +251,6 @@ class WOShow extends Component
             return;
         }
 
-        $lot->kits()->detach();
         $lot->weighings()->delete();
         $lot->delete();
 
@@ -297,118 +278,6 @@ class WOShow extends Component
     }
 
     // ===============================================
-    // KIT CRUD
-    // ===============================================
-
-    public function openCreateKitModal(): void
-    {
-        $this->resetKitForm();
-        $this->showKitModal = true;
-    }
-
-    public function openEditKitModal(int $kitId): void
-    {
-        $kit = Kit::with('lots')->findOrFail($kitId);
-        $this->editingKitId = $kitId;
-        $this->kitStatus = $kit->status;
-        $this->selectedLots = $kit->lots->pluck('id')->toArray();
-        $this->kitValidationNotes = $kit->validation_notes ?? '';
-        $this->showKitModal = true;
-    }
-
-    public function saveKit(): void
-    {
-        $rules = [
-            'kitStatus' => 'required|in:preparing,ready,released,in_assembly,rejected',
-            'kitValidationNotes' => 'nullable|string|max:500',
-        ];
-        $messages = [];
-
-        if (!$this->editingKitId) {
-            $rules['selectedLots'] = 'required|array|min:1';
-            $rules['selectedLots.*'] = 'exists:lots,id';
-            $messages['selectedLots.required'] = 'Debe seleccionar al menos un lote.';
-            $messages['selectedLots.min'] = 'Debe seleccionar al menos un lote.';
-        }
-
-        $this->validate($rules, $messages);
-
-        if ($this->editingKitId) {
-            $kit = Kit::findOrFail($this->editingKitId);
-            $updateData = [
-                'status' => $this->kitStatus,
-                'validation_notes' => $this->kitValidationNotes,
-            ];
-            if ($this->kitStatus === 'released' && $kit->status !== 'released') {
-                $updateData['released_by'] = auth()->id();
-            }
-            $kit->update($updateData);
-
-            // Sync lots
-            if (!empty($this->selectedLots)) {
-                $kit->lots()->sync($this->selectedLots);
-            }
-
-            $message = 'Kit actualizado correctamente.';
-        } else {
-            $kit = Kit::create([
-                'work_order_id' => $this->workOrder->id,
-                'kit_number' => Kit::generateKitNumber($this->workOrder->id),
-                'status' => $this->kitStatus,
-                'validation_notes' => $this->kitValidationNotes,
-                'prepared_by' => auth()->id(),
-            ]);
-            $kit->lots()->attach($this->selectedLots);
-            $message = 'Kit creado correctamente.';
-        }
-
-        session()->flash('success', $message);
-        $this->closeKitModal();
-        $this->refreshWorkOrder();
-    }
-
-    public function confirmDeleteKit(int $kitId): void
-    {
-        $this->editingKitId = $kitId;
-        $this->showDeleteKitConfirm = true;
-    }
-
-    public function deleteKit(): void
-    {
-        $kit = Kit::findOrFail($this->editingKitId);
-
-        if (!$kit->canBeDeleted()) {
-            session()->flash('error', 'Este kit no puede ser eliminado en su estado actual.');
-            $this->showDeleteKitConfirm = false;
-            $this->editingKitId = null;
-            return;
-        }
-
-        $kit->lots()->detach();
-        $kit->delete();
-
-        session()->flash('success', 'Kit eliminado correctamente.');
-        $this->showDeleteKitConfirm = false;
-        $this->editingKitId = null;
-        $this->refreshWorkOrder();
-    }
-
-    public function closeKitModal(): void
-    {
-        $this->showKitModal = false;
-        $this->resetKitForm();
-    }
-
-    private function resetKitForm(): void
-    {
-        $this->editingKitId = null;
-        $this->kitStatus = 'preparing';
-        $this->selectedLots = [];
-        $this->kitValidationNotes = '';
-        $this->resetErrorBag();
-    }
-
-    // ===============================================
     // WEIGHING CRUD
     // ===============================================
 
@@ -428,7 +297,6 @@ class WOShow extends Component
         $weighing = Weighing::findOrFail($weighingId);
         $this->editingWeighingId = $weighingId;
         $this->weighingLotId = $weighing->lot_id;
-        $this->weighingKitId = $weighing->kit_id;
         $this->goodPieces = $weighing->good_pieces;
         $this->badPieces = $weighing->bad_pieces;
         $this->weighedAt = $weighing->weighed_at?->format('Y-m-d\TH:i') ?? now()->format('Y-m-d\TH:i');
@@ -468,7 +336,6 @@ class WOShow extends Component
     {
         $this->validate([
             'weighingLotId' => 'required|exists:lots,id',
-            'weighingKitId' => 'nullable|exists:kits,id',
             'goodPieces' => 'required|integer|min:0',
             'badPieces' => 'required|integer|min:0',
             'weighedAt' => 'required|date',
@@ -494,9 +361,9 @@ class WOShow extends Component
 
         if ($this->editingWeighingId) {
             $weighing = Weighing::findOrFail($this->editingWeighingId);
+            // kit_id no se reasigna (historial); las pesadas viejas lo conservan.
             $weighing->update([
                 'lot_id' => $this->weighingLotId,
-                'kit_id' => $this->weighingKitId ?: null,
                 'good_pieces' => $this->goodPieces,
                 'bad_pieces' => $this->badPieces,
                 'weighed_at' => $this->weighedAt,
@@ -504,9 +371,10 @@ class WOShow extends Component
             ]);
             $message = 'Pesada actualizada correctamente.';
         } else {
+            // Pesada a nivel viajero: kit_id = null (CRIMP ya no usa kit).
             Weighing::create([
                 'lot_id' => $this->weighingLotId,
-                'kit_id' => $this->weighingKitId ?: null,
+                'kit_id' => null,
                 'good_pieces' => $this->goodPieces,
                 'bad_pieces' => $this->badPieces,
                 'weighed_at' => $this->weighedAt,
@@ -548,7 +416,6 @@ class WOShow extends Component
     {
         $this->editingWeighingId = null;
         $this->weighingLotId = null;
-        $this->weighingKitId = null;
         $this->goodPieces = 0;
         $this->badPieces = 0;
         $this->weighedAt = '';
@@ -571,7 +438,7 @@ class WOShow extends Component
         // Gather all weighings for this WO through lots
         $lotIds = $this->workOrder->lots->pluck('id');
         $weighings = Weighing::whereIn('lot_id', $lotIds)
-            ->with(['lot', 'kit', 'weighedBy'])
+            ->with(['lot', 'weighedBy'])
             ->latest('weighed_at')
             ->get();
 

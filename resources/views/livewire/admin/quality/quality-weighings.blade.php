@@ -365,20 +365,6 @@
                             </div>
                         </div>
 
-                        {{-- Kit (solo CRIMP) --}}
-                        @if ($qualIsCrimp && count($qualKits) > 0)
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kit (opcional)</label>
-                                <select wire:model="qualKitId"
-                                    class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-md focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
-                                    <option value="">Sin kit</option>
-                                    @foreach ($qualKits as $kit)
-                                        <option value="{{ $kit->id }}">{{ $kit->kit_number }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        @endif
-
                         {{-- Piezas --}}
                         <div class="grid grid-cols-2 gap-4">
                             <div>

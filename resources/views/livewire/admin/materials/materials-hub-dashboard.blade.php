@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Área de Materiales</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestión de lotes, kits y work orders para producción</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestión de lotes, lotes de CRIMP y work orders para producción</p>
         </div>
     </div>
 
@@ -79,7 +79,7 @@
                 </div>
                 <div class="flex-1 min-w-0">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">Gestión de Materiales</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Work Orders activas, lotes y kits — solo muestra órdenes abiertas</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Work Orders activas, lotes y lotes de CRIMP — solo muestra órdenes abiertas</p>
                     <div class="flex items-center gap-4 mt-4">
                         <div class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-300 dark:border-green-600"></span>
@@ -90,8 +90,8 @@
                             <span class="text-sm text-gray-500 dark:text-gray-400">{{ $pendingLots }} lotes pendientes</span>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-orange-400 border-2 border-orange-300 dark:border-orange-600"></span>
-                            <span class="text-sm text-gray-500 dark:text-gray-400">{{ $kitsPreparing }} kits preparando</span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-purple-400 border-2 border-purple-300 dark:border-purple-600"></span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">{{ $totalCrimpLots }} lotes de CRIMP</span>
                         </div>
                     </div>
                 </div>
@@ -121,20 +121,20 @@
                     <span class="text-green-600 dark:text-green-400">{{ $completedLots }} comp.</span>
                 </div>
             </div>
-            <!-- Kits Total -->
+            <!-- Lotes de CRIMP -->
             <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
-                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Kits</div>
-                <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($totalKits) }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Lotes de CRIMP</div>
+                <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($totalCrimpLots) }}</div>
             </div>
-            <!-- Kits Released -->
-            <div class="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-green-700 rounded-lg p-4 text-center">
-                <div class="text-xs text-green-600 dark:text-green-400 mb-1">Kits Liberados</div>
-                <div class="text-2xl font-semibold text-green-700 dark:text-green-300">{{ number_format($kitsReleased) }}</div>
+            <!-- Piezas CRIMP -->
+            <div class="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-700 rounded-lg p-4 text-center">
+                <div class="text-xs text-purple-600 dark:text-purple-400 mb-1">Piezas en CRIMP</div>
+                <div class="text-2xl font-semibold text-purple-700 dark:text-purple-300">{{ number_format($crimpLotsQty) }}</div>
             </div>
-            <!-- Kits In Assembly -->
+            <!-- Viajeros con CRIMP -->
             <div class="bg-white dark:bg-gray-800 border-2 border-indigo-200 dark:border-indigo-700 rounded-lg p-4 text-center">
-                <div class="text-xs text-indigo-600 dark:text-indigo-400 mb-1">Kits en Ensamble</div>
-                <div class="text-2xl font-semibold text-indigo-700 dark:text-indigo-300">{{ number_format($kitsInAssembly) }}</div>
+                <div class="text-xs text-indigo-600 dark:text-indigo-400 mb-1">Viajeros con CRIMP</div>
+                <div class="text-2xl font-semibold text-indigo-700 dark:text-indigo-300">{{ number_format($viajerosConCrimp) }}</div>
             </div>
         </div>
     </section>

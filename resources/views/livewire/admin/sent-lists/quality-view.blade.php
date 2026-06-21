@@ -198,7 +198,7 @@
                             @else
                                 <div class="px-4 py-5 text-center text-sm text-gray-400 dark:text-gray-500 italic border-t border-gray-100 dark:border-gray-700">
                                     @if ($isCrimp)
-                                        Sin pesadas de calidad de lote. Usa "Agregar Pesada" para registrar piezas sin kit.
+                                        Sin pesadas de calidad de lote. Usa "Agregar Pesada" para registrar piezas del viajero.
                                     @else
                                         Sin pesadas de calidad. Usa "Agregar Pesada" para comenzar.
                                     @endif
@@ -209,108 +209,8 @@
                     @endforeach
                 </div>
 
-                {{-- Pesadas por Kit para CRIMP --}}
-                @if ($isCrimp && $wo->kits->isNotEmpty())
-                    <div class="mt-2 border border-purple-200 dark:border-purple-700 rounded-lg overflow-hidden">
-                        <div class="px-4 py-2.5 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-200 dark:border-purple-700">
-                            <h4 class="text-sm font-semibold text-purple-800 dark:text-purple-300">Pesadas de Calidad por Kit (CRIMP)</h4>
-                        </div>
-                        <div class="divide-y divide-purple-100 dark:divide-purple-800">
-                            @foreach ($wo->kits as $kit)
-                                @php
-                                    $kitProdWeighed = $wo->lots->flatMap->weighings->where('kit_id', $kit->id)->sum('good_pieces');
-                                    $kitQualWeighings = $wo->lots->flatMap->qualityWeighings->where('kit_id', $kit->id)->values();
-                                    $kitQualGood = (int) $kitQualWeighings->sum('good_pieces');
-                                    $kitQualBad  = (int) $kitQualWeighings->sum('bad_pieces');
-                                    $kitQualTotal = $kitQualGood + $kitQualBad;
-                                    $kitPct = $kitProdWeighed > 0 ? min(100, round(($kitQualTotal / $kitProdWeighed) * 100)) : 0;
-                                    $kitBarColor = $kitPct >= 100 ? 'bg-green-500' : ($kitPct > 0 ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600');
-                                    $kitFirstLot = $wo->lots->first();
-                                @endphp
-                                <div class="px-4 py-3">
-                                    {{-- Kit Header --}}
-                                    <div class="flex items-center justify-between gap-3 mb-2">
-                                        <div class="flex items-center gap-2">
-                                            <span class="font-mono text-sm font-semibold text-purple-700 dark:text-purple-300">{{ $kit->kit_number }}</span>
-                                            <span class="text-xs text-gray-500 dark:text-gray-400">Producción: {{ number_format($kitProdWeighed) }} pzas</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-sm font-medium {{ $kitPct >= 100 ? 'text-green-600 dark:text-green-400' : 'text-purple-600 dark:text-purple-400' }}">
-                                                {{ number_format($kitQualTotal) }} / {{ number_format($kitProdWeighed) }} ({{ $kitPct }}%)
-                                            </span>
-                                            @if ($kitFirstLot)
-                                                <button wire:click="openKitWeighingModal({{ $kitFirstLot->id }}, {{ $kit->id }})"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                                    </svg>
-                                                    Agregar Pesada
-                                                </button>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    {{-- Progress bar --}}
-                                    <div class="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-2">
-                                        <div class="{{ $kitBarColor }} h-full rounded-full transition-all duration-300" style="width: {{ $kitPct }}%"></div>
-                                    </div>
-                                    {{-- Kit quality weighings table --}}
-                                    @if ($kitQualWeighings->isNotEmpty())
-                                        <table class="w-full text-xs mt-1">
-                                            <thead class="bg-gray-50/70 dark:bg-gray-900/30">
-                                                <tr>
-                                                    <th class="px-3 py-1.5 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Fecha/Hora</th>
-                                                    <th class="px-3 py-1.5 text-right font-semibold text-gray-500 dark:text-gray-400 uppercase">Buenas</th>
-                                                    <th class="px-3 py-1.5 text-right font-semibold text-gray-500 dark:text-gray-400 uppercase">Malas</th>
-                                                    <th class="px-3 py-1.5 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Usuario</th>
-                                                    <th class="px-3 py-1.5 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Comentarios</th>
-                                                    <th class="px-3 py-1.5 text-center font-semibold text-gray-500 dark:text-gray-400 uppercase">Acción</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                                                @foreach ($kitQualWeighings as $kqw)
-                                                    <tr class="hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors">
-                                                        <td class="px-3 py-1.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                                                            {{ \Carbon\Carbon::parse($kqw->weighed_at)->format('d/m/Y H:i') }}
-                                                        </td>
-                                                        <td class="px-3 py-1.5 text-right font-semibold text-green-700 dark:text-green-400">{{ number_format($kqw->good_pieces) }}</td>
-                                                        <td class="px-3 py-1.5 text-right font-semibold {{ $kqw->bad_pieces > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400' }}">
-                                                            {{ number_format($kqw->bad_pieces) }}
-                                                        </td>
-                                                        <td class="px-3 py-1.5 text-gray-600 dark:text-gray-400">
-                                                            {{ $kqw->weighedBy->name ?? 'N/A' }}
-                                                        </td>
-                                                        <td class="px-3 py-1.5 text-gray-500 dark:text-gray-400 max-w-xs truncate">
-                                                            {{ $kqw->comments ?: '-' }}
-                                                        </td>
-                                                        <td class="px-3 py-1.5 text-center">
-                                                            <div class="flex items-center justify-center gap-1">
-                                                                <button wire:click="editQualityWeighing({{ $kitFirstLot->id }}, {{ $kqw->id }})"
-                                                                    class="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors" title="Editar">
-                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                                                    </svg>
-                                                                </button>
-                                                                <button wire:click="deleteWeighing({{ $kqw->id }})"
-                                                                    wire:confirm="¿Eliminar esta pesada de calidad de kit?"
-                                                                    class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors" title="Eliminar">
-                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                                    </svg>
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    @else
-                                        <p class="text-xs text-gray-400 dark:text-gray-500 italic">Sin pesadas de calidad para este kit aún.</p>
-                                    @endif
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
+                {{-- Pesadas de Calidad por Kit: eliminado en el reajuste CRIMP — la pesada de
+                     calidad se registra a nivel viajero (igual que NO-CRIMP), sin selección de kit. --}}
             @else
                 <div class="px-5 py-8 text-center text-sm text-gray-400 dark:text-gray-500 italic">
                     Este WO no tiene lotes asignados.
@@ -338,23 +238,18 @@
             $modalLot      = $workOrders->flatMap->lots->firstWhere('id', $weighingLotId);
             $modalWo       = $modalLot ? $workOrders->firstWhere('id', $modalLot->work_order_id) : null;
             $modalIsCrimp  = $modalWo ? ($modalWo->purchaseOrder->part->is_crimp ?? false) : false;
-            $modalKit      = $weighingKitId ? ($modalWo ? $modalWo->kits->firstWhere('id', $weighingKitId) : null) : null;
         @endphp
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/60" wire:click="closeWeighingModal"></div>
             <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 {{ $modalKit ? 'bg-purple-600 dark:bg-purple-700' : 'bg-yellow-600 dark:bg-yellow-700' }}">
+                <div class="flex items-center justify-between px-6 py-4 bg-yellow-600 dark:bg-yellow-700">
                     <div>
-                        <h3 class="text-lg font-bold text-white">Pesada de Calidad {{ $modalKit ? '(Kit)' : '' }}</h3>
+                        <h3 class="text-lg font-bold text-white">Pesada de Calidad</h3>
                         @if ($modalLot)
-                            <p class="text-sm {{ $modalKit ? 'text-purple-100' : 'text-yellow-100' }} mt-0.5">
-                                @if ($modalKit)
-                                    Kit {{ $modalKit->kit_number }} &mdash; Producción: {{ number_format($productionGoodPieces) }} pzas | Pendientes: {{ number_format($remainingPieces) }}
-                                @else
-                                    Lote {{ $modalLot->lot_number }}
-                                    &mdash; Producción: {{ number_format($productionGoodPieces) }} pzas
-                                    | Pendientes: {{ number_format($remainingPieces) }}
-                                @endif
+                            <p class="text-sm text-yellow-100 mt-0.5">
+                                Lote {{ $modalLot->lot_number }}
+                                &mdash; Producción: {{ number_format($productionGoodPieces) }} pzas
+                                | Pendientes: {{ number_format($remainingPieces) }}
                             </p>
                         @endif
                     </div>
@@ -464,13 +359,13 @@
                 </div>
 
                 <div class="px-6 py-4 space-y-4">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Resumen de piezas aprobadas por calidad{{ $workOrders->contains(fn($wo) => $wo->purchaseOrder->part->is_crimp ?? false) ? ' (lote y kit)' : '' }}:</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Resumen de piezas aprobadas por calidad (viajero):</p>
 
                     <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
                         <table class="w-full text-sm">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Lote / Kit</th>
+                                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Lote</th>
                                     <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Recibidas</th>
                                     <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Buenas</th>
                                     <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Rechazadas</th>
@@ -495,30 +390,6 @@
                                             </td>
                                         </tr>
                                     @endforeach
-                                    {{-- Kit rows for CRIMP --}}
-                                    @if ($sendWoIsCrimp && $wo->kits->isNotEmpty())
-                                        @foreach ($wo->kits as $kit)
-                                            @php
-                                                $kitRecv = (int) $wo->lots->flatMap->weighings->where('kit_id', $kit->id)->sum('good_pieces');
-                                                $kitQW = $wo->lots->flatMap->qualityWeighings->where('kit_id', $kit->id);
-                                                $kitGood = (int) $kitQW->sum('good_pieces');
-                                                $kitBad  = (int) $kitQW->sum('bad_pieces');
-                                            @endphp
-                                            <tr class="bg-purple-50/50 dark:bg-purple-900/10">
-                                                <td class="px-4 py-2 font-mono text-purple-700 dark:text-purple-300 text-xs">
-                                                    <span class="inline-flex items-center gap-1">
-                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                                                        {{ $kit->kit_number }}
-                                                    </span>
-                                                </td>
-                                                <td class="px-4 py-2 text-right text-xs text-purple-600 dark:text-purple-400">{{ number_format($kitRecv) }}</td>
-                                                <td class="px-4 py-2 text-right text-xs font-semibold text-green-700 dark:text-green-400">{{ number_format($kitGood) }}</td>
-                                                <td class="px-4 py-2 text-right text-xs {{ $kitBad > 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400' }}">
-                                                    {{ number_format($kitBad) }}
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    @endif
                                 @endforeach
                             </tbody>
                         </table>

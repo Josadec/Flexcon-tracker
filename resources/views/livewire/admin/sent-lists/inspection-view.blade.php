@@ -68,7 +68,7 @@
                                 <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Lote</th>
                                 <th class="px-5 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Cantidad</th>
                                 @if ($isCrimp)
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Kits</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Lotes de CRIMP</th>
                                 @endif
                                 <th class="px-5 py-2.5 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Estado Inspección</th>
                                 <th class="px-5 py-2.5 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
@@ -88,15 +88,14 @@
                                     </td>
                                     @if ($isCrimp)
                                         <td class="px-5 py-3">
-                                            @php $lotKits = $wo->kits->filter(fn($k) => $k->lots->contains('id', $lot->id)); @endphp
-                                            @if ($lotKits->isNotEmpty())
+                                            @if ($lot->crimpLots->isNotEmpty())
                                                 <div class="flex flex-wrap gap-1">
-                                                    @foreach ($lotKits as $kit)
-                                                        <span class="px-1.5 py-0.5 text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded font-mono">{{ $kit->kit_number }}</span>
+                                                    @foreach ($lot->crimpLots as $cl)
+                                                        <span class="px-1.5 py-0.5 text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded font-mono">{{ $cl->crimp_lot_number }}</span>
                                                     @endforeach
                                                 </div>
                                             @else
-                                                <span class="text-xs text-gray-400 dark:text-gray-500 italic">Sin kit</span>
+                                                <span class="text-xs text-gray-400 dark:text-gray-500 italic">Sin lotes de CRIMP</span>
                                             @endif
                                         </td>
                                     @endif

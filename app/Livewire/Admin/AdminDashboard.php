@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\Kit;
+use App\Models\CrimpLot;
 use App\Models\Lot;
 use App\Models\Part;
 use App\Models\PurchaseOrder;
@@ -57,12 +57,10 @@ class AdminDashboard extends Component
         $lotsCompleted  = (int) ($lotsByStatus['completed'] ?? 0);
         $lotsPending    = (int) ($lotsByStatus['pending'] ?? 0);
 
-        // ── Kits ─────────────────────────────────────────────────────────
-        $kitsByStatus = Kit::selectRaw('status, count(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
-
-        $totalKits = Kit::count();
+        // ── Lotes de CRIMP (reemplaza al widget de Kits) ─────────────────
+        $totalCrimpLots   = CrimpLot::count();
+        $crimpLotsQty     = (int) CrimpLot::sum('quantity');
+        $viajerosConCrimp = Lot::has('crimpLots')->count();
 
         // ── Pipeline depts ───────────────────────────────────────────────
         $pipeline = [
@@ -83,7 +81,7 @@ class AdminDashboard extends Component
             'sentLists', 'sentListsByDept', 'sentListsByStatus', 'activeSentLists',
             'recentWorkOrders',
             'lotsByStatus', 'totalLots', 'lotsInProgress', 'lotsCompleted', 'lotsPending',
-            'kitsByStatus', 'totalKits',
+            'totalCrimpLots', 'crimpLotsQty', 'viajerosConCrimp',
             'pipeline'
         ));
     }

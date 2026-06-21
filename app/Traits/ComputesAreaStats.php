@@ -19,7 +19,6 @@ trait ComputesAreaStats
             'lots.weighings',
             'lots.qualityWeighings',
             'lots.packagingRecords',
-            'lots.kits',
         ])
         ->whereHas('lots')
         ->get();
@@ -43,18 +42,12 @@ trait ComputesAreaStats
                 $areaStats['calidad']['total']++;
                 $areaStats['empaque']['total']++;
 
-                // --- Kit ---
-                if ($part->is_crimp) {
-                    $lotKit = $lot->kits->sortByDesc('created_at')->first();
-                    $kitStatus = $lotKit?->status ?? 'none';
-                    if ($kitStatus === 'released') { $areaStats['kit']['green']++; }
-                    elseif ($kitStatus !== 'none') { $areaStats['kit']['yellow']++; }
-                    else { $areaStats['kit']['gray']++; }
-                } else {
-                    $matStatus = $lot->material_status ?? 'pending';
-                    if ($matStatus === 'released') { $areaStats['kit']['green']++; }
-                    else { $areaStats['kit']['gray']++; }
-                }
+                // --- Kit / Material (a nivel viajero) ---
+                // CRIMP ya no usa Kit: la liberación se evalúa por material_status,
+                // igual que NO-CRIMP (reajuste CRIMP M1/M8).
+                $matStatus = $lot->material_status ?? 'pending';
+                if ($matStatus === 'released') { $areaStats['kit']['green']++; }
+                else { $areaStats['kit']['gray']++; }
 
                 // --- Inspección ---
                 $inspStatus = $lot->inspection_status ?? 'pending';

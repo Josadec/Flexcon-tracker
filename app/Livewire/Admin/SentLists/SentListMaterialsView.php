@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Admin\SentLists;
 
-use App\Models\Kit;
+use App\Models\CrimpLot;
 use App\Models\Lot;
 use App\Models\SentList;
 use App\Models\WorkOrder;
@@ -13,38 +13,32 @@ class SentListMaterialsView extends Component
 {
     public SentList $sentList;
 
-    // Lot modal
+    // Lot (viajero) modal
     public bool $showLotModal = false;
     public ?int $selectedWorkOrderId = null;
     public array $lots = [];
 
-    // Kit modal (crimp only)
-    public bool $showKitModal = false;
-    public ?int $kitWorkOrderId = null;
-    public array $kitLots = [];
-    public int $kitQuantity = 0;
-    public string $kitNotes = '';
+    // Crimp lot modal (CRIMP only) — lotes de CRIMP del viajero (sustituye al Kit)
+    public bool $showCrimpLotModal = false;
+    public ?int $crimpLotViajeroId = null;
+    public string $crimpLotViajeroLabel = '';
+    public array $crimpLots = [];
 
     // Send to inspection modal
     public bool $showSendModal = false;
     public string $sendNotes = '';
 
-    // Material status modal (non-CRIMP)
+    // Material status modal (viajero / lote)
     public bool $showMaterialModal = false;
     public ?int $materialLotId = null;
     public string $materialStatus = 'pending';
-
-    // Kit status modal (CRIMP)
-    public bool $showKitStatusModal = false;
-    public ?int $kitStatusId = null;
-    public string $kitStatusValue = 'preparing';
 
     public function mount(SentList $sentList): void
     {
         $this->sentList = $sentList;
     }
 
-    // ─── LOT MODAL ────────────────────────────────────────────────────────────
+    // ─── LOT (VIAJERO) MODAL ──────────────────────────────────────────────────
 
     public function openLotModal(int $workOrderId): void
     {
@@ -134,57 +128,94 @@ class SentListMaterialsView extends Component
         $this->lots                = [];
     }
 
-    // ─── KIT MODAL ────────────────────────────────────────────────────────────
+    // ─── CRIMP LOT MODAL (CRIMP) ──────────────────────────────────────────────
+    // Los lotes de CRIMP cuelgan del viajero (Lot) — decisión B.1 Opción A.
 
-    public function openKitModal(int $workOrderId): void
+    public function openCrimpLotModal(int $lotId): void
     {
-        $this->kitWorkOrderId = $workOrderId;
-        $this->kitLots        = [];
-        $this->kitQuantity    = 0;
-        $this->kitNotes       = '';
-        $this->showKitModal   = true;
+        $lot = Lot::with(['crimpLots', 'workOrder.purchaseOrder'])->findOrFail($lotId);
+
+        $this->crimpLotViajeroId    = $lot->id;
+        $this->crimpLotViajeroLabel = trim(($lot->workOrder->purchaseOrder->wo ?? $lot->workOrder->wo_number ?? '')
+            . ' — Viajero ' . $lot->lot_number);
+
+        $this->crimpLots = $lot->crimpLots->map(fn($cl) => [
+            'id'               => $cl->id,
+            'crimp_lot_number' => $cl->crimp_lot_number,
+            'lote_fabricante'  => $cl->lote_fabricante,
+            'quantity'         => $cl->quantity,
+            'comments'         => $cl->comments,
+        ])->toArray();
+
+        if (empty($this->crimpLots)) {
+            $this->crimpLots = [$this->emptyCrimpLotRow()];
+        }
+
+        $this->showCrimpLotModal = true;
     }
 
-    public function saveKit(): void
+    private function emptyCrimpLotRow(): array
     {
+        return ['id' => null, 'crimp_lot_number' => '', 'lote_fabricante' => '', 'quantity' => 0, 'comments' => ''];
+    }
+
+    public function addCrimpLotRow(): void
+    {
+        $this->crimpLots[] = $this->emptyCrimpLotRow();
+    }
+
+    public function removeCrimpLotRow(int $index): void
+    {
+        if (!empty($this->crimpLots[$index]['id'])) {
+            CrimpLot::find($this->crimpLots[$index]['id'])?->delete();
+        }
+
+        unset($this->crimpLots[$index]);
+        $this->crimpLots = array_values($this->crimpLots);
+    }
+
+    public function saveCrimpLots(): void
+    {
+        // Lote de fabricante OPCIONAL; sin tope de cantidad vs viajero (decisiones B.1).
         $this->validate([
-            'kitLots'     => 'required|array|min:1',
-            'kitQuantity' => 'required|integer|min:1',
+            'crimpLots.*.crimp_lot_number' => 'required|string|max:100',
+            'crimpLots.*.lote_fabricante'  => 'nullable|string|max:100',
+            'crimpLots.*.quantity'         => 'required|integer|min:1',
+            'crimpLots.*.comments'         => 'nullable|string|max:500',
         ], [
-            'kitLots.required'    => 'Seleccione al menos un lote.',
-            'kitLots.min'         => 'Seleccione al menos un lote.',
-            'kitQuantity.required' => 'La cantidad es obligatoria.',
-            'kitQuantity.min'     => 'La cantidad debe ser mayor a 0.',
+            'crimpLots.*.crimp_lot_number.required' => 'El número de lote de CRIMP es obligatorio.',
+            'crimpLots.*.quantity.required'         => 'La cantidad es obligatoria.',
+            'crimpLots.*.quantity.min'              => 'La cantidad debe ser mayor a 0.',
         ]);
 
-        $wo  = WorkOrder::findOrFail($this->kitWorkOrderId);
-        $kit = Kit::create([
-            'work_order_id'    => $wo->id,
-            'kit_number'       => Kit::generateKitNumber($wo->id),
-            'quantity'         => $this->kitQuantity,
-            'status'           => Kit::STATUS_PREPARING,
-            'validation_notes' => $this->kitNotes ?: null,
-            'prepared_by'      => Auth::id(),
-        ]);
+        $lot = Lot::findOrFail($this->crimpLotViajeroId);
 
-        $kit->lots()->attach($this->kitLots);
+        foreach ($this->crimpLots as $row) {
+            $payload = [
+                'crimp_lot_number' => $row['crimp_lot_number'],
+                'lote_fabricante'  => $row['lote_fabricante'] ?: null,
+                'quantity'         => $row['quantity'],
+                'comments'         => $row['comments'] ?: null,
+            ];
+
+            if (!empty($row['id'])) {
+                CrimpLot::find($row['id'])?->update($payload);
+            } else {
+                CrimpLot::create(['lot_id' => $lot->id] + $payload);
+            }
+        }
 
         $this->sentList->refresh();
-        $this->showKitModal   = false;
-        $this->kitWorkOrderId = null;
-        $this->kitLots        = [];
-        $this->kitQuantity    = 0;
-        $this->kitNotes       = '';
-        session()->flash('message', 'Kit creado correctamente.');
+        $this->closeCrimpLotModal();
+        session()->flash('message', 'Lotes de CRIMP guardados correctamente.');
     }
 
-    public function closeKitModal(): void
+    public function closeCrimpLotModal(): void
     {
-        $this->showKitModal   = false;
-        $this->kitWorkOrderId = null;
-        $this->kitLots        = [];
-        $this->kitQuantity    = 0;
-        $this->kitNotes       = '';
+        $this->showCrimpLotModal    = false;
+        $this->crimpLotViajeroId    = null;
+        $this->crimpLotViajeroLabel = '';
+        $this->crimpLots            = [];
     }
 
     // ─── SEND TO INSPECTION ───────────────────────────────────────────────────
@@ -193,11 +224,9 @@ class SentListMaterialsView extends Component
     {
         $this->sentList->load([
             'purchaseOrders.workOrder.purchaseOrder.part',
-            'purchaseOrders.workOrder.lots',
-            'purchaseOrders.workOrder.kits',
+            'purchaseOrders.workOrder.lots.crimpLots',
             'workOrders.purchaseOrder.part',
-            'workOrders.lots',
-            'workOrders.kits',
+            'workOrders.lots.crimpLots',
         ]);
 
         $workOrders = $this->sentList->workOrders
@@ -215,8 +244,9 @@ class SentListMaterialsView extends Component
                 return;
             }
 
-            if ($wo->purchaseOrder->part->is_crimp && $wo->kits->isEmpty()) {
-                session()->flash('error', 'El WO ' . $wo->wo_number . ' (CRIMP) no tiene kits asignados.');
+            $isCrimp = $wo->purchaseOrder->part->is_crimp ?? false;
+            if ($isCrimp && $wo->lots->every(fn($lot) => $lot->crimpLots->isEmpty())) {
+                session()->flash('error', 'El WO ' . $wo->wo_number . ' (CRIMP) no tiene lotes de CRIMP asignados.');
                 return;
             }
         }
@@ -237,26 +267,18 @@ class SentListMaterialsView extends Component
 
         // Update semaphore statuses so the display page reflects materials approval
         $this->sentList->load([
-            'workOrders.purchaseOrder.part',
             'workOrders.lots',
-            'workOrders.kits',
-            'purchaseOrders.workOrder.purchaseOrder.part',
             'purchaseOrders.workOrder.lots',
-            'purchaseOrders.workOrder.kits',
         ]);
 
         $allWorkOrders = $this->sentList->workOrders
             ->merge($this->sentList->purchaseOrders->map->workOrder->filter())
             ->unique('id');
 
+        // Liberación de material a nivel viajero/lote — igual para CRIMP y NO-CRIMP.
+        // En CRIMP ya no se libera por estado de Kit (decisión: liberación a nivel viajero).
         foreach ($allWorkOrders as $wo) {
-            if ($wo->purchaseOrder->part->is_crimp) {
-                // CRIMP: mark all kits as released
-                $wo->kits->each(fn($kit) => $kit->update(['status' => Kit::STATUS_RELEASED]));
-            } else {
-                // Non-CRIMP: mark all lots' material_status as released
-                $wo->lots->each(fn($lot) => $lot->update(['material_status' => 'released']));
-            }
+            $wo->lots->each(fn($lot) => $lot->update(['material_status' => 'released']));
         }
 
         $this->sentList->moveToNextDepartment(Auth::id());
@@ -270,7 +292,7 @@ class SentListMaterialsView extends Component
         $this->sendNotes     = '';
     }
 
-    // ─── MATERIAL STATUS MODAL (non-CRIMP) ───────────────────────────────────────
+    // ─── MATERIAL STATUS MODAL (viajero / lote) ───────────────────────────────
 
     public function openMaterialModal(int $lotId): void
     {
@@ -296,41 +318,13 @@ class SentListMaterialsView extends Component
         $this->materialStatus    = 'pending';
     }
 
-    // ─── KIT STATUS MODAL (CRIMP) ─────────────────────────────────────────────────
-
-    public function openKitStatusModal(int $kitId): void
-    {
-        $kit = Kit::findOrFail($kitId);
-        $this->kitStatusId    = $kitId;
-        $this->kitStatusValue = $kit->status;
-        $this->showKitStatusModal = true;
-    }
-
-    public function saveKitStatus(): void
-    {
-        Kit::findOrFail($this->kitStatusId)->update(['status' => $this->kitStatusValue]);
-        $this->showKitStatusModal = false;
-        $this->kitStatusId        = null;
-        $this->sentList->refresh();
-        session()->flash('message', 'Estado del kit actualizado.');
-    }
-
-    public function closeKitStatusModal(): void
-    {
-        $this->showKitStatusModal = false;
-        $this->kitStatusId        = null;
-        $this->kitStatusValue     = 'preparing';
-    }
-
     public function render()
     {
         $this->sentList->load([
             'purchaseOrders.workOrder.purchaseOrder.part',
-            'purchaseOrders.workOrder.lots',
-            'purchaseOrders.workOrder.kits.lots',
+            'purchaseOrders.workOrder.lots.crimpLots',
             'workOrders.purchaseOrder.part',
-            'workOrders.lots',
-            'workOrders.kits.lots',
+            'workOrders.lots.crimpLots',
             'unresolvedRejections.rejectedBy',
             'unresolvedRejections.lot',
         ]);
