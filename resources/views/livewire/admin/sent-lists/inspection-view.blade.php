@@ -56,7 +56,7 @@
                     <span class="text-gray-700 dark:text-gray-300 font-medium">{{ $wo->purchaseOrder->part->number ?? '-' }}</span>
                     <span class="text-gray-500 dark:text-gray-400 text-sm truncate flex-1">{{ $wo->purchaseOrder->part->description ?? '' }}</span>
                     @if ($isCrimp)
-                        <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded">CRIMP</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded">CRIMP</span>
                     @endif
                 </div>
 
@@ -91,7 +91,7 @@
                                             @if ($lot->crimpLots->isNotEmpty())
                                                 <div class="flex flex-wrap gap-1">
                                                     @foreach ($lot->crimpLots as $cl)
-                                                        <span class="px-1.5 py-0.5 text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded font-mono">{{ $cl->crimp_lot_number }}</span>
+                                                        <span class="px-1.5 py-0.5 text-xs bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded font-mono">{{ $cl->crimp_lot_number }}</span>
                                                     @endforeach
                                                 </div>
                                             @else
@@ -185,11 +185,11 @@
     {{-- ===== REJECT LOT MODAL ===== --}}
     @if ($showRejectModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60" wire:click="closeRejectModal"></div>
-            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 bg-red-600 dark:bg-red-700">
-                    <h3 class="text-lg font-bold text-white">Rechazar Lote</h3>
-                    <button wire:click="closeRejectModal" class="text-white/80 hover:text-white">
+            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeRejectModal"></div>
+            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+                <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Rechazar Lote</h3>
+                    <button wire:click="closeRejectModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -223,11 +223,11 @@
     {{-- ===== RETURN TO MATERIALS MODAL ===== --}}
     @if ($showReturnModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60" wire:click="closeReturnModal"></div>
-            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 bg-orange-600 dark:bg-orange-700">
-                    <h3 class="text-lg font-bold text-white">Regresar a Materiales</h3>
-                    <button wire:click="closeReturnModal" class="text-white/80 hover:text-white">
+            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeReturnModal"></div>
+            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+                <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Regresar a Materiales</h3>
+                    <button wire:click="closeReturnModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -263,11 +263,11 @@
     {{-- ===== APPROVE AND SEND MODAL ===== --}}
     @if ($showApproveModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60" wire:click="closeApproveModal"></div>
-            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 bg-green-600 dark:bg-green-700">
-                    <h3 class="text-lg font-bold text-white">Aprobar y Enviar a Producción</h3>
-                    <button wire:click="closeApproveModal" class="text-white/80 hover:text-white">
+            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeApproveModal"></div>
+            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+                <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Aprobar y Enviar a Producción</h3>
+                    <button wire:click="closeApproveModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>

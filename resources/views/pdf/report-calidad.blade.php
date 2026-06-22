@@ -114,15 +114,14 @@
         <tr>
             <th style="width:4%">#</th>
             <th style="width:13%">Fecha</th>
-            <th style="width:10%">Lote</th>
-            <th style="width:10%">Work Order</th>
-            <th style="width:9%">Kit</th>
+            <th style="width:12%">Viajero</th>
+            <th style="width:12%">Work Order</th>
             <th style="width:8%">Prod.</th>
             <th style="width:7%">Buenas</th>
             <th style="width:7%">Malas</th>
             <th style="width:10%">Disposición</th>
             <th style="width:14%">Rework Status</th>
-            <th style="width:18%">Inspector</th>
+            <th style="width:20%">Inspector</th>
         </tr>
     </thead>
     <tbody>
@@ -132,7 +131,6 @@
             <td>{{ $r->weighed_at?->format('d/m/Y H:i') ?? 'N/A' }}</td>
             <td>{{ $r->lot?->lot_number ?? 'N/A' }}</td>
             <td>{{ $r->lot?->workOrder?->wo_number ?? 'N/A' }}</td>
-            <td class="c">{{ $r->kit?->kit_number ?? '—' }}</td>
             <td class="r">{{ number_format($r->production_good_pieces) }}</td>
             <td class="r ok">{{ number_format($r->good_pieces) }}</td>
             <td class="r bad">{{ number_format($r->bad_pieces) }}</td>

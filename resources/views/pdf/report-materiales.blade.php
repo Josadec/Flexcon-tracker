@@ -51,7 +51,7 @@
     <div class="h-logo">@if(file_exists($logoPath))<img src="{{ $logoPath }}" alt="Flexcon">@endif</div>
     <div class="h-text">
         <h1>REPORTE — MATERIALES</h1>
-        <p>Lotes y Kits del período</p>
+        <p>Viajeros y Lotes de CRIMP del período</p>
     </div>
     <div class="h-date">Generado: {{ $generated_at }}</div>
 </div>
@@ -61,7 +61,7 @@
     @if($start_date && $end_date)
         Del {{ \Carbon\Carbon::parse($start_date)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($end_date)->format('d/m/Y') }}
     @else Sin filtro de fecha @endif
-    &nbsp;|&nbsp; Filtro aplicado sobre fecha de recepción (lotes) y fecha de creación (kits)
+    &nbsp;|&nbsp; Filtro aplicado sobre fecha de recepción (viajeros) y fecha de creación (lotes de CRIMP)
 </div>
 
 {{-- RESUMEN LOTES --}}
@@ -119,56 +119,48 @@
 <div class="no-data">Sin lotes para el período seleccionado.</div>
 @endif
 
-{{-- RESUMEN KITS --}}
+{{-- RESUMEN LOTES DE CRIMP --}}
 <div class="page-break"></div>
-<div class="sec">RESUMEN — KITS</div>
+<div class="sec">RESUMEN — LOTES DE CRIMP</div>
 <div class="stats">
     <div class="sc4">
-        <div class="stat-box"><div class="lbl">Total kits</div><div class="val">{{ $stats['total_kits'] }}</div></div>
+        <div class="stat-box"><div class="lbl">Total lotes de CRIMP</div><div class="val">{{ $stats['total_crimp_lots'] }}</div></div>
     </div>
     <div class="sc4">
-        <div class="stat-box"><div class="lbl">Preparando / Listos</div><div class="val">{{ $stats['kits_preparando'] }} / {{ $stats['kits_listos'] }}</div></div>
-    </div>
-    <div class="sc4">
-        <div class="stat-box"><div class="lbl">Liberados / En ensamble</div><div class="val">{{ $stats['kits_liberados'] }} / {{ $stats['kits_en_ensamble'] }}</div></div>
-    </div>
-    <div class="sc4">
-        <div class="stat-box"><div class="lbl">Rechazados</div><div class="val" style="color:#b91c1c">{{ $stats['kits_rechazados'] }}</div></div>
+        <div class="stat-box"><div class="lbl">Piezas en lotes de CRIMP</div><div class="val">{{ number_format($stats['total_crimp_piezas']) }}</div></div>
     </div>
 </div>
 
-{{-- TABLA KITS --}}
-@if($kits->isNotEmpty())
+{{-- TABLA LOTES DE CRIMP --}}
+@if($crimp_lots->isNotEmpty())
 <table class="data" style="margin-top:6px">
     <thead>
         <tr>
-            <th style="width:4%">#</th>
-            <th style="width:13%">Kit</th>
-            <th style="width:13%">Work Order</th>
-            <th style="width:8%">Cantidad</th>
-            <th style="width:14%">Estatus</th>
-            <th style="width:16%">Enviado a Inspección</th>
-            <th style="width:16%">Aprobado</th>
-            <th style="width:16%">Ciclo Aprobación</th>
+            <th style="width:5%">#</th>
+            <th style="width:16%">Lote de CRIMP</th>
+            <th style="width:16%">Viajero</th>
+            <th style="width:16%">Work Order</th>
+            <th style="width:20%">Lote de fabricante</th>
+            <th style="width:12%">Cantidad</th>
+            <th style="width:15%">Creado</th>
         </tr>
     </thead>
     <tbody>
-        @foreach($kits as $i => $kit)
+        @foreach($crimp_lots as $i => $cl)
         <tr>
             <td class="c">{{ $i+1 }}</td>
-            <td>{{ $kit->kit_number }}</td>
-            <td>{{ $kit->workOrder?->wo_number ?? 'N/A' }}</td>
-            <td class="r">{{ number_format($kit->quantity) }}</td>
-            <td class="c">{{ ucfirst($kit->status) }}</td>
-            <td class="c">{{ $kit->submitted_to_inspection_at?->format('d/m/Y H:i') ?? '—' }}</td>
-            <td class="c">{{ $kit->approved_at?->format('d/m/Y H:i') ?? '—' }}</td>
-            <td class="c">{{ $kit->current_approval_cycle ?? '—' }}</td>
+            <td>{{ $cl->crimp_lot_number }}</td>
+            <td>{{ $cl->lot?->lot_number ?? 'N/A' }}</td>
+            <td>{{ $cl->lot?->workOrder?->wo_number ?? 'N/A' }}</td>
+            <td>{{ $cl->lote_fabricante ?? '—' }}</td>
+            <td class="r">{{ number_format($cl->quantity) }}</td>
+            <td class="c">{{ $cl->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
         </tr>
         @endforeach
     </tbody>
 </table>
 @else
-<div class="no-data">Sin kits para el período seleccionado.</div>
+<div class="no-data">Sin lotes de CRIMP para el período seleccionado.</div>
 @endif
 
 <div class="footer">Flexcon Tracker — Reporte de Materiales — {{ $generated_at }} — Uso interno</div>

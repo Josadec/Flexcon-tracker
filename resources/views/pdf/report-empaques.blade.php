@@ -110,13 +110,12 @@
         <tr>
             <th style="width:4%">#</th>
             <th style="width:14%">Fecha Empaque</th>
-            <th style="width:11%">Lote</th>
-            <th style="width:11%">Work Order</th>
-            <th style="width:10%">Kit</th>
+            <th style="width:13%">Viajero</th>
+            <th style="width:13%">Work Order</th>
             <th style="width:10%">Disponibles</th>
             <th style="width:10%">Empacadas</th>
             <th style="width:10%">Sobrante</th>
-            <th style="width:20%">Operador</th>
+            <th style="width:26%">Operador</th>
         </tr>
     </thead>
     <tbody>
@@ -126,7 +125,6 @@
             <td>{{ $rec->packed_at?->format('d/m/Y H:i') ?? 'N/A' }}</td>
             <td>{{ $rec->lot?->lot_number ?? 'N/A' }}</td>
             <td>{{ $rec->lot?->workOrder?->wo_number ?? 'N/A' }}</td>
-            <td class="c">{{ $rec->kit?->kit_number ?? '—' }}</td>
             <td class="r">{{ number_format($rec->available_pieces) }}</td>
             <td class="r">{{ number_format($rec->packed_pieces) }}</td>
             <td class="r">{{ number_format($rec->surplus_pieces) }}</td>

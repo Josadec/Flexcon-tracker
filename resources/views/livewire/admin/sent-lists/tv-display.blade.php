@@ -169,13 +169,13 @@
                                                 </td>
                                                 {{-- Pieces target --}}
                                                 <td class="px-3 py-2 text-right text-gray-700 font-mono font-semibold text-base whitespace-nowrap">{{ number_format($lot['quantity']) }}</td>
-                                                {{-- Kit (if crimp) --}}
+                                                {{-- Lotes de CRIMP (if crimp) --}}
                                                 @if ($card['is_crimp'])
                                                     <td class="px-3 py-2 whitespace-nowrap text-sm">
-                                                        @if (!empty($lot['kits']))
-                                                            @foreach ($lot['kits'] as $kit)
+                                                        @if (!empty($lot['crimp_lots']))
+                                                            @foreach ($lot['crimp_lots'] as $cl)
                                                                 @php
-                                                                    $kDot = match($kit['status']) {
+                                                                    $clDot = match($cl['status']) {
                                                                         'released' => 'bg-green-500',
                                                                         'preparing' => 'bg-yellow-400',
                                                                         'pending_approval' => 'bg-blue-400',
@@ -183,8 +183,8 @@
                                                                     };
                                                                 @endphp
                                                                 <span class="inline-flex items-center gap-1 mr-2">
-                                                                    <span class="w-2 h-2 rounded-full {{ $kDot }}"></span>
-                                                                    <span class="text-gray-700 font-semibold">{{ $kit['kit_number'] }}</span>
+                                                                    <span class="w-2 h-2 rounded-full {{ $clDot }}"></span>
+                                                                    <span class="text-gray-700 font-semibold">{{ $cl['crimp_lot_number'] }}</span>
                                                                 </span>
                                                             @endforeach
                                                         @else

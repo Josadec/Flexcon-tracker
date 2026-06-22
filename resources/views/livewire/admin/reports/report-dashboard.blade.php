@@ -146,7 +146,7 @@
                             @php
                                 $filterField = match($department) {
                                     'produccion' => 'fecha de pesada',
-                                    'materiales' => 'recepción del lote / creación del kit',
+                                    'materiales' => 'recepción del viajero / creación del lote de CRIMP',
                                     'calidad'    => 'fecha de inspección',
                                     'empaques'   => 'fecha de empaque / documento PS',
                                     default      => 'fecha según departamento',
@@ -279,7 +279,7 @@
                             </div>
                             <div class="rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-600 dark:bg-zinc-800">
                                 <div class="text-sm font-semibold text-slate-600 dark:text-slate-400">Materiales</div>
-                                <p class="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">Lotes recibidos por estatus, kits por etapa</p>
+                                <p class="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">Viajeros recibidos por estatus, lotes de CRIMP</p>
                             </div>
                             <div class="rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-600 dark:bg-zinc-800">
                                 <div class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Calidad</div>
@@ -312,10 +312,10 @@
                     @elseif($department === 'materiales')
                         <div class="space-y-2">
                             @foreach([
-                                ['Lotes filtrados por fecha de recepción', 'receipt_date'],
-                                ['Kits filtrados por fecha de creación', null],
-                                ['Desglose: pendientes / liberados / rechazados', null],
-                                ['Desglose de kits por etapa', null],
+                                ['Viajeros filtrados por fecha de recepción', 'receipt_date'],
+                                ['Lotes de CRIMP filtrados por fecha de creación', null],
+                                ['Desglose viajeros: pendientes / liberados / rechazados', null],
+                                ['Total de lotes de CRIMP y piezas', null],
                             ] as [$text, $code])
                                 <div class="rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-600 dark:bg-zinc-800">
                                     <p class="text-sm text-zinc-700 dark:text-zinc-300">

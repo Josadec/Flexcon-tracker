@@ -45,8 +45,10 @@ class SentListPackagingView extends Component
     public bool $decSurplusDelivered = false;
     public bool $decSurplusReceived = false;
     // CRIMP (Paso 6): cifras para las decisiones D2a-c.
+    public int $decCrimpTotal = 0;
     public int $decCrimpPacked = 0;
     public int $decCrimpSurplus = 0;
+    public int $decCrimpMissing = 0;
     public int $decCompletarCrimp = 0;
 
     // ── Create Lot form modal (from Decision) ────────────────────────────
@@ -55,27 +57,26 @@ class SentListPackagingView extends Component
     public int $createLotQuantity = 0;
     public string $createLotType = ''; // 'complete' or 'new_lot'
 
-    // ── CRIMP weighings (piezas + CRIMP) — captura manual, a nivel viajero ──
-    public bool $showPieceWeighingModal = false;
-    public ?int $pieceWeighingLotId = null;
-    public int $pieceQty = 0;
-    public ?float $pieceWeight = null;
-    public string $pieceComments = '';
-    public string $pieceWeighedAt = '';
-
-    public bool $showCrimpWeighingModal = false;
-    public ?int $crimpWeighingLotId = null;
-    public ?int $crimpWeighingCrimpLotId = null;
-    public int $crimpQty = 0;
-    public ?float $crimpWeight = null;
-    public string $crimpComments = '';
-    public string $crimpWeighedAt = '';
-
     // ── Notify "Empaque terminado CRIMP" (correo M9) ─────────────────────
     public bool $showNotifyModal = false;
     public ?int $notifyLotId = null;
     public ?int $notifyLabelCount = null;
     public string $notifyComments = '';
+
+    // ── Paso 5: Modal de Confirmación de Empaque (CRIMP) ─────────────────
+    // Un solo modal sobre la pantalla de Empaque (diagrama 3 / wireframe):
+    // 1) selecciona lote de CRIMP, 2) captura pesadas (piezas + CRIMP),
+    // 3) confirma cantidades → genera "Empaque Terminado" (sin PDF).
+    public bool $showConfirmModal = false;
+    public ?int $confirmLotId = null;          // viajero (Lot)
+    public ?int $confirmCrimpLotId = null;     // lote de CRIMP seleccionado
+    public bool $confirmDone = false;          // confirmado → muestra Empaque Terminado
+    public int $cPieceQty = 0;                 // alta inline de pesada de piezas
+    public ?float $cPieceWeight = null;
+    public int $cCrimpQty = 0;                 // alta inline de pesada de CRIMP
+    public ?float $cCrimpWeight = null;
+    public ?int $confirmLabelCount = null;     // No. etiquetas (opcional, B.5)
+    public string $confirmComments = '';
 
     public function mount(SentList $sentList): void
     {
@@ -204,10 +205,12 @@ class SentListPackagingView extends Component
         $this->decSurplusDelivered    = (bool) $lot->surplus_delivered;
         $this->decSurplusReceived     = (bool) $lot->surplus_received;
 
-        // CRIMP (Paso 6, diagrama 4): CRIMP empacado/sobrante y la fórmula
-        // "Completar CRIMP = piezas sobrantes − CRIMP sobrante".
+        // CRIMP (Paso 6, diagrama 4): CRIMP objetivo/empacado/sobrante/faltante y la
+        // fórmula "Completar CRIMP = piezas sobrantes − CRIMP sobrante".
+        $this->decCrimpTotal     = $isCrimp ? $lot->getCrimpTargetTotal() : 0;
         $this->decCrimpPacked    = $isCrimp ? $lot->getPackagedCrimpTotal() : 0;
         $this->decCrimpSurplus   = $isCrimp ? $lot->getPackagedCrimpSurplus() : 0;
+        $this->decCrimpMissing   = $isCrimp ? max(0, $this->decCrimpTotal - $this->decCrimpPacked - $this->decCrimpSurplus) : 0;
         $this->decCompletarCrimp = $isCrimp ? max(0, $this->decSurplus - $this->decCrimpSurplus) : 0;
 
         $this->showDecisionModal      = true;
@@ -224,8 +227,10 @@ class SentListPackagingView extends Component
         $this->decIsCrimp             = false;
         $this->decClosureDecision     = null;
         $this->decSurplusReceived     = false;
+        $this->decCrimpTotal          = 0;
         $this->decCrimpPacked         = 0;
         $this->decCrimpSurplus        = 0;
+        $this->decCrimpMissing        = 0;
         $this->decCompletarCrimp      = 0;
         $this->resetErrorBag();
     }
@@ -562,43 +567,7 @@ class SentListPackagingView extends Component
         $this->sentList->refresh();
     }
 
-    // ── CRIMP weighings: piezas ("manguitas") ────────────────────────────
-
-    public function openPieceWeighingModal(int $lotId): void
-    {
-        $this->pieceWeighingLotId   = $lotId;
-        $this->pieceQty             = 0;
-        $this->pieceWeight          = null;
-        $this->pieceComments        = '';
-        $this->pieceWeighedAt       = now()->format('Y-m-d\TH:i');
-        $this->showPieceWeighingModal = true;
-    }
-
-    public function savePieceWeighing(): void
-    {
-        $this->validate([
-            'pieceQty'       => 'required|integer|min:1',
-            'pieceWeight'    => 'nullable|numeric|min:0',
-            'pieceWeighedAt' => 'required|date',
-            'pieceComments'  => 'nullable|string|max:500',
-        ], [
-            'pieceQty.required' => 'La cantidad de piezas es obligatoria.',
-            'pieceQty.min'      => 'La cantidad debe ser mayor a 0.',
-        ]);
-
-        PackagingPieceWeighing::create([
-            'lot_id'     => $this->pieceWeighingLotId,
-            'quantity'   => $this->pieceQty,
-            'weight'     => $this->pieceWeight,
-            'weighed_at' => $this->pieceWeighedAt,
-            'weighed_by' => Auth::id(),
-            'comments'   => $this->pieceComments ?: null,
-        ]);
-
-        $this->closePieceWeighingModal();
-        $this->sentList->refresh();
-        session()->flash('message', 'Pesada de piezas registrada.');
-    }
+    // ── CRIMP weighings: borrado desde el historial (captura en modal Paso 5) ──
 
     public function deletePieceWeighing(int $id): void
     {
@@ -607,73 +576,11 @@ class SentListPackagingView extends Component
         session()->flash('message', 'Pesada de piezas eliminada.');
     }
 
-    public function closePieceWeighingModal(): void
-    {
-        $this->showPieceWeighingModal = false;
-        $this->pieceWeighingLotId     = null;
-        $this->pieceQty               = 0;
-        $this->pieceWeight            = null;
-        $this->pieceComments          = '';
-        $this->resetErrorBag();
-    }
-
-    // ── CRIMP weighings: CRIMP ───────────────────────────────────────────
-
-    public function openCrimpWeighingModal(int $lotId): void
-    {
-        $this->crimpWeighingLotId   = $lotId;
-        $this->crimpWeighingCrimpLotId = null;
-        $this->crimpQty             = 0;
-        $this->crimpWeight          = null;
-        $this->crimpComments        = '';
-        $this->crimpWeighedAt       = now()->format('Y-m-d\TH:i');
-        $this->showCrimpWeighingModal = true;
-    }
-
-    public function saveCrimpWeighing(): void
-    {
-        $this->validate([
-            'crimpWeighingCrimpLotId' => 'nullable|exists:crimp_lots,id',
-            'crimpQty'       => 'required|integer|min:1',
-            'crimpWeight'    => 'nullable|numeric|min:0',
-            'crimpWeighedAt' => 'required|date',
-            'crimpComments'  => 'nullable|string|max:500',
-        ], [
-            'crimpQty.required' => 'La cantidad de CRIMP es obligatoria.',
-            'crimpQty.min'      => 'La cantidad debe ser mayor a 0.',
-        ]);
-
-        PackagingCrimpWeighing::create([
-            'lot_id'       => $this->crimpWeighingLotId,
-            'crimp_lot_id' => $this->crimpWeighingCrimpLotId ?: null,
-            'quantity'     => $this->crimpQty,
-            'weight'       => $this->crimpWeight,
-            'weighed_at'   => $this->crimpWeighedAt,
-            'weighed_by' => Auth::id(),
-            'comments'   => $this->crimpComments ?: null,
-        ]);
-
-        $this->closeCrimpWeighingModal();
-        $this->sentList->refresh();
-        session()->flash('message', 'Pesada de CRIMP registrada.');
-    }
-
     public function deleteCrimpWeighing(int $id): void
     {
         PackagingCrimpWeighing::findOrFail($id)->delete();
         $this->sentList->refresh();
         session()->flash('message', 'Pesada de CRIMP eliminada.');
-    }
-
-    public function closeCrimpWeighingModal(): void
-    {
-        $this->showCrimpWeighingModal = false;
-        $this->crimpWeighingLotId     = null;
-        $this->crimpWeighingCrimpLotId = null;
-        $this->crimpQty               = 0;
-        $this->crimpWeight            = null;
-        $this->crimpComments          = '';
-        $this->resetErrorBag();
     }
 
     // ── Notify "Empaque terminado CRIMP" (correo M9) ─────────────────────
@@ -695,11 +602,27 @@ class SentListPackagingView extends Component
             'notifyLabelCount.integer' => 'El número de etiquetas debe ser un entero.',
         ]);
 
-        $lot = Lot::with('workOrder.purchaseOrder.part')->findOrFail($this->notifyLotId);
+        $count = $this->dispatchEmpaqueTerminado($this->notifyLotId, $this->notifyLabelCount, $this->notifyComments);
+
+        $this->closeNotifyModal();
+        $this->sentList->refresh();
+        session()->flash('message', $count === 0
+            ? 'Empaque confirmado. No hay destinatarios configurados para el correo.'
+            : 'Empaque confirmado y correo enviado a '.$count.' destinatario(s).');
+    }
+
+    /**
+     * Genera el resumen "Empaque Terminado", guarda el historial de notificación
+     * (No. etiquetas, B.5) y envía el correo a Empaques + Materiales + la empacadora.
+     * Destinatarios: roles Empaques/Materiales + usuario actual. Devuelve cuántos.
+     */
+    private function dispatchEmpaqueTerminado(int $lotId, ?int $labelCount, ?string $comments): int
+    {
+        $lot = Lot::with('workOrder.purchaseOrder.part')->findOrFail($lotId);
 
         // Historial de notificación + No. de etiquetas (decisiones B.5).
         $lot->update([
-            'packaging_label_count' => $this->notifyLabelCount,
+            'packaging_label_count' => $labelCount,
             'packaging_notified_at' => now(),
             'packaging_notified_by' => Auth::id(),
         ]);
@@ -720,17 +643,13 @@ class SentListPackagingView extends Component
         if (! empty($recipients)) {
             Mail::to($recipients)->send(new EmpaqueTerminadoCrimpViajero(
                 viajero: $lot,
-                labelCount: $this->notifyLabelCount,
-                extraComments: $this->notifyComments ?: null,
+                labelCount: $labelCount,
+                extraComments: $comments ?: null,
                 packerName: Auth::user()?->name,
             ));
         }
 
-        $this->closeNotifyModal();
-        $this->sentList->refresh();
-        session()->flash('message', empty($recipients)
-            ? 'Empaque confirmado. No hay destinatarios configurados para el correo.'
-            : 'Empaque confirmado y correo enviado a '.count($recipients).' destinatario(s).');
+        return count($recipients);
     }
 
     public function closeNotifyModal(): void
@@ -739,6 +658,150 @@ class SentListPackagingView extends Component
         $this->notifyLotId      = null;
         $this->notifyLabelCount = null;
         $this->notifyComments   = '';
+        $this->resetErrorBag();
+    }
+
+    // ── Paso 5: Modal de Confirmación de Empaque (CRIMP) ─────────────────
+
+    public function openConfirmModal(int $lotId): void
+    {
+        $lot = Lot::with('crimpLots')->findOrFail($lotId);
+
+        $this->confirmLotId       = $lotId;
+        $this->confirmCrimpLotId  = $lot->crimpLots->first()?->id;
+        $this->confirmDone        = false;
+        $this->cPieceQty          = 0;
+        $this->cPieceWeight       = null;
+        $this->cCrimpQty          = 0;
+        $this->cCrimpWeight       = null;
+        $this->confirmLabelCount  = $lot->packaging_label_count;
+        $this->confirmComments    = '';
+        $this->resetErrorBag();
+        $this->showConfirmModal   = true;
+    }
+
+    /** Paso 5 · captura — agrega una pesada de piezas ("manguitas") al lote de CRIMP. */
+    public function addConfirmPieceWeighing(): void
+    {
+        $this->validate([
+            'confirmCrimpLotId' => 'required|exists:crimp_lots,id',
+            'cPieceQty'         => 'required|integer|min:1',
+            'cPieceWeight'      => 'nullable|numeric|min:0',
+        ], [
+            'confirmCrimpLotId.required' => 'Selecciona primero el lote de CRIMP.',
+            'cPieceQty.required'         => 'La cantidad de piezas es obligatoria.',
+            'cPieceQty.min'              => 'La cantidad debe ser mayor a 0.',
+        ]);
+
+        PackagingPieceWeighing::create([
+            'lot_id'       => $this->confirmLotId,
+            'crimp_lot_id' => $this->confirmCrimpLotId,
+            'quantity'     => $this->cPieceQty,
+            'weight'       => $this->cPieceWeight,
+            'weighed_at'   => now(),
+            'weighed_by'   => Auth::id(),
+        ]);
+
+        $this->cPieceQty    = 0;
+        $this->cPieceWeight = null;
+        $this->confirmDone  = false; // cambió la captura → re-confirmar
+        $this->sentList->refresh();
+    }
+
+    /** Paso 5 · captura — agrega una pesada de CRIMP al lote de CRIMP. */
+    public function addConfirmCrimpWeighing(): void
+    {
+        $this->validate([
+            'confirmCrimpLotId' => 'required|exists:crimp_lots,id',
+            'cCrimpQty'         => 'required|integer|min:1',
+            'cCrimpWeight'      => 'nullable|numeric|min:0',
+        ], [
+            'confirmCrimpLotId.required' => 'Selecciona primero el lote de CRIMP.',
+            'cCrimpQty.required'         => 'La cantidad de CRIMP es obligatoria.',
+            'cCrimpQty.min'              => 'La cantidad debe ser mayor a 0.',
+        ]);
+
+        PackagingCrimpWeighing::create([
+            'lot_id'       => $this->confirmLotId,
+            'crimp_lot_id' => $this->confirmCrimpLotId,
+            'quantity'     => $this->cCrimpQty,
+            'weight'       => $this->cCrimpWeight,
+            'weighed_at'   => now(),
+            'weighed_by'   => Auth::id(),
+        ]);
+
+        $this->cCrimpQty    = 0;
+        $this->cCrimpWeight = null;
+        $this->confirmDone  = false;
+        $this->sentList->refresh();
+    }
+
+    public function deleteConfirmPieceWeighing(int $id): void
+    {
+        PackagingPieceWeighing::findOrFail($id)->delete();
+        $this->confirmDone = false;
+        $this->sentList->refresh();
+    }
+
+    public function deleteConfirmCrimpWeighing(int $id): void
+    {
+        PackagingCrimpWeighing::findOrFail($id)->delete();
+        $this->confirmDone = false;
+        $this->sentList->refresh();
+    }
+
+    /** Paso 5 · paso 3 — el empacador confirma las cantidades → genera "Empaque Terminado". */
+    public function confirmPackaging(): void
+    {
+        if (! $this->confirmLotId) return;
+
+        $this->confirmDone = true;
+        session()->flash('message', 'Cantidades confirmadas. Se generó el resumen "Empaque Terminado".');
+    }
+
+    /** Paso 5 · genera el resumen y notifica a Empaque + Materiales (correo M9). */
+    public function confirmAndNotifyFromModal(): void
+    {
+        if (! $this->confirmLotId) return;
+
+        $this->validate([
+            'confirmLabelCount' => 'nullable|integer|min:0',
+            'confirmComments'   => 'nullable|string|max:1000',
+        ], [
+            'confirmLabelCount.integer' => 'El número de etiquetas debe ser un entero.',
+        ]);
+
+        $count = $this->dispatchEmpaqueTerminado($this->confirmLotId, $this->confirmLabelCount, $this->confirmComments);
+
+        $this->confirmDone = true;
+        $this->sentList->refresh();
+        session()->flash('message', $count === 0
+            ? 'Empaque confirmado. No hay destinatarios configurados para el correo.'
+            : 'Empaque confirmado y correo "Empaque Terminado" enviado a '.$count.' destinatario(s).');
+    }
+
+    /** Paso 5 → Paso 6: cierra confirmación y abre la toma de decisión del viajero. */
+    public function goToDecisionFromConfirm(): void
+    {
+        $lotId = $this->confirmLotId;
+        $this->closeConfirmModal();
+        if ($lotId) {
+            $this->openDecisionModal($lotId);
+        }
+    }
+
+    public function closeConfirmModal(): void
+    {
+        $this->showConfirmModal  = false;
+        $this->confirmLotId      = null;
+        $this->confirmCrimpLotId = null;
+        $this->confirmDone       = false;
+        $this->cPieceQty         = 0;
+        $this->cPieceWeight      = null;
+        $this->cCrimpQty         = 0;
+        $this->cCrimpWeight      = null;
+        $this->confirmLabelCount = null;
+        $this->confirmComments   = '';
         $this->resetErrorBag();
     }
 

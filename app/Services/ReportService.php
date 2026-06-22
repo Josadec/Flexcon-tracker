@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CrimpLot;
 use App\Models\Kit;
 use App\Models\Lot;
 use App\Models\PackagingRecord;
@@ -58,7 +59,7 @@ class ReportService
 
     // =========================================================
     // MATERIALES
-    // Filtro: lot.receipt_date y kit.created_at
+    // Filtro: lot.receipt_date (viajeros) y crimp_lots.created_at
     // =========================================================
 
     public function getMaterialesReport(?string $startDate, ?string $endDate): array
@@ -66,38 +67,34 @@ class ReportService
         $lotsQuery = Lot::with(['workOrder'])
             ->orderBy('receipt_date', 'desc');
 
-        $kitsQuery = Kit::with(['workOrder'])
+        // Flujo CRIMP: los lotes de CRIMP cuelgan del viajero (ya no se usan Kits).
+        $crimpLotsQuery = CrimpLot::with(['lot.workOrder'])
             ->orderBy('created_at', 'desc');
 
         if ($startDate && $endDate) {
             $lotsQuery->whereBetween('receipt_date', [$startDate, $endDate]);
-            $kitsQuery->whereBetween('created_at', [
+            $crimpLotsQuery->whereBetween('created_at', [
                 $startDate . ' 00:00:00',
                 $endDate   . ' 23:59:59',
             ]);
         }
 
-        $lots = $lotsQuery->get();
-        $kits = $kitsQuery->get();
+        $lots      = $lotsQuery->get();
+        $crimpLots = $crimpLotsQuery->get();
 
         $lotsByMaterialStatus = $lots->groupBy('material_status');
-        $kitsByStatus         = $kits->groupBy('status');
 
         return [
             'department'        => 'Materiales',
             'lots'              => $lots,
-            'kits'              => $kits,
+            'crimp_lots'        => $crimpLots,
             'stats' => [
                 'total_lotes'            => $lots->count(),
                 'lotes_pendientes'       => $lotsByMaterialStatus->get('pending',  collect())->count(),
                 'lotes_liberados'        => $lotsByMaterialStatus->get('released', collect())->count(),
                 'lotes_rechazados'       => $lotsByMaterialStatus->get('rejected', collect())->count(),
-                'total_kits'             => $kits->count(),
-                'kits_preparando'        => $kitsByStatus->get(Kit::STATUS_PREPARING,   collect())->count(),
-                'kits_listos'            => $kitsByStatus->get(Kit::STATUS_READY,       collect())->count(),
-                'kits_liberados'         => $kitsByStatus->get(Kit::STATUS_RELEASED,    collect())->count(),
-                'kits_en_ensamble'       => $kitsByStatus->get(Kit::STATUS_IN_ASSEMBLY, collect())->count(),
-                'kits_rechazados'        => $kitsByStatus->get(Kit::STATUS_REJECTED,    collect())->count(),
+                'total_crimp_lots'       => $crimpLots->count(),
+                'total_crimp_piezas'     => (int) $crimpLots->sum('quantity'),
             ],
             'start_date'        => $startDate,
             'end_date'          => $endDate,

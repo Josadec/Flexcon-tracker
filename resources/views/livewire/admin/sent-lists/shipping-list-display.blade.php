@@ -129,8 +129,8 @@
                     @endif
 
                     @if (($lifecycleSummary['crimp_kit_pending'] ?? 0) > 0)
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700">
-                            <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700">
+                            <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
                             <strong>{{ $lifecycleSummary['crimp_kit_pending'] }}</strong> CRIMP {{ Str::plural('viajero', $lifecycleSummary['crimp_kit_pending']) }} esperando liberación de material — <span class="font-semibold">Materiales</span>
                         </span>
                     @endif
@@ -164,8 +164,8 @@
                     @endif
 
                     @if (($lifecycleSummary['decision_pending'] ?? 0) > 0)
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700">
-                            <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700">
+                            <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
                             <strong>{{ $lifecycleSummary['decision_pending'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['decision_pending']) }} esperando decisión — <span class="font-semibold">Materiales</span>
                         </span>
                     @endif
@@ -178,8 +178,8 @@
                     @endif
 
                     @if (($lifecycleSummary['material_inflight'] ?? 0) > 0)
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700">
-                            <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700">
+                            <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
                             <strong>{{ $lifecycleSummary['material_inflight'] }}</strong> {{ Str::plural('lote', $lifecycleSummary['material_inflight']) }} esperando recepción de material — <span class="font-semibold">Materiales</span>
                         </span>
                     @endif
@@ -311,16 +311,9 @@
                                             $woLifecycle['completed']++;
                                         }
 
-                                        // Kit / Material completado
-                                        if ($part->is_crimp) {
-                                            // CRIMP: al menos un kit liberado/listo y ninguno preparing/pending
-                                            if ($l->kits->isNotEmpty() && !$l->kits->contains(fn($k) => in_array($k->status, ['preparing','pending'], true))) {
-                                                $woLifecycle['kit_done']++;
-                                            }
-                                        } else {
-                                            if (($l->material_status ?? '') === 'released') {
-                                                $woLifecycle['kit_done']++;
-                                            }
+                                        // Material liberado a nivel viajero (CRIMP y NO-CRIMP por material_status; ya no por Kit)
+                                        if (($l->material_status ?? '') === 'released') {
+                                            $woLifecycle['kit_done']++;
                                         }
 
                                         // Inspección completada
@@ -411,7 +404,7 @@
                                                     </span>
                                                 @endif
                                                 @if ($woLifecycle['crimp_kit'] > 0)
-                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700"
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700"
                                                         title="{{ $woLifecycle['crimp_kit'] }} CRIMP {{ Str::plural('viajero', $woLifecycle['crimp_kit']) }} esperando liberación de material — Materiales">
                                                         <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
                                                         CRIMP {{ $woLifecycle['crimp_kit'] }}
@@ -519,7 +512,7 @@
                                                     </span>
                                                 @endif
                                                 @if ($woLifecycle['decision'] > 0)
-                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700"
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700"
                                                         title="{{ $woLifecycle['decision'] }} {{ Str::plural('lote', $woLifecycle['decision']) }} esperando decisión — Materiales">
                                                         <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                                                         {{ $woLifecycle['decision'] }}
@@ -533,7 +526,7 @@
                                                     </span>
                                                 @endif
                                                 @if ($woLifecycle['material_receive'] > 0)
-                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700"
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700"
                                                         title="{{ $woLifecycle['material_receive'] }} {{ Str::plural('lote', $woLifecycle['material_receive']) }} esperando recepción de material — Materiales">
                                                         <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                                         {{ $woLifecycle['material_receive'] }}
@@ -705,7 +698,7 @@
                                                 @php
                                                     $isCrimpPhase = $lotPendingPhase['is_crimp'] ?? false;
                                                     $actorClass = $isCrimpPhase
-                                                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700'
+                                                        ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-700'
                                                         : ($actorColorMap[$lotPendingPhase['actor']] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600');
                                                 @endphp
                                                 <div class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium {{ $actorClass }}"
@@ -739,29 +732,35 @@
                                                     default => 'Pendiente',
                                                 };
                                             @endphp
-                                            <div class="flex items-center justify-center gap-1 flex-wrap">
-                                                @if ($canMaterials)
-                                                    <button wire:click="openMaterialModal({{ $lot->id }})"
-                                                        class="w-5 h-5 rounded {{ $matColor }} hover:opacity-80 cursor-pointer transition-opacity shrink-0"
-                                                        title="Material: {{ $matLabel }}"></button>
-                                                @else
-                                                    <span class="w-5 h-5 rounded {{ $matColor }} opacity-60 shrink-0" title="Material: {{ $matLabel }}"></span>
-                                                @endif
-
-                                                @if ($part->is_crimp)
-                                                    @foreach ($lot->crimpLots as $cl)
-                                                        <span class="px-1.5 py-0.5 text-[10px] bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded font-mono"
-                                                            title="Lote de CRIMP {{ $cl->crimp_lot_number }} · Lote de fabricante: {{ $cl->lote_fabricante ?: '—' }} · {{ number_format($cl->quantity) }} pz{{ $cl->comments ? ' · '.$cl->comments : '' }}">
-                                                            {{ $cl->crimp_lot_number }}
-                                                        </span>
-                                                    @endforeach
+                                            <div class="flex flex-col items-center gap-1.5">
+                                                {{-- Indicador de liberación + gestionar lotes --}}
+                                                <div class="flex items-center justify-center gap-1.5">
                                                     @if ($canMaterials)
+                                                        <button wire:click="openMaterialModal({{ $lot->id }})"
+                                                            class="w-5 h-5 rounded {{ $matColor }} hover:opacity-80 cursor-pointer transition-opacity shrink-0"
+                                                            title="Material: {{ $matLabel }}"></button>
+                                                    @else
+                                                        <span class="w-5 h-5 rounded {{ $matColor }} opacity-60 shrink-0" title="Material: {{ $matLabel }}"></span>
+                                                    @endif
+                                                    @if ($part->is_crimp && $canMaterials)
                                                         <button wire:click="openCrimpLotModal({{ $lot->id }})"
-                                                            class="w-5 h-5 rounded bg-purple-500 hover:bg-purple-600 cursor-pointer transition-colors flex items-center justify-center shrink-0"
+                                                            class="w-5 h-5 rounded bg-cyan-500 hover:bg-cyan-600 cursor-pointer transition-colors flex items-center justify-center shrink-0"
                                                             title="Gestionar lotes de CRIMP">
                                                             <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                                         </button>
                                                     @endif
+                                                </div>
+
+                                                {{-- Lotes de CRIMP del viajero --}}
+                                                @if ($part->is_crimp && $lot->crimpLots->isNotEmpty())
+                                                    <div class="flex flex-wrap items-center justify-center gap-1 max-w-[130px]">
+                                                        @foreach ($lot->crimpLots as $cl)
+                                                            <span class="px-1.5 py-0.5 text-[10px] leading-tight bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded font-mono"
+                                                                title="Lote de CRIMP {{ $cl->crimp_lot_number }} · Lote de fabricante: {{ $cl->lote_fabricante ?: '—' }} · {{ number_format($cl->quantity) }} pz{{ $cl->comments ? ' · '.$cl->comments : '' }}">
+                                                                {{ $cl->crimp_lot_number }}
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
                                                 @endif
                                             </div>
                                         </td>
@@ -905,17 +904,12 @@
                                                     <span class="w-5 h-5 rounded {{ $pkgSemColor }} {{ $canPackaging ? '' : 'opacity-60' }}" title="{{ $crimpPkgTitle }}"></span>
                                                 @endif
 
-                                                {{-- CRIMP: pesar piezas ("manguitas") + pesar CRIMP --}}
+                                                {{-- CRIMP: Paso 5 — modal único de confirmación de empaque --}}
                                                 @if ($part->is_crimp && $canPackaging)
-                                                    <button wire:click="openPieceWeighingModal({{ $lot->id }})"
+                                                    <button wire:click="openConfirmModal({{ $lot->id }})"
                                                         class="w-5 h-5 rounded bg-indigo-500 hover:bg-indigo-600 cursor-pointer transition-colors flex items-center justify-center shrink-0"
-                                                        title="Pesar piezas (manguitas)">
-                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v12m6-6H6"/></svg>
-                                                    </button>
-                                                    <button wire:click="openCrimpWeighingModal({{ $lot->id }})"
-                                                        class="w-5 h-5 rounded bg-purple-500 hover:bg-purple-600 cursor-pointer transition-colors flex items-center justify-center shrink-0"
-                                                        title="Pesar CRIMP">
-                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                                        title="Empacar / Confirmar (Paso 5)">
+                                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                                                     </button>
                                                 @endif
                                             </div>
@@ -1434,27 +1428,23 @@
         @php $lot_h = $selectedLotForCycleHistory; @endphp
         <div wire:key="modal-cycle-history" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/60 transition-opacity" wire:click="closeCycleHistoryModal"></div>
+                <div class="fixed inset-0 bg-gray-900/70 transition-opacity" wire:click="closeCycleHistoryModal"></div>
 
-                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full rounded-2xl shadow-2xl">
 
                     {{-- Header --}}
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-amber-600">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="text-base font-semibold text-white">Historial de Ciclos — Lote {{ $lot_h->lot_number }}</h3>
-                                <p class="text-xs text-amber-100 mt-0.5">
-                                    WO: {{ $lot_h->workOrder->purchaseOrder->wo ?? '—' }}
-                                    &nbsp;|&nbsp; Parte: {{ $lot_h->workOrder->purchaseOrder->part->number ?? '—' }}
-                                    &nbsp;|&nbsp; Qty Original: {{ number_format($lot_h->completionLogs->first()?->original_quantity ?? $lot_h->quantity) }}
-                                </p>
-                            </div>
-                            <button wire:click="closeCycleHistoryModal" type="button" class="text-amber-200 hover:text-white">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
+                    <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Historial de Ciclos — Viajero {{ $lot_h->lot_number }}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                WO: {{ $lot_h->workOrder->purchaseOrder->wo ?? '—' }}
+                                · Parte: {{ $lot_h->workOrder->purchaseOrder->part->number ?? '—' }}
+                                · Qty Original: {{ number_format($lot_h->completionLogs->first()?->original_quantity ?? $lot_h->quantity) }}
+                            </p>
                         </div>
+                        <button wire:click="closeCycleHistoryModal" type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
                     </div>
 
                     {{-- Tabla de ciclos --}}
@@ -1564,10 +1554,10 @@
         <div wire:key="modal-lot" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeLotModal"></div>
+                <div class="fixed inset-0 bg-gray-900/70 transition-opacity" wire:click="closeLotModal"></div>
 
                 <div
-                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-200 dark:border-gray-700">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full rounded-2xl shadow-2xl">
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between">
                             <div>
@@ -1681,11 +1671,11 @@
         <div wire:key="modal-dept-status" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeDepartmentStatusModal">
+                <div class="fixed inset-0 bg-gray-900/70 transition-opacity" wire:click="closeDepartmentStatusModal">
                 </div>
 
                 <div
-                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full rounded-2xl shadow-2xl">
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between">
                             <div>
@@ -1754,11 +1744,11 @@
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 {{-- Overlay --}}
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeInspectionModal"></div>
+                <div class="fixed inset-0 bg-gray-900/70 transition-opacity" wire:click="closeInspectionModal"></div>
 
                 {{-- Modal Container --}}
                 <div
-                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full rounded-2xl shadow-2xl">
                     {{-- Header --}}
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between">
@@ -1806,7 +1796,7 @@
                                             <span class="text-gray-500 dark:text-gray-400">Lotes de CRIMP:</span>
                                             <div class="mt-1 flex flex-wrap gap-1">
                                                 @foreach ($selectedLot->crimpLots as $cl)
-                                                    <span class="px-1.5 py-0.5 text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded font-mono">{{ $cl->crimp_lot_number }}</span>
+                                                    <span class="px-1.5 py-0.5 text-xs bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded font-mono">{{ $cl->crimp_lot_number }}</span>
                                                 @endforeach
                                             </div>
                                         </div>
@@ -1934,427 +1924,36 @@
         </div>
     @endif
 
-    {{-- Modal de Status de Kit por Lote (semaphore click — original) --}}
-    @if ($showKitModal && $selectedLotForKit)
-        <div wire:key="modal-kit" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="kit-modal-title" role="dialog"
-            aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                {{-- Overlay --}}
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeKitModal"></div>
-
-                {{-- Modal Container --}}
-                <div
-                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700">
-                    {{-- Header --}}
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-indigo-600">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 id="kit-modal-title" class="text-lg font-semibold text-white">Status de Kit - Lote
-                                </h3>
-                                <p class="text-sm text-indigo-100 mt-1">
-                                    WO: {{ $selectedLotForKit->workOrder->purchaseOrder->wo ?? 'N/A' }} |
-                                    Lote: {{ $selectedLotForKit->lot_number }}
-                                </p>
-                            </div>
-                            <button wire:click="closeKitModal" class="text-white hover:text-indigo-200">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    {{-- Body --}}
-                    <div class="px-6 py-4 space-y-6">
-                        {{-- Informacion del Lote --}}
-                        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Información del Lote
-                            </h4>
-                            <div class="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <span class="text-gray-500 dark:text-gray-400">Parte:</span>
-                                    <span class="ml-2 text-gray-900 dark:text-white font-medium">
-                                        {{ $selectedLotForKit->workOrder->purchaseOrder->part->number ?? 'N/A' }}
-                                    </span>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500 dark:text-gray-400">Cantidad:</span>
-                                    <span class="ml-2 text-gray-900 dark:text-white font-medium">
-                                        {{ number_format($selectedLotForKit->quantity) }} piezas
-                                    </span>
-                                </div>
-                                @if ($selectedLotForKit->kits->count() > 0)
-                                    <div class="col-span-2">
-                                        <span class="text-gray-500 dark:text-gray-400">Kits:</span>
-                                        <div class="mt-1 space-y-1">
-                                            @foreach ($selectedLotForKit->kits->sortBy('created_at') as $kit)
-                                                <div class="flex items-center gap-2">
-                                                    @php
-                                                        $kitStatusColor = match($kit->status) {
-                                                            'released' => 'bg-green-500',
-                                                            'in_assembly' => 'bg-orange-500',
-                                                            default => 'bg-yellow-500',
-                                                        };
-                                                        $kitStatusLabel = match($kit->status) {
-                                                            'released' => 'Liberado',
-                                                            'in_assembly' => 'En Ensamble',
-                                                            default => 'Preparando',
-                                                        };
-                                                    @endphp
-                                                    <span class="w-2 h-2 rounded-full {{ $kitStatusColor }}"></span>
-                                                    <span class="text-indigo-600 dark:text-indigo-400 font-medium text-sm">
-                                                        {{ $kit->kit_number }}
-                                                    </span>
-                                                    <span class="text-xs text-gray-500 dark:text-gray-400">({{ $kitStatusLabel }})</span>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @else
-                                    <div class="col-span-2">
-                                        <span class="text-yellow-600 dark:text-yellow-400 font-medium">
-                                            No hay kit asociado a este lote
-                                        </span>
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-
-                        {{-- Botón para abrir modal de gestión de kits cuando no hay kit --}}
-                        @if (!$selectedKit)
-                            <div class="text-center">
-                                <button wire:click="switchToKitManageModal({{ $selectedLotForKit->id }})"
-                                    class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                    </svg>
-                                    Agregar Kits
-                                </button>
-                            </div>
-                        @endif
-
-                        @if ($selectedKit)
-                            {{-- Status de Kit (Alpine.js para feedback visual inmediato) --}}
-                            <div x-data="{ kitSt: $wire.entangle('kitStatus') }">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                                    Status del Kit
-                                </label>
-                                <div class="grid grid-cols-2 gap-3">
-                                    {{-- Aprobado --}}
-                                    <button type="button"
-                                        x-on:click="kitSt = 'released'"
-                                        :class="kitSt === 'released'
-                                            ? 'border-green-500 bg-green-50 dark:bg-green-900/30 ring-2 ring-green-300 dark:ring-green-700 shadow-sm'
-                                            : 'border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-600 hover:bg-green-50/50 dark:hover:bg-green-900/10'"
-                                        class="flex flex-col items-center p-4 border-2 rounded-lg transition-all duration-200 cursor-pointer">
-                                        <div
-                                            :class="kitSt === 'released' ? 'ring-2 ring-green-300 ring-offset-2 dark:ring-offset-gray-800' : ''"
-                                            class="w-8 h-8 rounded-full bg-green-500 mb-2 flex items-center justify-center">
-                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        </div>
-                                        <span
-                                            :class="kitSt === 'released' ? 'text-green-700 dark:text-green-300' : 'text-gray-700 dark:text-gray-300'"
-                                            class="text-sm font-medium">
-                                            Aprobado
-                                        </span>
-                                    </button>
-
-                                    {{-- En Ensamble --}}
-                                    <button type="button"
-                                        x-on:click="kitSt = 'in_assembly'"
-                                        :class="kitSt === 'in_assembly'
-                                            ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/30 ring-2 ring-orange-300 dark:ring-orange-700 shadow-sm'
-                                            : 'border-gray-200 dark:border-gray-600 hover:border-orange-300 dark:hover:border-orange-600 hover:bg-orange-50/50 dark:hover:bg-orange-900/10'"
-                                        class="flex flex-col items-center p-4 border-2 rounded-lg transition-all duration-200 cursor-pointer">
-                                        <div
-                                            :class="kitSt === 'in_assembly' ? 'ring-2 ring-orange-300 ring-offset-2 dark:ring-offset-gray-800' : ''"
-                                            class="w-8 h-8 rounded-full bg-orange-500 mb-2 flex items-center justify-center">
-                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </div>
-                                        <span
-                                            :class="kitSt === 'in_assembly' ? 'text-orange-700 dark:text-orange-300' : 'text-gray-700 dark:text-gray-300'"
-                                            class="text-sm font-medium">
-                                            En Ensamble
-                                        </span>
-                                    </button>
-                                </div>
-
-                                {{-- Texto descriptivo del status seleccionado --}}
-                                <div class="mt-3 text-sm text-center py-2 px-3 rounded-md transition-all duration-200"
-                                    :class="{
-                                        'bg-gray-50 dark:bg-gray-700/20 text-gray-500 dark:text-gray-400': kitSt === 'preparing',
-                                        'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300': kitSt === 'released',
-                                        'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300': kitSt === 'in_assembly'
-                                    }">
-                                    <span x-show="kitSt === 'preparing'">Kit pendiente de revision</span>
-                                    <span x-show="kitSt === 'released'">Kit aprobado - Listo para produccion</span>
-                                    <span x-show="kitSt === 'in_assembly'">Kit en ensamble - Material en uso</span>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-
-                    {{-- Footer --}}
-                    <div
-                        class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-col sm:flex-row gap-3 sm:justify-end">
-                        <button wire:click="closeKitModal"
-                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            Cancelar
-                        </button>
-                        @if ($selectedKit)
-                            <button wire:click="saveKitStatus"
-                                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">
-                                Guardar Cambios
-                            </button>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- Modal de Gestión de Kits (botón aparte — multi-kit) --}}
-    @if ($showKitManageModal && $selectedLotForKitManage)
-        <div wire:key="modal-kit-manage" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="kit-manage-modal-title" role="dialog"
-            aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeKitManageModal"></div>
-
-                <div
-                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
-                    {{-- Header --}}
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-indigo-600">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 id="kit-manage-modal-title" class="text-lg font-semibold text-white">Gestión de Kits</h3>
-                                <p class="text-sm text-indigo-100 mt-1">
-                                    WO: {{ $selectedLotForKitManage->workOrder->purchaseOrder->wo ?? 'N/A' }} |
-                                    Lote: {{ $selectedLotForKitManage->lot_number }} |
-                                    Parte: {{ $selectedLotForKitManage->workOrder->purchaseOrder->part->number ?? 'N/A' }}
-                                </p>
-                            </div>
-                            <button wire:click="closeKitManageModal" class="text-white hover:text-indigo-200">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    {{-- Body --}}
-                    <div class="px-6 py-4 max-h-[60vh] overflow-y-auto">
-                        {{-- Info de capacidad del lote --}}
-                        @php
-                            $mkLotQty = $selectedLotForKitManage->quantity;
-                            $mkUsedQty = collect($lotKits)->sum('quantity');
-                            $mkRemainingQty = max(0, $mkLotQty - $mkUsedQty);
-                        @endphp
-                        <div class="mb-4 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
-                            <div class="grid grid-cols-3 gap-3 text-sm text-center">
-                                <div>
-                                    <span class="text-gray-500 dark:text-gray-400 block">Cant. Lote</span>
-                                    <span class="font-bold text-gray-900 dark:text-white">{{ number_format($mkLotQty) }}</span>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500 dark:text-gray-400 block">Asignado</span>
-                                    <span class="font-bold text-indigo-600 dark:text-indigo-400">{{ number_format($mkUsedQty) }}</span>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500 dark:text-gray-400 block">Disponible</span>
-                                    <span class="font-bold {{ $mkRemainingQty > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ number_format($mkRemainingQty) }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Lista de kits existentes --}}
-                        @if (count($lotKits) > 0)
-                            <div class="space-y-3">
-                                @foreach ($lotKits as $kit)
-                                    @php
-                                        $mkStatusColor = match ($kit['status'] ?? 'preparing') {
-                                            'released' => 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20',
-                                            'in_assembly' => 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20',
-                                            'ready' => 'border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20',
-                                            default => 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30',
-                                        };
-                                        $mkStatusLabel = match ($kit['status'] ?? 'preparing') {
-                                            'released' => 'Aprobado',
-                                            'in_assembly' => 'En Ensamble',
-                                            'ready' => 'Listo',
-                                            default => 'En preparación',
-                                        };
-                                    @endphp
-                                    <div class="flex items-center gap-3 p-3 border rounded-lg {{ $mkStatusColor }}">
-                                        <div class="flex-1 min-w-0">
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                                    {{ $kit['kit_number'] }}
-                                                </span>
-                                                <span class="text-xs text-gray-500 dark:text-gray-400">
-                                                    {{ number_format($kit['quantity'] ?? 0) }} pz
-                                                </span>
-                                                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full
-                                                    {{ match ($kit['status'] ?? 'preparing') {
-                                                        'released' => 'bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-300',
-                                                        'in_assembly' => 'bg-orange-100 text-orange-800 dark:bg-orange-800/30 dark:text-orange-300',
-                                                        default => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-                                                    } }}">
-                                                    {{ $mkStatusLabel }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div class="flex items-center gap-1 flex-shrink-0">
-                                            <button wire:click="updateKitStatus({{ $kit['id'] }}, 'released')"
-                                                class="w-7 h-7 rounded-full flex items-center justify-center transition-all
-                                                    {{ ($kit['status'] ?? '') === 'released' ? 'bg-green-500 ring-2 ring-green-300 dark:ring-green-700' : 'bg-green-400/50 hover:bg-green-500' }}"
-                                                title="Aprobar">
-                                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                </svg>
-                                            </button>
-                                            <button wire:click="updateKitStatus({{ $kit['id'] }}, 'in_assembly')"
-                                                class="w-7 h-7 rounded-full flex items-center justify-center transition-all
-                                                    {{ ($kit['status'] ?? '') === 'in_assembly' ? 'bg-orange-500 ring-2 ring-orange-300 dark:ring-orange-700' : 'bg-orange-400/50 hover:bg-orange-500' }}"
-                                                title="En Ensamble">
-                                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                </svg>
-                                            </button>
-                                            <button wire:click="removeKit({{ $kit['id'] }})"
-                                                wire:confirm="¿Eliminar este kit?"
-                                                class="w-7 h-7 rounded-full flex items-center justify-center bg-gray-300/50 hover:bg-red-400 transition-all ml-1"
-                                                title="Eliminar kit">
-                                                <svg class="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @else
-                            <div class="text-center py-6 text-gray-500 dark:text-gray-400">
-                                <svg class="mx-auto h-10 w-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                                </svg>
-                                <p class="text-sm">No hay kits. Agrega uno nuevo.</p>
-                            </div>
-                        @endif
-
-                        {{-- Formulario crear nuevo kit --}}
-                        @if ($showCreateKitForm)
-                            <div class="mt-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 p-4 rounded-lg space-y-4">
-                                <h4 class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">Crear Nuevo Kit</h4>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">No. Kit *</label>
-                                        <input wire:model="newKitNumber" type="text"
-                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            placeholder="KIT-XXXXXXX-001">
-                                        @error('newKitNumber')
-                                            <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                                        @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad *</label>
-                                        <input wire:model="newKitQuantity" type="number" min="1"
-                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            placeholder="Ej: 100">
-                                        @error('newKitQuantity')
-                                            <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="flex gap-3 justify-end">
-                                    <button wire:click="closeCreateKitForm"
-                                        class="px-3 py-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                        Cancelar
-                                    </button>
-                                    <button wire:click="saveNewKitManage"
-                                        class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors">
-                                        Crear Kit
-                                    </button>
-                                </div>
-                            </div>
-                        @else
-                            <div class="mt-4">
-                                <button wire:click="openCreateKitForm"
-                                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 rounded-lg">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 4v16m8-8H4"></path>
-                                    </svg>
-                                    Agregar Kit
-                                </button>
-                            </div>
-                        @endif
-                    </div>
-
-                    {{-- Footer --}}
-                    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-end">
-                        <button wire:click="closeKitManageModal"
-                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            Cerrar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
 
     {{-- Modal de Lotes de CRIMP (CRIMP — reemplaza al Kit) --}}
     @if ($showCrimpLotModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-gray-900/50" wire:click="closeCrimpLotModal"></div>
-            <div class="relative z-10 w-full max-w-3xl bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 bg-purple-600 dark:bg-purple-700">
-                    <div>
-                        <h3 class="text-lg font-bold text-white">Lotes de CRIMP</h3>
-                        @if ($crimpLotViajeroLabel)
-                            <p class="text-sm text-purple-100 mt-0.5">{{ $crimpLotViajeroLabel }}</p>
-                        @endif
-                    </div>
-                    <button wire:click="closeCrimpLotModal" class="text-white/80 hover:text-white">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <div class="px-6 py-4 max-h-[55vh] overflow-y-auto space-y-3">
+        <x-ui-modal title="Lotes de CRIMP" :subtitle="$crimpLotViajeroLabel ?: null"
+            close="closeCrimpLotModal" maxWidth="5xl"
+            bodyClass="px-6 py-4 max-h-[60vh] overflow-y-auto space-y-3">
                     @forelse ($crimpLots as $index => $cl)
                         <div wire:key="crimplot-{{ $index }}" class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                             <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
                                 <div>
-                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">No. Lote CRIMP</label>
+                                    <label class="flex items-start text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 min-h-[2rem] leading-tight">No. Lote CRIMP</label>
                                     <input type="text" wire:model="crimpLots.{{ $index }}.crimp_lot_number" placeholder="Ej: CL-001"
-                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                     @error("crimpLots.{$index}.crimp_lot_number") <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Lote de fabricante <span class="text-gray-400">(opcional)</span></label>
+                                    <label class="flex items-start text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 min-h-[2rem] leading-tight">Lote de fabricante&nbsp;<span class="text-gray-400">(opcional)</span></label>
                                     <input type="text" wire:model="crimpLots.{{ $index }}.lote_fabricante" placeholder="Ej: FAB-2024"
-                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cantidad</label>
+                                    <label class="flex items-start text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 min-h-[2rem] leading-tight">Cantidad</label>
                                     <input type="number" wire:model="crimpLots.{{ $index }}.quantity" min="1" placeholder="0"
-                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                     @error("crimpLots.{$index}.quantity") <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Comentarios <span class="text-gray-400">(opcional)</span></label>
+                                    <label class="flex items-start text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 min-h-[2rem] leading-tight">Comentarios&nbsp;<span class="text-gray-400">(opcional)</span></label>
                                     <input type="text" wire:model="crimpLots.{{ $index }}.comments" placeholder="Observaciones..."
-                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 </div>
                             </div>
                             <button wire:click="removeCrimpLotRow({{ $index }})" class="mt-5 p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg" title="Eliminar lote de CRIMP">
@@ -2364,105 +1963,318 @@
                     @empty
                         <p class="text-center text-sm text-gray-400 dark:text-gray-500 py-4">No hay lotes de CRIMP. Agrega uno nuevo.</p>
                     @endforelse
-                    <button wire:click="addCrimpLotRow" class="w-full py-2.5 border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-purple-400 hover:text-purple-500 rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                    <button wire:click="addCrimpLotRow" class="w-full py-2.5 border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-cyan-400 hover:text-cyan-500 rounded-lg text-sm font-medium flex items-center justify-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         Agregar Lote de CRIMP
                     </button>
-                </div>
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+            <x-slot:footer>
+                <span></span>
+                <div class="flex items-center gap-2">
                     <button wire:click="closeCrimpLotModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
-                    <button wire:click="saveCrimpLots" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg">Guardar Lotes de CRIMP</button>
+                    <button wire:click="saveCrimpLots" class="px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg">Guardar Lotes de CRIMP</button>
                 </div>
-            </div>
-        </div>
+            </x-slot:footer>
+        </x-ui-modal>
     @endif
 
-    {{-- Modal Pesar Piezas ("manguitas") — CRIMP --}}
-    @if ($showPieceWeighingModal)
-        @php $pwLot = \App\Models\Lot::find($pieceWeighingLotId); @endphp
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-gray-900/50" wire:click="closePieceWeighingModal"></div>
-            <div class="relative z-10 w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 bg-indigo-600 dark:bg-indigo-700">
-                    <div>
-                        <h3 class="text-lg font-bold text-white">Pesar Piezas</h3>
-                        @if ($pwLot)<p class="text-sm text-indigo-100 mt-0.5">Viajero {{ $pwLot->lot_number }}</p>@endif
-                    </div>
-                    <button wire:click="closePieceWeighingModal" class="text-white/80 hover:text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-                </div>
-                <div class="px-6 py-4 space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad de piezas <span class="text-red-500">*</span></label>
-                        <input type="number" wire:model="pieceQty" min="1" placeholder="0" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        @error('pieceQty') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Peso <span class="text-gray-400">(opcional)</span></label>
-                        <input type="number" step="0.001" wire:model="pieceWeight" min="0" placeholder="0.000" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha / Hora <span class="text-red-500">*</span></label>
-                        <input type="datetime-local" wire:model="pieceWeighedAt" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        @error('pieceWeighedAt') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comentarios <span class="text-gray-400">(opcional)</span></label>
-                        <textarea wire:model="pieceComments" rows="2" placeholder="Observaciones..." class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closePieceWeighingModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
-                    <button wire:click="savePieceWeighing" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Guardar</button>
-                </div>
-            </div>
-        </div>
-    @endif
+    {{-- ===== PASO 5 · MODAL DE CONFIRMACIÓN DE EMPAQUE (CRIMP) ===== --}}
+    @if ($showConfirmModal)
+        @php
+            $cfLot = \App\Models\Lot::with(['crimpLots','workOrder.purchaseOrder.part','qualityWeighings','packagingPieceWeighings','packagingCrimpWeighings'])->find($confirmLotId);
+            $cfWO    = $cfLot?->workOrder;
+            $cfPart  = $cfWO?->purchaseOrder?->part;
+            $cfWoNum = $cfWO?->purchaseOrder?->wo ?? $cfWO?->wo_number ?? '—';
+            $cfCrimpLots = $cfLot?->crimpLots ?? collect();
+            $cfSel   = $cfCrimpLots->firstWhere('id', $confirmCrimpLotId);
+            $cfPW = $cfLot ? $cfLot->packagingPieceWeighings->where('crimp_lot_id', $confirmCrimpLotId) : collect();
+            $cfCW = $cfLot ? $cfLot->packagingCrimpWeighings->where('crimp_lot_id', $confirmCrimpLotId) : collect();
+            $cfPiecesTotal = (int) $cfPW->sum('quantity');
+            $cfCrimpTotal  = (int) $cfCW->sum('quantity');
+            $cfPiecesSurplus = $cfLot ? $cfLot->getPackagedPiecesSurplus() : 0;
+            $cfCrimpSurplus  = $cfLot ? $cfLot->getPackagedCrimpSurplus() : 0;
+            $cfOtherLots = $cfCrimpLots->where('id', '!=', $confirmCrimpLotId);
+        @endphp
+        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+            <div class="flex items-start sm:items-center justify-center min-h-screen p-4">
+                <div class="fixed inset-0 bg-gray-900/70" wire:click="closeConfirmModal"></div>
+                <div class="relative z-10 w-full max-w-4xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl my-8">
 
-    {{-- Modal Pesar CRIMP (selecciona lote de CRIMP) — CRIMP --}}
-    @if ($showCrimpWeighingModal)
-        @php $cwLot = \App\Models\Lot::with('crimpLots')->find($crimpWeighingLotId); @endphp
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-gray-900/50" wire:click="closeCrimpWeighingModal"></div>
-            <div class="relative z-10 w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 bg-purple-600 dark:bg-purple-700">
-                    <div>
-                        <h3 class="text-lg font-bold text-white">Pesar CRIMP</h3>
-                        @if ($cwLot)<p class="text-sm text-purple-100 mt-0.5">Viajero {{ $cwLot->lot_number }}</p>@endif
+                    {{-- Header --}}
+                    <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <div>
+                            <span class="inline-block px-2.5 py-0.5 text-xs font-bold bg-amber-300 text-amber-900 rounded-full">Paso 5</span>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white mt-1.5">Modal de confirmación</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Se despliega sobre la pantalla de Empaque</p>
+                        </div>
+                        <button wire:click="closeConfirmModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
                     </div>
-                    <button wire:click="closeCrimpWeighingModal" class="text-white/80 hover:text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-                </div>
-                <div class="px-6 py-4 space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lote de CRIMP <span class="text-gray-400">(opcional)</span></label>
-                        <select wire:model="crimpWeighingCrimpLotId" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                            <option value="">— Sin especificar —</option>
-                            @foreach (($cwLot?->crimpLots ?? []) as $cl)
-                                <option value="{{ $cl->id }}">{{ $cl->crimp_lot_number }}@if($cl->lote_fabricante) · Fab: {{ $cl->lote_fabricante }}@endif · {{ number_format($cl->quantity) }} pz</option>
-                            @endforeach
-                        </select>
+
+                    {{-- Tira de contexto --}}
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+                        <div class="bg-white dark:bg-gray-800 px-4 py-2.5">
+                            <div class="text-[10px] uppercase text-gray-400 dark:text-gray-500">Descripción</div>
+                            <div class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ $cfPart?->description ?? $cfPart?->number ?? '—' }}</div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 px-4 py-2.5">
+                            <div class="text-[10px] uppercase text-gray-400 dark:text-gray-500">No. Order (WO + Viajero)</div>
+                            <div class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ $cfWoNum }} · {{ $cfLot?->lot_number }}</div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 px-4 py-2.5">
+                            <div class="text-[10px] uppercase text-gray-400 dark:text-gray-500">No. en etiquetas (WO + Lote)</div>
+                            <div class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ $cfWoNum }} · {{ $cfSel?->crimp_lot_number ?? '—' }}</div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 px-4 py-2.5">
+                            <div class="text-[10px] uppercase text-gray-400 dark:text-gray-500">Cantidad en viajero</div>
+                            <div class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ number_format($cfLot?->quantity ?? 0) }}</div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad de CRIMP <span class="text-red-500">*</span></label>
-                        <input type="number" wire:model="crimpQty" min="1" placeholder="0" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        @error('crimpQty') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+
+                    <div class="px-6 py-5 space-y-6 max-h-[65vh] overflow-y-auto">
+                        @if ($cfCrimpLots->isEmpty())
+                            <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg text-sm text-yellow-800 dark:text-yellow-300">
+                                Este viajero no tiene lotes de CRIMP. Captúralos primero en <strong>Materiales</strong>.
+                            </div>
+                        @else
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {{-- Paso 1: Selecciona lote de CRIMP --}}
+                            <section>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="w-6 h-6 flex items-center justify-center rounded-full bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 text-xs font-bold">1</span>
+                                    <h4 class="font-semibold text-gray-800 dark:text-gray-100">Selecciona lote de CRIMP</h4>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">De los lotes asignados al viajero</p>
+                                <div class="space-y-2">
+                                    @foreach ($cfCrimpLots as $cl)
+                                        <button type="button" wire:click="$set('confirmCrimpLotId', {{ $cl->id }})"
+                                            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg border-2 text-left transition-colors
+                                                {{ $confirmCrimpLotId == $cl->id ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/40' }}">
+                                            <span class="text-indigo-600 dark:text-indigo-300">{{ $confirmCrimpLotId == $cl->id ? '●' : '○' }}</span>
+                                            <span class="flex-1">
+                                                <span class="block text-sm font-mono font-semibold text-gray-800 dark:text-gray-100">Lote CRIMP {{ $cl->crimp_lot_number }}</span>
+                                                @if ($cl->lote_fabricante)
+                                                    <span class="block text-[11px] text-gray-400">Fab: {{ $cl->lote_fabricante }}</span>
+                                                @endif
+                                            </span>
+                                            <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">{{ number_format($cl->quantity) }} pz</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                                @if ($cfOtherLots->isNotEmpty())
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-2">
+                                        <strong>División del lote:</strong> este contiene {{ number_format($cfSel?->quantity ?? 0) }}
+                                        y existe{{ $cfOtherLots->count() > 1 ? 'n otros lotes' : ' otro lote' }} por
+                                        {{ $cfOtherLots->map(fn($l) => number_format($l->quantity))->join(', ') }}.
+                                    </p>
+                                @endif
+                            </section>
+
+                            {{-- Paso 2: Captura pesadas --}}
+                            <section>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="w-6 h-6 flex items-center justify-center rounded-full bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 text-xs font-bold">2</span>
+                                    <h4 class="font-semibold text-gray-800 dark:text-gray-100">Captura pesadas</h4>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Piezas «manguitas» / Piezas CRIMP</p>
+
+                                @error('confirmCrimpLotId') <p class="text-xs text-red-600 dark:text-red-400 mb-2">{{ $message }}</p> @enderror
+
+                                {{-- Tabla piezas «manguitas» --}}
+                                <div class="mb-4 border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                                    <div class="px-3 py-1.5 bg-gray-50 dark:bg-gray-700/50 text-xs font-semibold text-gray-600 dark:text-gray-300">Piezas «manguitas»</div>
+                                    <table class="w-full text-xs">
+                                        <thead class="text-gray-400 dark:text-gray-500">
+                                            <tr><th class="px-3 py-1 text-left font-medium">Peso (kg)</th><th class="px-3 py-1 text-right font-medium">Piezas</th><th class="px-2 py-1"></th></tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                            @forelse ($cfPW as $w)
+                                                <tr wire:key="cfpw-{{ $w->id }}">
+                                                    <td class="px-3 py-1 text-gray-600 dark:text-gray-400">{{ $w->weight !== null ? number_format($w->weight, 3) : '—' }}</td>
+                                                    <td class="px-3 py-1 text-right font-semibold text-green-700 dark:text-green-400">{{ number_format($w->quantity) }}</td>
+                                                    <td class="px-2 py-1 text-center">
+                                                        <button wire:click="deleteConfirmPieceWeighing({{ $w->id }})" class="text-red-400 hover:text-red-600">✕</button>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr><td colspan="3" class="px-3 py-2 text-center text-gray-400 italic">Sin pesadas</td></tr>
+                                            @endforelse
+                                            <tr class="bg-gray-50/60 dark:bg-gray-900/20">
+                                                <td class="px-3 py-1.5">
+                                                    <input type="number" step="0.001" min="0" wire:model="cPieceWeight" placeholder="kg"
+                                                        class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                                </td>
+                                                <td class="px-3 py-1.5">
+                                                    <input type="number" min="1" wire:model="cPieceQty" placeholder="pzs"
+                                                        class="w-full px-2 py-1 text-xs text-right border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                                </td>
+                                                <td class="px-2 py-1.5 text-center">
+                                                    <button wire:click="addConfirmPieceWeighing" class="text-indigo-600 hover:text-indigo-800 font-bold">＋</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot class="bg-gray-50 dark:bg-gray-900/30">
+                                            <tr><td class="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">Total</td><td class="px-3 py-1.5 text-right text-xs font-bold text-green-700 dark:text-green-400">{{ number_format($cfPiecesTotal) }}</td><td></td></tr>
+                                        </tfoot>
+                                    </table>
+                                    @error('cPieceQty') <p class="text-xs text-red-600 dark:text-red-400 px-3 py-1">{{ $message }}</p> @enderror
+                                </div>
+
+                                {{-- Tabla piezas CRIMP --}}
+                                <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                                    <div class="px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/20 text-xs font-semibold text-cyan-700 dark:text-cyan-300">Piezas CRIMP <span class="font-normal text-gray-400">(objetivo: {{ number_format($cfSel?->quantity ?? 0) }})</span></div>
+                                    <table class="w-full text-xs">
+                                        <thead class="text-gray-400 dark:text-gray-500">
+                                            <tr><th class="px-3 py-1 text-left font-medium">Peso (kg)</th><th class="px-3 py-1 text-right font-medium">Piezas</th><th class="px-2 py-1"></th></tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                            @forelse ($cfCW as $w)
+                                                <tr wire:key="cfcw-{{ $w->id }}">
+                                                    <td class="px-3 py-1 text-gray-600 dark:text-gray-400">{{ $w->weight !== null ? number_format($w->weight, 3) : '—' }}</td>
+                                                    <td class="px-3 py-1 text-right font-semibold text-cyan-700 dark:text-cyan-400">{{ number_format($w->quantity) }}</td>
+                                                    <td class="px-2 py-1 text-center">
+                                                        <button wire:click="deleteConfirmCrimpWeighing({{ $w->id }})" class="text-red-400 hover:text-red-600">✕</button>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr><td colspan="3" class="px-3 py-2 text-center text-gray-400 italic">Sin pesadas</td></tr>
+                                            @endforelse
+                                            <tr class="bg-gray-50/60 dark:bg-gray-900/20">
+                                                <td class="px-3 py-1.5">
+                                                    <input type="number" step="0.001" min="0" wire:model="cCrimpWeight" placeholder="kg"
+                                                        class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                                </td>
+                                                <td class="px-3 py-1.5">
+                                                    <input type="number" min="1" wire:model="cCrimpQty" placeholder="pzs"
+                                                        class="w-full px-2 py-1 text-xs text-right border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                                </td>
+                                                <td class="px-2 py-1.5 text-center">
+                                                    <button wire:click="addConfirmCrimpWeighing" class="text-cyan-600 hover:text-cyan-800 font-bold">＋</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot class="bg-gray-50 dark:bg-gray-900/30">
+                                            <tr><td class="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">Total</td><td class="px-3 py-1.5 text-right text-xs font-bold text-cyan-700 dark:text-cyan-400">{{ number_format($cfCrimpTotal) }}</td><td></td></tr>
+                                        </tfoot>
+                                    </table>
+                                    @error('cCrimpQty') <p class="text-xs text-red-600 dark:text-red-400 px-3 py-1">{{ $message }}</p> @enderror
+                                </div>
+                            </section>
+                        </div>
+
+                        {{-- Paso 3: Confirma cantidades --}}
+                        <section class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="w-6 h-6 flex items-center justify-center rounded-full bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 text-xs font-bold">3</span>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100">Confirma cantidades</h4>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                                <div class="rounded-lg bg-green-50 dark:bg-green-900/20 p-3 text-center">
+                                    <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Piezas «manguitas»</div>
+                                    <div class="text-lg font-bold text-green-700 dark:text-green-300">{{ number_format($cfPiecesTotal) }}</div>
+                                </div>
+                                <div class="rounded-lg bg-cyan-50 dark:bg-cyan-900/20 p-3 text-center">
+                                    <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Piezas CRIMP</div>
+                                    <div class="text-lg font-bold text-cyan-700 dark:text-cyan-300">{{ number_format($cfCrimpTotal) }}</div>
+                                </div>
+                                <div class="rounded-lg bg-orange-50 dark:bg-orange-900/20 p-3 text-center">
+                                    <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">CRIMP sobrante</div>
+                                    <div class="text-lg font-bold text-orange-700 dark:text-orange-300">{{ number_format($cfCrimpSurplus) }}</div>
+                                </div>
+                                <div class="rounded-lg bg-orange-50 dark:bg-orange-900/20 p-3 text-center">
+                                    <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Piezas sobrantes</div>
+                                    <div class="text-lg font-bold text-orange-700 dark:text-orange-300">{{ number_format($cfPiecesSurplus) }}</div>
+                                </div>
+                            </div>
+                            <button wire:click="confirmPackaging"
+                                class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-colors
+                                    {{ $confirmDone ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 cursor-default' : 'bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 hover:bg-gray-700' }}">
+                                @if ($confirmDone)
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Cantidades confirmadas
+                                @else
+                                    Confirmar cantidades
+                                @endif
+                            </button>
+                        </section>
+
+                        {{-- Empaque Terminado (al confirmar) --}}
+                        @if ($confirmDone)
+                            <section class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                                        <span class="text-gray-400">→</span> Resumen generado — Empaque Terminado
+                                    </h4>
+                                    <span class="text-[11px] text-gray-400">Este documento ya no se descarga a PDF</span>
+                                </div>
+                                <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                                    <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 text-sm font-bold text-gray-700 dark:text-gray-200">Empaque Terminado</div>
+                                    <dl class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
+                                        @php
+                                            $cfRows = [
+                                                ['Destinatarios', 'Empaque + Materiales'],
+                                                ['Descripción', $cfPart?->description ?? $cfPart?->number ?? '—'],
+                                                ['No. Order (WO + Viajero)', $cfWoNum.' + '.($cfLot?->lot_number ?? '—')],
+                                                ['Número de orden en etiquetas (WO + Lote de CRIMP)', $cfWoNum.' + '.($cfSel?->crimp_lot_number ?? '—')],
+                                                ['Cantidad en el viajero', number_format($cfLot?->quantity ?? 0)],
+                                                ['División del lote', $cfOtherLots->isNotEmpty()
+                                                    ? 'Este lote contiene '.number_format($cfSel?->quantity ?? 0).' y existe'.($cfOtherLots->count() > 1 ? 'n otros lotes' : ' otro lote').' por '.$cfOtherLots->map(fn($l) => number_format($l->quantity))->join(', ')
+                                                    : 'Lote único'],
+                                                ['Cantidad completa de piezas (manguitas)', number_format($cfPiecesTotal)],
+                                                ['Cantidad completa de CRIMP', number_format($cfCrimpTotal)],
+                                                ['CRIMP sobrante', number_format($cfCrimpSurplus)],
+                                                ['Piezas / manguitas sobrantes', number_format($cfPiecesSurplus)],
+                                                ['Empacado por', auth()->user()?->name ?? '—'],
+                                                ['Fecha', now()->format('Y-m-d')],
+                                                ['Comentarios', $confirmComments ?: '—'],
+                                            ];
+                                        @endphp
+                                        @foreach ($cfRows as [$k, $v])
+                                            <div class="flex gap-4 px-4 py-1.5">
+                                                <dt class="w-1/2 text-gray-500 dark:text-gray-400">{{ $k }}</dt>
+                                                <dd class="w-1/2 font-medium text-gray-800 dark:text-gray-100 text-right">{{ $v }}</dd>
+                                            </div>
+                                        @endforeach
+                                    </dl>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">No. de etiquetas <span class="text-gray-400">(opcional)</span></label>
+                                        <input type="number" min="0" wire:model="confirmLabelCount" placeholder="—"
+                                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                        @error('confirmLabelCount') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Comentarios <span class="text-gray-400">(opcional)</span></label>
+                                        <input type="text" wire:model="confirmComments" placeholder="Observaciones para Empaque/Materiales..."
+                                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                    </div>
+                                </div>
+                            </section>
+                        @endif
+                        @endif
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Peso <span class="text-gray-400">(opcional)</span></label>
-                        <input type="number" step="0.001" wire:model="crimpWeight" min="0" placeholder="0.000" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+
+                    {{-- Footer --}}
+                    <div class="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Forma parte del flujo principal · continúa al Paso 6</span>
+                        <div class="flex items-center gap-2">
+                            <button wire:click="closeConfirmModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">Cerrar</button>
+                            @if ($confirmDone)
+                                <button wire:click="confirmAndNotifyFromModal"
+                                    class="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg">
+                                    {{ $cfLot?->packaging_notified_at ? 'Reenviar correo' : 'Confirmar y notificar' }}
+                                </button>
+                            @endif
+                            <button @if (!$confirmDone) disabled @endif
+                                wire:click="goToDecisionFromConfirm"
+                                class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors
+                                    {{ $confirmDone ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' }}">
+                                Continuar a Paso 6 ▸
+                            </button>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha / Hora <span class="text-red-500">*</span></label>
-                        <input type="datetime-local" wire:model="crimpWeighedAt" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        @error('crimpWeighedAt') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comentarios <span class="text-gray-400">(opcional)</span></label>
-                        <textarea wire:model="crimpComments" rows="2" placeholder="Observaciones..." class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"></textarea>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeCrimpWeighingModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
-                    <button wire:click="saveCrimpWeighing" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg">Guardar</button>
                 </div>
             </div>
         </div>
@@ -2474,32 +2286,25 @@
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 {{-- Overlay --}}
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeMaterialModal"></div>
+                <div class="fixed inset-0 bg-gray-900/70 transition-opacity" wire:click="closeMaterialModal"></div>
 
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
                 {{-- Modal --}}
                 <div
-                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-xl sm:w-full">
                     {{-- Header --}}
-                    <div class="bg-gradient-to-r from-amber-600 to-amber-700 px-6 py-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="text-lg font-semibold text-white" id="material-modal-title">
-                                    Material del Lote
-                                </h3>
-                                <p class="text-sm text-amber-100 mt-1">
-                                    WO: {{ $selectedLotForMaterial->workOrder->purchaseOrder->wo ?? 'N/A' }} |
-                                    Lote: {{ $selectedLotForMaterial->lot_number }}
-                                </p>
-                            </div>
-                            <button wire:click="closeMaterialModal" class="text-white hover:text-amber-200 cursor-pointer">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
+                    <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="material-modal-title">Material del viajero</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                WO: {{ $selectedLotForMaterial->workOrder->purchaseOrder->wo ?? 'N/A' }} ·
+                                Viajero: {{ $selectedLotForMaterial->lot_number }}
+                            </p>
                         </div>
+                        <button wire:click="closeMaterialModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
                     </div>
 
                     {{-- Body --}}
@@ -2619,28 +2424,23 @@
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 {{-- Overlay --}}
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closePackagingModal"></div>
+                <div class="fixed inset-0 bg-gray-900/70 transition-opacity" wire:click="closePackagingModal"></div>
 
                 {{-- Modal Container --}}
                 <div
-                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full rounded-2xl shadow-2xl">
                     {{-- Header --}}
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-orange-600">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 id="packaging-modal-title" class="text-lg font-semibold text-white">Empaque - Lote {{ $selectedLotForPackaging->lot_number }}</h3>
-                                <p class="text-sm text-orange-100 mt-1">
-                                    WO: {{ $selectedLotForPackaging->workOrder->purchaseOrder->wo ?? 'N/A' }} |
-                                    Parte: {{ $selectedLotForPackaging->workOrder->purchaseOrder->part->number ?? 'N/A' }}
-                                </p>
-                            </div>
-                            <button wire:click="closePackagingModal" class="text-white hover:text-orange-200 cursor-pointer">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
+                    <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <div>
+                            <h3 id="packaging-modal-title" class="text-xl font-bold text-gray-900 dark:text-white">Empaque — Lote {{ $selectedLotForPackaging->lot_number }}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                WO: {{ $selectedLotForPackaging->workOrder->purchaseOrder->wo ?? 'N/A' }} ·
+                                Parte: {{ $selectedLotForPackaging->workOrder->purchaseOrder->part->number ?? 'N/A' }}
+                            </p>
                         </div>
+                        <button wire:click="closePackagingModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
                     </div>
 
                     {{-- Body --}}
@@ -2915,7 +2715,7 @@
                                         <span class="text-sm font-medium text-blue-800 dark:text-blue-200">Viajero recibido</span>
                                     </div>
                                     <button wire:click="openDecisionFromPackaging"
-                                        class="px-3 py-1.5 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors cursor-pointer">
+                                        class="px-3 py-1.5 text-xs font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors cursor-pointer">
                                         Ir a Decisión
                                     </button>
                                 </div>
@@ -2947,61 +2747,95 @@
     {{-- MODAL: Decisión Control de Materiales --}}
     {{-- ================================================================ --}}
     @if ($showDecisionModal && $selectedLotForDecision)
-        <div wire:key="modal-decision" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="decision-modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity" wire:click="closeDecisionModal"></div>
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-
-                    {{-- Header --}}
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-purple-600">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 id="decision-modal-title" class="text-lg font-semibold text-white">Decisión - Control de Materiales</h3>
-                                <p class="text-sm text-purple-100 mt-1">
-                                    Lote {{ $selectedLotForDecision->lot_number }} |
-                                    WO: {{ $selectedLotForDecision->workOrder->purchaseOrder->wo ?? 'N/A' }} |
-                                    Parte: {{ $selectedLotForDecision->workOrder->purchaseOrder->part->number ?? 'N/A' }}
-                                    @if ($decIsCrimp) <span class="ml-1 px-1.5 py-0.5 text-xs bg-purple-800 text-purple-100 rounded">CRIMP</span> @endif
-                                    @if ($selectedLotForDecision->completion_count > 0)
-                                        <span class="ml-1 px-1.5 py-0.5 text-xs bg-amber-500 text-white rounded font-semibold">Completado {{ $selectedLotForDecision->completion_count }}</span>
-                                    @endif
-                                </p>
-                            </div>
-                            <button wire:click="closeDecisionModal" class="text-white hover:text-purple-200 cursor-pointer">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    {{-- Body --}}
-                    <div class="px-6 py-4 space-y-5">
+        @php
+            $dPart = $selectedLotForDecision->workOrder->purchaseOrder->part ?? null;
+            $dWoNum = $selectedLotForDecision->workOrder->purchaseOrder->wo ?? $selectedLotForDecision->workOrder->wo_number ?? '—';
+            $dOrderLabel = 'No. Order (WO + '.($decIsCrimp ? 'Viajero' : 'Lote').')';
+            $dFirstCrimp = $decIsCrimp ? ($selectedLotForDecision->crimpLots->first()?->crimp_lot_number ?? '—') : null;
+            $dSub = $decIsCrimp ? '4 opciones según sobrantes / faltantes del lote de CRIMP' : 'Lote '.$selectedLotForDecision->lot_number;
+            if (($selectedLotForDecision->completion_count ?? 0) > 0) { $dSub .= ' · Completado '.$selectedLotForDecision->completion_count; }
+        @endphp
+        <x-ui-modal
+            :badge="$decIsCrimp ? 'Paso 6' : null"
+            :title="$decIsCrimp ? 'Resumen + toma de decisión' : 'Decisión – Control de Materiales'"
+            :subtitle="$dSub"
+            close="closeDecisionModal"
+            maxWidth="3xl"
+            bodyClass="px-6 py-5 space-y-5 max-h-[72vh] overflow-y-auto">
+            <x-slot:context>
+                <x-ui-modal.ctx label="Descripción" :value="$dPart?->description ?? $dPart?->number ?? '—'" />
+                <x-ui-modal.ctx :label="$dOrderLabel" :value="$dWoNum.' · '.$selectedLotForDecision->lot_number" />
+                @if ($decIsCrimp)
+                    <x-ui-modal.ctx label="Lote de CRIMP" :value="$dFirstCrimp" />
+                @else
+                    <x-ui-modal.ctx label="Parte" :value="$dPart?->number ?? '—'" />
+                @endif
+                <x-ui-modal.ctx label="Cantidad en viajero" :value="number_format($decLotTotal)" />
+            </x-slot:context>
 
                         {{-- Resumen --}}
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
-                                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Lote</div>
-                                <div class="text-lg font-bold text-gray-900 dark:text-white">{{ number_format($decLotTotal) }}</div>
+                        @if ($decIsCrimp)
+                            {{-- Paso 6 (diagrama 4): resumen del lote de CRIMP --}}
+                            <div>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="w-6 h-6 flex items-center justify-center rounded-full bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 text-xs font-bold">∑</span>
+                                    <h4 class="font-semibold text-gray-800 dark:text-gray-100">Resumen del lote de CRIMP</h4>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Total · Empacadas · Sobrantes · Faltantes</p>
+                                <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                                    <table class="w-full text-sm">
+                                        <thead class="bg-gray-50 dark:bg-gray-700/50 text-[11px] uppercase text-gray-500 dark:text-gray-400">
+                                            <tr>
+                                                <th class="px-3 py-2 text-left">Concepto</th>
+                                                <th class="px-3 py-2 text-right">Total</th>
+                                                <th class="px-3 py-2 text-right">Empacadas</th>
+                                                <th class="px-3 py-2 text-right">Sobrantes</th>
+                                                <th class="px-3 py-2 text-right">Faltantes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                            <tr>
+                                                <td class="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">Piezas «manguitas»</td>
+                                                <td class="px-3 py-2 text-right text-gray-700 dark:text-gray-300">{{ number_format($decLotTotal) }}</td>
+                                                <td class="px-3 py-2 text-right font-semibold text-green-700 dark:text-green-400">{{ number_format($decPacked) }}</td>
+                                                <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ number_format($decSurplus) }}</td>
+                                                <td class="px-3 py-2 text-right font-semibold {{ $decMissing > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400' }}">{{ number_format($decMissing) }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">Piezas CRIMP</td>
+                                                <td class="px-3 py-2 text-right text-gray-700 dark:text-gray-300">{{ number_format($decCrimpTotal) }}</td>
+                                                <td class="px-3 py-2 text-right font-semibold text-cyan-700 dark:text-cyan-400">{{ number_format($decCrimpPacked) }}</td>
+                                                <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ number_format($decCrimpSurplus) }}</td>
+                                                <td class="px-3 py-2 text-right font-semibold {{ $decCrimpMissing > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400' }}">{{ number_format($decCrimpMissing) }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                            <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-center">
-                                <div class="text-xs text-green-600 dark:text-green-400 mb-1">Empacadas</div>
-                                <div class="text-lg font-bold text-green-700 dark:text-green-300">{{ number_format($decPacked) }}</div>
+                        @else
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Lote</div>
+                                    <div class="text-lg font-bold text-gray-900 dark:text-white">{{ number_format($decLotTotal) }}</div>
+                                </div>
+                                <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-center">
+                                    <div class="text-xs text-green-600 dark:text-green-400 mb-1">Empacadas</div>
+                                    <div class="text-lg font-bold text-green-700 dark:text-green-300">{{ number_format($decPacked) }}</div>
+                                </div>
+                                <div class="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg text-center">
+                                    <div class="text-xs text-orange-600 dark:text-orange-400 mb-1">Sobrantes</div>
+                                    <div class="text-lg font-bold text-orange-700 dark:text-orange-300">{{ number_format($decSurplus) }}</div>
+                                </div>
+                                <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg text-center">
+                                    <div class="text-xs text-red-600 dark:text-red-400 mb-1">Faltantes</div>
+                                    <div class="text-lg font-bold text-red-700 dark:text-red-300">{{ number_format($decMissing) }}</div>
+                                </div>
                             </div>
-                            <div class="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg text-center">
-                                <div class="text-xs text-orange-600 dark:text-orange-400 mb-1">Sobrantes</div>
-                                <div class="text-lg font-bold text-orange-700 dark:text-orange-300">{{ number_format($decSurplus) }}</div>
-                            </div>
-                            <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg text-center">
-                                <div class="text-xs text-red-600 dark:text-red-400 mb-1">Faltantes</div>
-                                <div class="text-lg font-bold text-red-700 dark:text-red-300">{{ number_format($decMissing) }}</div>
-                            </div>
-                        </div>
 
-                        <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
-                            Faltantes = Total Lote - Empacadas - Sobrantes
-                        </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
+                                Faltantes = Total Lote - Empacadas - Sobrantes
+                            </p>
+                        @endif
 
                         {{-- Acumulado de todos los ciclos — reconciliación contra el lote original --}}
                         @if ($decPreviousCyclesPacked > 0)
@@ -3053,58 +2887,122 @@
                         {{-- Decision options (only if no closure decision yet) --}}
                         @if (!$decClosureDecision)
                             @if ($decIsCrimp)
-                                {{-- CRIMP · Paso 6 (diagrama 4): D1 / D2a / D2b / D2c / D3 --}}
-                                <div class="grid grid-cols-3 gap-3">
-                                    <div class="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg text-center">
-                                        <div class="text-xs text-purple-600 dark:text-purple-400 mb-1">CRIMP empacado</div>
-                                        <div class="text-lg font-bold text-purple-700 dark:text-purple-300">{{ number_format($decCrimpPacked) }}</div>
+                                {{-- CRIMP · Paso 6 (diagrama 4 / wireframe): D1 Cerrar · D2 Completar (a/b/c) · D3 Nuevo lote --}}
+                                <div x-data="{ sel: null, sub: null }">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="w-6 h-6 flex items-center justify-center rounded-full bg-amber-500 text-white text-xs font-bold">?</span>
+                                        <h4 class="font-semibold text-gray-800 dark:text-gray-100">¿Qué decisión se toma?</h4>
                                     </div>
-                                    <div class="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg text-center">
-                                        <div class="text-xs text-orange-600 dark:text-orange-400 mb-1">CRIMP sobrante</div>
-                                        <div class="text-lg font-bold text-orange-700 dark:text-orange-300">{{ number_format($decCrimpSurplus) }}</div>
+
+                                    {{-- 3 tarjetas de decisión --}}
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <button type="button" x-on:click="sel='D1'; sub=null"
+                                            :class="sel==='D1' ? 'border-rose-500 bg-rose-100 dark:bg-rose-900/40 ring-2 ring-rose-300 dark:ring-rose-700' : 'border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/15 hover:bg-rose-100 dark:hover:bg-rose-900/30'"
+                                            class="p-3.5 border-2 rounded-xl text-left transition-all">
+                                            <div class="text-sm font-bold text-rose-800 dark:text-rose-300">D1 · Cerrar lote</div>
+                                            <div class="text-xs text-rose-600/80 dark:text-rose-400/80 mt-1">Así como está, sin crear un nuevo lote.</div>
+                                        </button>
+                                        <button type="button" x-on:click="sel='D2'"
+                                            :class="sel==='D2' ? 'border-sky-500 bg-sky-100 dark:bg-sky-900/40 ring-2 ring-sky-300 dark:ring-sky-700' : 'border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/15 hover:bg-sky-100 dark:hover:bg-sky-900/30'"
+                                            class="p-3.5 border-2 rounded-xl text-left transition-all">
+                                            <div class="text-sm font-bold text-sky-800 dark:text-sky-300">D2 · Completar</div>
+                                            <div class="text-xs text-sky-600/80 dark:text-sky-400/80 mt-1">Completar faltantes según el caso · 3 sub-decisiones.</div>
+                                        </button>
+                                        <button type="button" x-on:click="sel='D3'; sub=null"
+                                            :class="sel==='D3' ? 'border-emerald-500 bg-emerald-100 dark:bg-emerald-900/40 ring-2 ring-emerald-300 dark:ring-emerald-700' : 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/15 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'"
+                                            class="p-3.5 border-2 rounded-xl text-left transition-all">
+                                            <div class="text-sm font-bold text-emerald-800 dark:text-emerald-300">D3 · Nuevo lote</div>
+                                            <div class="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1">Crear o reiniciar un nuevo lote de CRIMP.</div>
+                                        </button>
                                     </div>
-                                    <div class="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg text-center">
-                                        <div class="text-xs text-indigo-600 dark:text-indigo-400 mb-1">Completar CRIMP</div>
-                                        <div class="text-lg font-bold text-indigo-700 dark:text-indigo-300">{{ number_format($decCompletarCrimp) }}</div>
+
+                                    {{-- Detalle D1 --}}
+                                    <div x-show="sel==='D1'" style="display:none" class="mt-4 p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50/50 dark:bg-gray-900/20">
+                                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2">D1 · Cerrar lote — así como está</div>
+                                        <div class="flex flex-wrap items-center gap-2 text-xs mb-3">
+                                            <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">Cerrar lote sin crear nuevo lote</span>
+                                            <span class="text-gray-400">→</span>
+                                            <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded inline-flex items-center gap-1">Reporte de Decisión 1 <span class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded text-[10px]">por definir</span></span>
+                                            <span class="text-gray-400">→</span>
+                                            <span class="px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded">Continúa Paso 7 · Entrega de viajero</span>
+                                        </div>
+                                        <button wire:click="decisionCloseAsIs" wire:confirm="¿Cerrar el viajero así como está, sin nuevo lote?"
+                                            class="px-4 py-2 text-sm font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-lg">Confirmar D1 y continuar a Paso 7 ▸</button>
+                                    </div>
+
+                                    {{-- Detalle D2 --}}
+                                    <div x-show="sel==='D2'" style="display:none" class="mt-4 p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50/50 dark:bg-gray-900/20">
+                                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">D2 · Completar — elige una sub-decisión</div>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Completar CRIMP = piezas sobrantes − CRIMP sobrante = <strong>{{ number_format($decCompletarCrimp) }}</strong></p>
+                                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                            <button type="button" x-on:click="sub='a'" :class="sub==='a' ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20' : 'border-gray-200 dark:border-gray-600'" class="p-2 border-2 rounded text-left transition-colors">
+                                                <div class="text-xs font-bold text-gray-800 dark:text-gray-100">D2a · Solo completar CRIMP</div>
+                                                <div class="text-[10px] text-gray-500 dark:text-gray-400">Decisión de Materiales</div>
+                                            </button>
+                                            <button type="button" x-on:click="sub='b'" :class="sub==='b' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-600'" class="p-2 border-2 rounded text-left transition-colors">
+                                                <div class="text-xs font-bold text-gray-800 dark:text-gray-100">D2b · Solo completar piezas</div>
+                                                <div class="text-[10px] text-gray-500 dark:text-gray-400">Decisión de Materiales</div>
+                                            </button>
+                                            <button type="button" x-on:click="sub='c'" :class="sub==='c' ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20' : 'border-gray-200 dark:border-gray-600'" class="p-2 border-2 rounded text-left transition-colors">
+                                                <div class="text-xs font-bold text-gray-800 dark:text-gray-100">D2c · Piezas y CRIMP</div>
+                                                <div class="text-[10px] text-gray-500 dark:text-gray-400">Decisión de Materiales</div>
+                                            </button>
+                                        </div>
+
+                                        {{-- D2a --}}
+                                        <div x-show="sub==='a'" style="display:none" class="mt-3">
+                                            <div class="flex flex-wrap items-center gap-2 text-xs mb-3">
+                                                <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">Completar CRIMP = piezas sobrantes − CRIMP sobrante = {{ number_format($decCompletarCrimp) }}</span>
+                                                <span class="text-gray-400">→</span>
+                                                <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded inline-flex items-center gap-1">Reporte de Decisión 2 <span class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded text-[10px]">por definir</span></span>
+                                                <span class="text-gray-400">→</span>
+                                                <span class="px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded">Paso 7</span>
+                                            </div>
+                                            <button wire:click="decisionCompleteCrimp" class="px-4 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg">Confirmar D2a y continuar a Paso 7 ▸</button>
+                                        </div>
+                                        {{-- D2b --}}
+                                        <div x-show="sub==='b'" style="display:none" class="mt-3">
+                                            <div class="flex flex-wrap items-center gap-2 text-xs mb-3">
+                                                <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">Materiales envía {{ number_format($decSurplus) }} pz a empaque</span>
+                                                <span class="text-gray-400">→</span>
+                                                <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">Empaque completa piezas pendientes</span>
+                                                <span class="text-gray-400">→</span>
+                                                <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded inline-flex items-center gap-1">Reporte de Decisión 3 <span class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded text-[10px]">por definir</span></span>
+                                                <span class="text-gray-400">→</span>
+                                                <span class="px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded">Paso 7</span>
+                                            </div>
+                                            <button wire:click="decisionCompletePieces" class="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg">Confirmar D2b y continuar a Paso 7 ▸</button>
+                                        </div>
+                                        {{-- D2c --}}
+                                        <div x-show="sub==='c'" style="display:none" class="mt-3">
+                                            <div class="flex flex-wrap items-center gap-2 text-xs mb-3">
+                                                <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">Completar CRIMP = {{ number_format($decCompletarCrimp) }}</span>
+                                                <span class="text-gray-400">→</span>
+                                                <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">Completar lote de CRIMP + capturar piezas CRIMP ({{ number_format($decSurplus) }} pz)</span>
+                                                <span class="text-gray-400">→</span>
+                                                <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded inline-flex items-center gap-1">Reporte de Decisión 5 <span class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded text-[10px]">por definir</span></span>
+                                                <span class="text-gray-400">→</span>
+                                                <span class="px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded">Paso 7</span>
+                                            </div>
+                                            <button wire:click="decisionCompleteBoth" class="px-4 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg">Confirmar D2c y continuar a Paso 7 ▸</button>
+                                        </div>
+                                    </div>
+
+                                    {{-- Detalle D3 --}}
+                                    <div x-show="sel==='D3'" style="display:none" class="mt-4 p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50/50 dark:bg-gray-900/20">
+                                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">D3 · Nuevo lote de CRIMP</div>
+                                        <p class="text-xs text-gray-600 dark:text-gray-300 mb-2">¿Reiniciar el mismo lote o crear uno nuevo? → <strong>Nuevo lote de CRIMP</strong></p>
+                                        <div class="flex flex-wrap items-center gap-2 text-xs mb-3">
+                                            <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">Sobrantes piezas (manguitas) = Nuevo lote = {{ number_format(intdiv(max(0, (int) $decSurplus), 100) * 100) }}</span>
+                                            <span class="text-gray-400">→</span>
+                                            <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded inline-flex items-center gap-1">Reporte de Decisión 6 <span class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded text-[10px]">por definir</span></span>
+                                            <span class="text-gray-400">→</span>
+                                            <span class="px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded">Paso 7</span>
+                                        </div>
+                                        <div class="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded px-2 py-1 mb-3">Nota: redondear hacia abajo en múltiplos de 100.</div>
+                                        <button wire:click="decisionNewLot" class="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg">Confirmar D3 — crear nuevo lote ▸</button>
                                     </div>
                                 </div>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">Completar CRIMP = piezas sobrantes − CRIMP sobrante</p>
-
-                                @if ($decSurplus > 0 || $decCrimpSurplus > 0 || $decMissing > 0 || $decCompletarCrimp > 0)
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                                        @if ($decCompletarCrimp > 0)
-                                            <button wire:click="decisionCompleteCrimp" class="p-4 border-2 border-purple-200 dark:border-purple-700 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors cursor-pointer text-left">
-                                                <div class="text-sm font-semibold text-purple-700 dark:text-purple-300">D2a · Completar CRIMP</div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format($decCompletarCrimp) }} CRIMP por completar (Materiales)</div>
-                                            </button>
-                                        @endif
-                                        @if ($decSurplus > 0)
-                                            <button wire:click="decisionCompletePieces" class="p-4 border-2 border-green-200 dark:border-green-700 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer text-left">
-                                                <div class="text-sm font-semibold text-green-700 dark:text-green-300">D2b · Completar piezas</div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format($decSurplus) }} piezas (manguitas) por completar</div>
-                                            </button>
-                                        @endif
-                                        @if ($decSurplus > 0 && $decCompletarCrimp > 0)
-                                            <button wire:click="decisionCompleteBoth" class="p-4 border-2 border-teal-200 dark:border-teal-700 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors cursor-pointer text-left">
-                                                <div class="text-sm font-semibold text-teal-700 dark:text-teal-300">D2c · Completar piezas y CRIMP</div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format($decSurplus) }} pz + {{ number_format($decCompletarCrimp) }} CRIMP</div>
-                                            </button>
-                                        @endif
-                                        <button wire:click="decisionNewLot" class="p-4 border-2 border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors cursor-pointer text-left">
-                                            <div class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">D3 · Nuevo Lote</div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format(intdiv(max(0, (int) $decSurplus), 100) * 100) }} pz (sobrante ↓ múltiplos de 100)</div>
-                                        </button>
-                                        <button wire:click="decisionCloseAsIs" wire:confirm="¿Cerrar el viajero así como está, sin nuevo lote?" class="p-4 border-2 border-orange-200 dark:border-orange-700 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors cursor-pointer text-left">
-                                            <div class="text-sm font-semibold text-orange-700 dark:text-orange-300">D1 · Cerrar Lote</div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Así como está, sin nuevo lote</div>
-                                        </button>
-                                    </div>
-                                @else
-                                    <button wire:click="decisionCloseAsIs" wire:confirm="¿Cerrar el viajero? No hay faltantes ni sobrantes." class="w-full mt-3 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                        Cerrar Viajero (Completo)
-                                    </button>
-                                @endif
                             @else
                             @if ($decSurplus > 0 || $decMissing > 0)
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -3188,6 +3086,50 @@
                                 </div>
                             </div>
 
+                            @php $isCompletion = in_array($decClosureDecision, ['complete_crimp','complete_pieces','complete_both']); @endphp
+                            @if ($isCompletion)
+                                {{-- D2a/b/c — qué falta completar (diagrama 4) y continúa al Paso 7 --}}
+                                @php
+                                    $compCrimp  = (int) ($selectedLotForDecision->complete_crimp_qty ?? 0);
+                                    $compPieces = (int) ($selectedLotForDecision->complete_pieces_qty ?? 0);
+                                @endphp
+                                <div class="bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-700 rounded-lg p-4 space-y-2">
+                                    <h5 class="text-sm font-semibold text-sky-800 dark:text-sky-200">Por completar — decisión de Materiales</h5>
+                                    @if ($decClosureDecision !== 'complete_pieces')
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="text-gray-600 dark:text-gray-300">Completar CRIMP <span class="text-[11px] text-gray-400">(piezas sobrantes − CRIMP sobrante)</span></span>
+                                            <span class="font-bold text-cyan-700 dark:text-cyan-300">{{ number_format($compCrimp) }}</span>
+                                        </div>
+                                    @endif
+                                    @if ($decClosureDecision !== 'complete_crimp')
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="text-gray-600 dark:text-gray-300">Completar piezas «manguitas» <span class="text-[11px] text-gray-400">(Materiales envía a Empaque)</span></span>
+                                            <span class="font-bold text-green-700 dark:text-green-300">{{ number_format($compPieces) }}</span>
+                                        </div>
+                                    @endif
+                                    <div class="flex flex-wrap items-center gap-2 text-xs pt-1">
+                                        <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">{{ $decClosureDecision === 'complete_pieces' ? 'Materiales envía → Empaque completa piezas' : 'Materiales completa lo pendiente' }}</span>
+                                        <span class="text-gray-400">→</span>
+                                        <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded inline-flex items-center gap-1">Reporte de Decisión <span class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded text-[10px]">por definir</span></span>
+                                        <span class="text-gray-400">→</span>
+                                        <span class="px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded">Paso 7 · Entrega de viajero</span>
+                                    </div>
+                                    @if (in_array($decClosureDecision, ['complete_pieces','complete_both']))
+                                        <p class="text-[11px] text-gray-500 dark:text-gray-400 pt-1">Empaque captura las piezas faltantes con el botón <strong>“Empacar / Confirmar”</strong> del viajero (Paso 5).</p>
+                                    @endif
+                                </div>
+                                @if (!$decSurplusReceived)
+                                    <button wire:click="confirmSurplusReceived" wire:confirm="¿Marcar la completación como realizada y continuar al Paso 7?"
+                                        class="w-full px-4 py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        Confirmar completado · Continuar a Paso 7
+                                    </button>
+                                @else
+                                    <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3">
+                                        <span class="text-sm font-medium text-green-800 dark:text-green-200">Completado. Continúa al Paso 7 (entrega de viajero).</span>
+                                    </div>
+                                @endif
+                            @else
                             {{-- Estado de recepción de material --}}
                             @if ($decSurplus > 0)
                                 @if (!$decSurplusDelivered)
@@ -3255,6 +3197,7 @@
                                     </div>
                                 @endif
                             @endif
+                            @endif
 
                             {{-- Reabrir Lote (not available for completed lots since the cycle is irreversible) --}}
                             @if ($decClosureDecision !== 'complete_lot')
@@ -3273,18 +3216,15 @@
                             @endif
 
                         @endif
-                    </div>
 
-                    {{-- Footer --}}
-                    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-end">
-                        <button wire:click="closeDecisionModal"
-                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-                            Cerrar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+            <x-slot:footer>
+                <span class="text-xs text-gray-500 dark:text-gray-400">@if($decIsCrimp)Todos los caminos continúan al Paso 7 (entrega) → Paso 8 (sobrantes)@endif</span>
+                <button wire:click="closeDecisionModal"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                    Cerrar
+                </button>
+            </x-slot:footer>
+        </x-ui-modal>
     @endif
 
     {{-- ================================================================ --}}
@@ -3293,35 +3233,29 @@
     @if ($showCreateLotFormModal && $selectedLotForDecision)
         <div wire:key="modal-create-lot" class="fixed inset-0 z-[60] overflow-y-auto" aria-labelledby="create-lot-modal-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity" wire:click="closeCreateLotFormModal"></div>
+                <div class="fixed inset-0 bg-gray-900/70 dark:bg-gray-900/80 transition-opacity" wire:click="closeCreateLotFormModal"></div>
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
 
                     {{-- Header --}}
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-indigo-600">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 id="create-lot-modal-title" class="text-lg font-semibold text-white">
-                                    Crear {{ $decIsCrimp ? 'Nuevo Viajero' : 'Nuevo Lote' }}
-                                </h3>
-                                <p class="text-sm text-indigo-100 mt-1">
-                                    {{ $createLotType === 'complete' ? 'Completar lote con piezas faltantes' : 'Cerrar lote actual y crear nuevo' }}
-                                </p>
-                            </div>
-                            <button wire:click="closeCreateLotFormModal" class="text-white hover:text-indigo-200 cursor-pointer">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
+                    <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <div>
+                            <h3 id="create-lot-modal-title" class="text-xl font-bold text-gray-900 dark:text-white">Crear {{ $decIsCrimp ? 'Nuevo Viajero' : 'Nuevo Lote' }}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                {{ $createLotType === 'complete' ? 'Completar lote con piezas faltantes' : 'Cerrar lote actual y crear nuevo' }}
+                            </p>
                         </div>
+                        <button wire:click="closeCreateLotFormModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
                     </div>
 
                     {{-- Body --}}
                     <div class="px-6 py-5 space-y-4">
                         {{-- Info banner --}}
                         @if ($decIsCrimp)
-                            <div class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-3">
-                                <p class="text-xs text-purple-700 dark:text-purple-300">
+                            <div class="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-700 rounded-lg p-3">
+                                <p class="text-xs text-cyan-700 dark:text-cyan-300">
                                     <strong>Parte con CRIMP:</strong> Se creará un nuevo viajero. Sus <strong>lotes de CRIMP</strong> se capturan en <strong>Materiales</strong> (ya no se usa Kit).
                                 </p>
                             </div>
@@ -3361,7 +3295,7 @@
                             @if ($decIsCrimp)
                                 <div class="flex justify-between text-gray-600 dark:text-gray-400 mt-1">
                                     <span>Lotes de CRIMP:</span>
-                                    <span class="font-medium text-purple-700 dark:text-purple-300">Se capturan en Materiales</span>
+                                    <span class="font-medium text-cyan-700 dark:text-cyan-300">Se capturan en Materiales</span>
                                 </div>
                             @endif
                             @if ($createLotType === 'new_lot')
@@ -3395,27 +3329,23 @@
     @if ($showDeliverMaterialModal && $selectedLotForDelivery)
         <div wire:key="modal-deliver-material" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeDeliverMaterialModal"></div>
+                <div class="fixed inset-0 bg-gray-900/70 transition-opacity" wire:click="closeDeliverMaterialModal"></div>
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full border border-gray-200 dark:border-gray-700">
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full rounded-2xl shadow-2xl">
 
                     {{-- Header --}}
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-amber-600">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="text-lg font-semibold text-white">Entregar Material</h3>
-                                <p class="text-sm text-amber-100 mt-1">
-                                    Lote {{ $selectedLotForDelivery->lot_number }} |
-                                    WO: {{ $selectedLotForDelivery->workOrder->purchaseOrder->wo ?? 'N/A' }} |
-                                    Parte: {{ $selectedLotForDelivery->workOrder->purchaseOrder->part->number ?? 'N/A' }}
-                                </p>
-                            </div>
-                            <button wire:click="closeDeliverMaterialModal" class="text-white hover:text-amber-200 cursor-pointer">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
+                    <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Entregar Material</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                Viajero {{ $selectedLotForDelivery->lot_number }} ·
+                                WO: {{ $selectedLotForDelivery->workOrder->purchaseOrder->wo ?? 'N/A' }} ·
+                                Parte: {{ $selectedLotForDelivery->workOrder->purchaseOrder->part->number ?? 'N/A' }}
+                            </p>
                         </div>
+                        <button wire:click="closeDeliverMaterialModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
                     </div>
 
                     {{-- Body --}}
@@ -3475,28 +3405,23 @@
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 {{-- Overlay --}}
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeQualityModal"></div>
+                <div class="fixed inset-0 bg-gray-900/70 transition-opacity" wire:click="closeQualityModal"></div>
 
                 {{-- Modal Container --}}
                 <div
-                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full rounded-2xl shadow-2xl">
                     {{-- Header --}}
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-teal-600">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 id="quality-modal-title" class="text-lg font-semibold text-white">Pesada de Calidad - Lote</h3>
-                                <p class="text-sm text-teal-100 mt-1">
-                                    WO: {{ $selectedLotForQuality->workOrder->purchaseOrder->wo ?? 'N/A' }} |
-                                    Lote: {{ $selectedLotForQuality->lot_number }}
-                                </p>
-                            </div>
-                            <button wire:click="closeQualityModal" class="text-white hover:text-teal-200 cursor-pointer">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
+                    <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <div>
+                            <h3 id="quality-modal-title" class="text-xl font-bold text-gray-900 dark:text-white">Pesada de Calidad — Viajero</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                WO: {{ $selectedLotForQuality->workOrder->purchaseOrder->wo ?? 'N/A' }} ·
+                                Viajero: {{ $selectedLotForQuality->lot_number }}
+                            </p>
                         </div>
+                        <button wire:click="closeQualityModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
                     </div>
 
                     {{-- Body --}}
@@ -3705,28 +3630,23 @@
             aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 {{-- Overlay --}}
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeProductionModal"></div>
+                <div class="fixed inset-0 bg-gray-900/70 transition-opacity" wire:click="closeProductionModal"></div>
 
                 {{-- Modal Container --}}
                 <div
-                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
+                    class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full rounded-2xl shadow-2xl">
                     {{-- Header --}}
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-indigo-600">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 id="production-modal-title" class="text-lg font-semibold text-white">Nueva Pesada - Producción</h3>
-                                <p class="text-sm text-indigo-100 mt-1">
-                                    WO: {{ $selectedLotForProduction->workOrder->purchaseOrder->wo ?? 'N/A' }} |
-                                    Lote: {{ $selectedLotForProduction->lot_number }}
-                                </p>
-                            </div>
-                            <button wire:click="closeProductionModal" class="text-white hover:text-indigo-200 cursor-pointer">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
+                    <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <div>
+                            <h3 id="production-modal-title" class="text-xl font-bold text-gray-900 dark:text-white">Nueva Pesada — Producción</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                WO: {{ $selectedLotForProduction->workOrder->purchaseOrder->wo ?? 'N/A' }} ·
+                                Viajero: {{ $selectedLotForProduction->lot_number }}
+                            </p>
                         </div>
+                        <button wire:click="closeProductionModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
                     </div>
 
                     {{-- Body --}}
@@ -3833,222 +3753,6 @@
         </div>
     @endif
 
-    {{-- Modal de Pesada Producción por Kit (CRIMP only) --}}
-    @if ($showProdKitModal && $selectedLotForProdKit)
-        <div wire:key="modal-prod-kit" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="prod-kit-modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeProdKitModal"></div>
-                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
-                    {{-- Header --}}
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-purple-600">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 id="prod-kit-modal-title" class="text-lg font-semibold text-white">Pesada Producción — Kit</h3>
-                                <p class="text-sm text-purple-100 mt-1">
-                                    WO: {{ $selectedLotForProdKit->workOrder->purchaseOrder->wo ?? 'N/A' }} |
-                                    Lote: {{ $selectedLotForProdKit->lot_number }}
-                                </p>
-                            </div>
-                            <button wire:click="closeProdKitModal" class="text-white hover:text-purple-200">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    {{-- Body --}}
-                    <div class="px-6 py-4 space-y-4">
-                        {{-- Kit selector --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kit *</label>
-                            <select wire:model.live="prodKitSelectedId" data-no-ts
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                                <option value="">-- Seleccionar Kit --</option>
-                                @foreach ($prodKitKits as $pk)
-                                    <option value="{{ $pk['id'] }}">{{ $pk['kit_number'] }} ({{ number_format($pk['quantity']) }} pz — Pend: {{ number_format($pk['remaining']) }})</option>
-                                @endforeach
-                            </select>
-                            @error('prodKitSelectedId')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        {{-- Info del kit seleccionado --}}
-                        @if ($prodKitSelectedId)
-                            <div class="grid grid-cols-3 gap-3">
-                                <div class="text-center bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg">
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 block">Cant. Kit</span>
-                                    <span class="font-bold text-gray-900 dark:text-white">{{ number_format($prodKitQuantity) }}</span>
-                                </div>
-                                <div class="text-center bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg">
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 block">Pesadas</span>
-                                    <span class="font-bold text-indigo-600 dark:text-indigo-400">{{ number_format($prodKitAlreadyWeighed) }}</span>
-                                </div>
-                                <div class="text-center bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg">
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 block">Pendiente</span>
-                                    <span class="font-bold {{ $prodKitRemainingPieces > 0 ? 'text-purple-600 dark:text-purple-400' : 'text-green-600 dark:text-green-400' }}">{{ number_format($prodKitRemainingPieces) }}</span>
-                                </div>
-                            </div>
-                        @endif
-
-                        {{-- Piezas pesadas --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Piezas Pesadas *</label>
-                            <input wire:model="prodKitWeighedPieces" type="number" min="0"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                placeholder="0">
-                            @error('prodKitWeighedPieces')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        {{-- Fecha --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha y Hora *</label>
-                            <input wire:model="prodKitWeighedAt" type="datetime-local"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                            @error('prodKitWeighedAt')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        {{-- Comentarios --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comentarios</label>
-                            <textarea wire:model="prodKitComments" rows="2"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                placeholder="Observaciones (opcional)..."></textarea>
-                        </div>
-                    </div>
-                    {{-- Footer --}}
-                    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-col sm:flex-row gap-3 sm:justify-end">
-                        <button wire:click="closeProdKitModal"
-                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            Cancelar
-                        </button>
-                        <button wire:click="saveProdKit"
-                            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors">
-                            Registrar Pesada Kit
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- Modal de Pesada Calidad por Kit (CRIMP only) --}}
-    @if ($showQualKitModal && $selectedLotForQualKit)
-        <div wire:key="modal-qual-kit" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="qual-kit-modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeQualKitModal"></div>
-                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700 rounded-lg">
-                    {{-- Header --}}
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-cyan-600">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 id="qual-kit-modal-title" class="text-lg font-semibold text-white">Pesada Calidad — Kit</h3>
-                                <p class="text-sm text-cyan-100 mt-1">
-                                    WO: {{ $selectedLotForQualKit->workOrder->purchaseOrder->wo ?? 'N/A' }} |
-                                    Lote: {{ $selectedLotForQualKit->lot_number }}
-                                </p>
-                            </div>
-                            <button wire:click="closeQualKitModal" class="text-white hover:text-cyan-200">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    {{-- Body --}}
-                    <div class="px-6 py-4 space-y-4">
-                        {{-- Kit selector --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kit *</label>
-                            <select wire:model.live="qualKitSelectedId" data-no-ts
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                                <option value="">-- Seleccionar Kit --</option>
-                                @foreach ($qualKitKits as $qk)
-                                    <option value="{{ $qk['id'] }}">{{ $qk['kit_number'] }} (Prod: {{ number_format($qk['prod_good']) }} — Pend: {{ number_format($qk['remaining']) }})</option>
-                                @endforeach
-                            </select>
-                            @error('qualKitSelectedId')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        {{-- Info del kit seleccionado --}}
-                        @if ($qualKitSelectedId)
-                            <div class="grid grid-cols-3 gap-3">
-                                <div class="text-center bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg">
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 block">Prod. Buenas</span>
-                                    <span class="font-bold text-gray-900 dark:text-white">{{ number_format($qualKitProdGoodPieces) }}</span>
-                                </div>
-                                <div class="text-center bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg">
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 block">Verificadas</span>
-                                    <span class="font-bold text-indigo-600 dark:text-indigo-400">{{ number_format($qualKitAlreadyWeighed) }}</span>
-                                </div>
-                                <div class="text-center bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg">
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 block">Pendiente</span>
-                                    <span class="font-bold {{ $qualKitRemainingPieces > 0 ? 'text-cyan-600 dark:text-cyan-400' : 'text-green-600 dark:text-green-400' }}">{{ number_format($qualKitRemainingPieces) }}</span>
-                                </div>
-                            </div>
-                        @endif
-
-                        {{-- Piezas aprobadas --}}
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Piezas Aprobadas *</label>
-                                <input wire:model="qualKitGoodPieces" type="number" min="0"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                    placeholder="0">
-                                @error('qualKitGoodPieces')
-                                    <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                                @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Piezas Rechazadas *</label>
-                                <input wire:model="qualKitBadPieces" type="number" min="0"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                    placeholder="0">
-                                @error('qualKitBadPieces')
-                                    <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                                @enderror
-                            </div>
-                        </div>
-
-                        {{-- Fecha --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha y Hora *</label>
-                            <input wire:model="qualKitWeighedAt" type="datetime-local"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                            @error('qualKitWeighedAt')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        {{-- Comentarios --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comentarios</label>
-                            <textarea wire:model="qualKitComments" rows="2"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                placeholder="Observaciones (opcional)..."></textarea>
-                        </div>
-                    </div>
-                    {{-- Footer --}}
-                    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-col sm:flex-row gap-3 sm:justify-end">
-                        <button wire:click="closeQualKitModal"
-                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            Cancelar
-                        </button>
-                        <button wire:click="saveQualKit"
-                            class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-medium rounded-lg transition-colors">
-                            Registrar Pesada Calidad Kit
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
 </div>
 
 @script

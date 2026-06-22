@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -41,5 +42,37 @@ class CrimpLot extends Model
     public function viajero(): BelongsTo
     {
         return $this->lot();
+    }
+
+    /**
+     * Pesadas de PIEZAS ("manguitas") capturadas en Empaque para este lote de CRIMP.
+     */
+    public function packagingPieceWeighings(): HasMany
+    {
+        return $this->hasMany(PackagingPieceWeighing::class);
+    }
+
+    /**
+     * Pesadas de CRIMP capturadas en Empaque para este lote de CRIMP.
+     */
+    public function packagingCrimpWeighings(): HasMany
+    {
+        return $this->hasMany(PackagingCrimpWeighing::class);
+    }
+
+    /**
+     * Piezas ("manguitas") empacadas de este lote de CRIMP (suma de pesadas de piezas).
+     */
+    public function getPackagedPiecesTotal(): int
+    {
+        return (int) $this->packagingPieceWeighings->sum('quantity');
+    }
+
+    /**
+     * CRIMP empacados de este lote de CRIMP (suma de pesadas de CRIMP).
+     */
+    public function getPackagedCrimpTotal(): int
+    {
+        return (int) $this->packagingCrimpWeighings->sum('quantity');
     }
 }

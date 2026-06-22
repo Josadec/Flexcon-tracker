@@ -16,6 +16,7 @@ class PackagingPieceWeighing extends Model
 
     protected $fillable = [
         'lot_id',
+        'crimp_lot_id',
         'quantity',
         'weight',
         'weighed_by',
@@ -32,6 +33,11 @@ class PackagingPieceWeighing extends Model
     public function lot(): BelongsTo
     {
         return $this->belongsTo(Lot::class);
+    }
+
+    public function crimpLot(): BelongsTo
+    {
+        return $this->belongsTo(CrimpLot::class);
     }
 
     public function weighedBy(): BelongsTo

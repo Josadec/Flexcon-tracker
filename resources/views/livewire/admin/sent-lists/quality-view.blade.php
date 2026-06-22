@@ -33,7 +33,7 @@
                 <span class="font-medium text-gray-800 dark:text-gray-200">{{ $wo->purchaseOrder->part->number ?? '-' }}</span>
                 <span class="text-gray-500 dark:text-gray-400 text-sm truncate flex-1">{{ $wo->purchaseOrder->part->description ?? '' }}</span>
                 @if ($isCrimp)
-                    <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded">CRIMP</span>
+                    <span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded">CRIMP</span>
                 @endif
             </div>
 
@@ -240,11 +240,11 @@
             $modalIsCrimp  = $modalWo ? ($modalWo->purchaseOrder->part->is_crimp ?? false) : false;
         @endphp
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60" wire:click="closeWeighingModal"></div>
-            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeWeighingModal"></div>
+            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
                 <div class="flex items-center justify-between px-6 py-4 bg-yellow-600 dark:bg-yellow-700">
                     <div>
-                        <h3 class="text-lg font-bold text-white">Pesada de Calidad</h3>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Pesada de Calidad</h3>
                         @if ($modalLot)
                             <p class="text-sm text-yellow-100 mt-0.5">
                                 Lote {{ $modalLot->lot_number }}
@@ -253,7 +253,7 @@
                             </p>
                         @endif
                     </div>
-                    <button wire:click="closeWeighingModal" class="text-white/80 hover:text-white">
+                    <button wire:click="closeWeighingModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -347,11 +347,11 @@
     {{-- ===== SEND TO PACKAGING MODAL ===== --}}
     @if ($showSendModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60" wire:click="closeSendModal"></div>
-            <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeSendModal"></div>
+            <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
                 <div class="flex items-center justify-between px-6 py-4 bg-yellow-600 dark:bg-yellow-700">
-                    <h3 class="text-lg font-bold text-white">Enviar a Empaque</h3>
-                    <button wire:click="closeSendModal" class="text-white/80 hover:text-white">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Enviar a Empaque</h3>
+                    <button wire:click="closeSendModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>

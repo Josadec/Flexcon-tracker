@@ -435,11 +435,16 @@ class Lot extends Model
     }
 
     /**
-     * Get complete traceability data for this lot.
+     * Get complete traceability data for this lot (viajero).
+     * En CRIMP la trazabilidad baja del viajero a sus lotes de CRIMP.
      */
     public function getTraceabilityData(): array
     {
+        $isCrimp = (bool) ($this->workOrder->purchaseOrder->part->is_crimp ?? false);
+
         return [
+            'is_crimp' => $isCrimp,
+            'viajero' => $this->lot_number,
             'lot_number' => $this->lot_number,
             'work_order' => $this->workOrder->wo_number ?? null,
             'raw_material_batch_numbers' => $this->raw_material_batch_numbers ?? [],
@@ -450,9 +455,10 @@ class Lot extends Model
             'quantity' => $this->quantity,
             'status' => $this->status,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
-            'kits' => $this->kits->map(fn ($kit) => [
-                'kit_number' => $kit->kit_number,
-                'status' => $kit->status,
+            'crimp_lots' => $this->crimpLots->map(fn ($cl) => [
+                'crimp_lot_number' => $cl->crimp_lot_number,
+                'lote_fabricante' => $cl->lote_fabricante,
+                'quantity' => $cl->quantity,
             ])->toArray(),
         ];
     }

@@ -86,10 +86,10 @@
 @if($produccion['weighings']->isNotEmpty())
 <table class="data">
     <thead><tr style="background:#4338CA">
-        <th style="width:4%">#</th><th style="width:14%">Fecha</th><th style="width:11%">Lote</th>
-        <th style="width:11%">Work Order</th><th style="width:10%">Kit</th>
+        <th style="width:4%">#</th><th style="width:14%">Fecha</th><th style="width:13%">Viajero</th>
+        <th style="width:13%">Work Order</th>
         <th style="width:9%">Total</th><th style="width:9%">Buenas</th><th style="width:9%">Malas</th>
-        <th style="width:23%">Operador</th>
+        <th style="width:29%">Operador</th>
     </tr></thead>
     <tbody>
         @foreach($produccion['weighings'] as $i => $w)
@@ -98,7 +98,6 @@
             <td>{{ $w->weighed_at?->format('d/m/Y H:i') ?? 'N/A' }}</td>
             <td>{{ $w->lot?->lot_number ?? 'N/A' }}</td>
             <td>{{ $w->lot?->workOrder?->wo_number ?? 'N/A' }}</td>
-            <td class="c">{{ $w->kit?->kit_number ?? '—' }}</td>
             <td class="r">{{ number_format($w->quantity) }}</td>
             <td class="r ok">{{ number_format($w->good_pieces) }}</td>
             <td class="r bad">{{ number_format($w->bad_pieces) }}</td>
@@ -113,23 +112,17 @@
 <div class="page-break"></div>
 <div class="dept-header dept-mat">MATERIALES</div>
 <div class="kpi-row">
-    <div class="kpi-cell" style="width:12%">
-        <div class="kpi-box"><div class="lbl">Lotes</div><div class="val">{{ $materiales['stats']['total_lotes'] }}</div><div class="sub">Lib: {{ $materiales['stats']['lotes_liberados'] }} · Rec: {{ $materiales['stats']['lotes_rechazados'] }}</div></div>
+    <div class="kpi-cell" style="width:25%">
+        <div class="kpi-box"><div class="lbl">Viajeros</div><div class="val">{{ $materiales['stats']['total_lotes'] }}</div><div class="sub">Lib: {{ $materiales['stats']['lotes_liberados'] }} · Rec: {{ $materiales['stats']['lotes_rechazados'] }}</div></div>
     </div>
-    <div class="kpi-cell" style="width:12%">
-        <div class="kpi-box"><div class="lbl">Kits</div><div class="val">{{ $materiales['stats']['total_kits'] }}</div><div class="sub">Lib: {{ $materiales['stats']['kits_liberados'] }} · Rec: {{ $materiales['stats']['kits_rechazados'] }}</div></div>
+    <div class="kpi-cell" style="width:25%">
+        <div class="kpi-box"><div class="lbl">Lotes de CRIMP</div><div class="val">{{ $materiales['stats']['total_crimp_lots'] }}</div><div class="sub">Piezas: {{ number_format($materiales['stats']['total_crimp_piezas']) }}</div></div>
     </div>
-    <div class="kpi-cell" style="width:16%">
-        <div class="kpi-box"><div class="lbl">Kits preparando</div><div class="val">{{ $materiales['stats']['kits_preparando'] }}</div></div>
+    <div class="kpi-cell" style="width:25%">
+        <div class="kpi-box"><div class="lbl">Viajeros liberados</div><div class="val" style="color:#15803d">{{ $materiales['stats']['lotes_liberados'] }}</div></div>
     </div>
-    <div class="kpi-cell" style="width:16%">
-        <div class="kpi-box"><div class="lbl">Kits listos</div><div class="val">{{ $materiales['stats']['kits_listos'] }}</div></div>
-    </div>
-    <div class="kpi-cell" style="width:16%">
-        <div class="kpi-box"><div class="lbl">Kits en ensamble</div><div class="val">{{ $materiales['stats']['kits_en_ensamble'] }}</div></div>
-    </div>
-    <div class="kpi-cell" style="width:28%">
-        <div class="kpi-box"><div class="lbl">Lotes pendientes</div><div class="val" style="color:#b45309">{{ $materiales['stats']['lotes_pendientes'] }}</div></div>
+    <div class="kpi-cell" style="width:25%">
+        <div class="kpi-box"><div class="lbl">Viajeros pendientes</div><div class="val" style="color:#b45309">{{ $materiales['stats']['lotes_pendientes'] }}</div></div>
     </div>
 </div>
 @if($materiales['lots']->isNotEmpty())
@@ -181,10 +174,10 @@
 @if($calidad['registros']->isNotEmpty())
 <table class="data">
     <thead><tr style="background:#16A34A">
-        <th style="width:4%">#</th><th style="width:13%">Fecha</th><th style="width:10%">Lote</th>
-        <th style="width:10%">Work Order</th><th style="width:8%">Kit</th>
+        <th style="width:4%">#</th><th style="width:13%">Fecha</th><th style="width:12%">Viajero</th>
+        <th style="width:12%">Work Order</th>
         <th style="width:8%">Buenas</th><th style="width:8%">Malas</th>
-        <th style="width:10%">Disposición</th><th style="width:12%">Rework</th><th style="width:17%">Inspector</th>
+        <th style="width:10%">Disposición</th><th style="width:12%">Rework</th><th style="width:21%">Inspector</th>
     </tr></thead>
     <tbody>
         @foreach($calidad['registros'] as $i => $r)
@@ -193,7 +186,6 @@
             <td>{{ $r->weighed_at?->format('d/m/Y H:i') ?? 'N/A' }}</td>
             <td>{{ $r->lot?->lot_number ?? 'N/A' }}</td>
             <td>{{ $r->lot?->workOrder?->wo_number ?? 'N/A' }}</td>
-            <td class="c">{{ $r->kit?->kit_number ?? '—' }}</td>
             <td class="r ok">{{ number_format($r->good_pieces) }}</td>
             <td class="r bad">{{ number_format($r->bad_pieces) }}</td>
             <td class="c">{{ $r->disposition ? ucfirst($r->disposition) : '—' }}</td>
@@ -228,10 +220,10 @@
 @if($empaques['records']->isNotEmpty())
 <table class="data">
     <thead><tr style="background:#7C3AED">
-        <th style="width:4%">#</th><th style="width:14%">Fecha</th><th style="width:11%">Lote</th>
-        <th style="width:11%">Work Order</th><th style="width:10%">Kit</th>
+        <th style="width:4%">#</th><th style="width:14%">Fecha</th><th style="width:13%">Viajero</th>
+        <th style="width:13%">Work Order</th>
         <th style="width:11%">Disponibles</th><th style="width:11%">Empacadas</th><th style="width:10%">Sobrante</th>
-        <th style="width:18%">Operador</th>
+        <th style="width:24%">Operador</th>
     </tr></thead>
     <tbody>
         @foreach($empaques['records'] as $i => $rec)
@@ -240,7 +232,6 @@
             <td>{{ $rec->packed_at?->format('d/m/Y H:i') ?? 'N/A' }}</td>
             <td>{{ $rec->lot?->lot_number ?? 'N/A' }}</td>
             <td>{{ $rec->lot?->workOrder?->wo_number ?? 'N/A' }}</td>
-            <td class="c">{{ $rec->kit?->kit_number ?? '—' }}</td>
             <td class="r">{{ number_format($rec->available_pieces) }}</td>
             <td class="r">{{ number_format($rec->packed_pieces) }}</td>
             <td class="r">{{ number_format($rec->surplus_pieces) }}</td>

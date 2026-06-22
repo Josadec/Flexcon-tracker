@@ -34,7 +34,7 @@ class TvDisplay extends Component
         // Build WO cards with lot-level detail
         $woCards = [];
         $areaStats = [
-            'kit'        => ['green' => 0, 'yellow' => 0, 'gray' => 0, 'total' => 0],
+            'material'   => ['green' => 0, 'yellow' => 0, 'gray' => 0, 'total' => 0],
             'inspeccion'  => ['green' => 0, 'yellow' => 0, 'gray' => 0, 'total' => 0],
             'produccion' => ['green' => 0, 'yellow' => 0, 'gray' => 0, 'total' => 0],
             'calidad'    => ['green' => 0, 'yellow' => 0, 'gray' => 0, 'total' => 0],
@@ -47,7 +47,7 @@ class TvDisplay extends Component
 
             $isCrimp = (bool) ($part->is_crimp ?? false);
             $lotCount = $wo->lots->count();
-            $kitGreen = 0; $kitYellow = 0; $kitGray = 0;
+            $matGreen = 0; $matYellow = 0; $matGray = 0;
             $inspGreen = 0; $inspYellow = 0; $inspGray = 0;
             $prodGreen = 0; $prodYellow = 0; $prodGray = 0;
             $qualGreen = 0; $qualYellow = 0; $qualGray = 0;
@@ -69,13 +69,13 @@ class TvDisplay extends Component
                 $pkgTarget = $qualGood; // packaging uses quality approved
 
                 // Lotes de CRIMP (para crimp). El indicador usa la liberación del
-                // viajero (material_status); CRIMP ya no usa Kit.
-                $kitsInfo = [];
+                // viajero (material_status).
+                $crimpLotsInfo = [];
                 if ($isCrimp) {
                     $matReleased = ($lot->material_status ?? 'pending') === 'released';
                     foreach ($lot->crimpLots as $cl) {
-                        $kitsInfo[] = [
-                            'kit_number' => $cl->crimp_lot_number,
+                        $crimpLotsInfo[] = [
+                            'crimp_lot_number' => $cl->crimp_lot_number,
                             'quantity' => $cl->quantity,
                             'status' => $matReleased ? 'released' : 'preparing',
                             'status_label' => $matReleased ? 'Liberado' : 'Pendiente',
@@ -83,8 +83,8 @@ class TvDisplay extends Component
                     }
                 }
                 $matStatus = $lot->material_status ?? 'pending';
-                if ($matStatus === 'released') { $kitGreen++; }
-                else { $kitGray++; }
+                if ($matStatus === 'released') { $matGreen++; }
+                else { $matGray++; }
 
                 // Semaphore counts
                 $inspStatus = $lot->inspection_status ?? 'pending';
@@ -140,7 +140,7 @@ class TvDisplay extends Component
                     'packed' => $packed,
                     'pkg_target' => $pkgTarget,
                     'pkg_pct' => $pkgTarget > 0 ? min(100, round(($packed / $pkgTarget) * 100)) : 0,
-                    'kits' => $kitsInfo,
+                    'crimp_lots' => $crimpLotsInfo,
                 ];
             }
 
@@ -181,7 +181,7 @@ class TvDisplay extends Component
                 'send_label' => $sendLabel,
                 'wo_quantity' => $wo->original_quantity,
                 'wo_sent' => $wo->sent_pieces,
-                'kit' => ['green' => $kitGreen, 'yellow' => $kitYellow, 'gray' => $kitGray],
+                'material' => ['green' => $matGreen, 'yellow' => $matYellow, 'gray' => $matGray],
                 'inspeccion' => ['green' => $inspGreen, 'yellow' => $inspYellow, 'gray' => $inspGray],
                 'produccion' => ['green' => $prodGreen, 'yellow' => $prodYellow, 'gray' => $prodGray],
                 'calidad' => ['green' => $qualGreen, 'yellow' => $qualYellow, 'gray' => $qualGray],
@@ -189,10 +189,10 @@ class TvDisplay extends Component
             ];
 
             // Aggregate global stats
-            $areaStats['kit']['green'] += $kitGreen;
-            $areaStats['kit']['yellow'] += $kitYellow;
-            $areaStats['kit']['gray'] += $kitGray;
-            $areaStats['kit']['total'] += $lotCount;
+            $areaStats['material']['green'] += $matGreen;
+            $areaStats['material']['yellow'] += $matYellow;
+            $areaStats['material']['gray'] += $matGray;
+            $areaStats['material']['total'] += $lotCount;
 
             $areaStats['inspeccion']['green'] += $inspGreen;
             $areaStats['inspeccion']['yellow'] += $inspYellow;

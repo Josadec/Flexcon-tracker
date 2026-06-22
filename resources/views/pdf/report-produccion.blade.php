@@ -94,13 +94,12 @@
         <tr>
             <th style="width:4%">#</th>
             <th style="width:14%">Fecha</th>
-            <th style="width:11%">Lote</th>
-            <th style="width:11%">Work Order</th>
-            <th style="width:10%">Kit</th>
+            <th style="width:13%">Viajero</th>
+            <th style="width:13%">Work Order</th>
             <th style="width:9%">Total</th>
             <th style="width:9%">Buenas</th>
             <th style="width:9%">Malas</th>
-            <th style="width:23%">Operador</th>
+            <th style="width:29%">Operador</th>
         </tr>
     </thead>
     <tbody>
@@ -110,7 +109,6 @@
             <td>{{ $w->weighed_at?->format('d/m/Y H:i') ?? 'N/A' }}</td>
             <td>{{ $w->lot?->lot_number ?? 'N/A' }}</td>
             <td>{{ $w->lot?->workOrder?->wo_number ?? 'N/A' }}</td>
-            <td class="c">{{ $w->kit?->kit_number ?? '—' }}</td>
             <td class="r">{{ number_format($w->quantity) }}</td>
             <td class="r ok">{{ number_format($w->good_pieces) }}</td>
             <td class="r bad">{{ number_format($w->bad_pieces) }}</td>

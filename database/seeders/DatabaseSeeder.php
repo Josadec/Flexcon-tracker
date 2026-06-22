@@ -63,14 +63,13 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ────────────────────────────────────────────────────────────
-        // 7. Catálogo de partes y precios — DESHABILITADO
-        // El cliente importa partes, precios y tiers via CSV directamente
-        // a la BD. Habilitar solo si se necesitan datos demo locales.
+        // 7. Catálogo REAL del cliente — partes + precios + tiers desde los
+        // CSV canónicos (Diagramas_flujo/DB/plantillas_importacion). Restaura
+        // las 431 partes (27 CRIMP) tras un migrate:fresh.
         // ────────────────────────────────────────────────────────────
-        // $this->call([
-        //     PriceSeeder::class,
-        //     StandardSeeder::class,
-        // ]);
+        $this->call([
+            ClientCatalogImportSeeder::class,
+        ]);
 
         // ────────────────────────────────────────────────────────────
         // 8. Estados de Work Orders y tipos de cargo de Invoice
@@ -90,6 +89,14 @@ class DatabaseSeeder extends Seeder
         //     WorkOrderTestSeeder::class,
         // ]);
 
+        // ────────────────────────────────────────────────────────────
+        // 10. Demo CRIMP de práctica (Sent List en Empaque con viajeros en
+        // distintos estados). Necesita partes (paso 7) y StatusWO (paso 8).
+        // ────────────────────────────────────────────────────────────
+        $this->call([
+            CrimpFlowSeeder::class,
+        ]);
+
         $this->command->info('');
         $this->command->info('════════════════════════════════════════════════════════');
         $this->command->info('  Seed completo. Resumen:');
@@ -98,8 +105,11 @@ class DatabaseSeeder extends Seeder
         $this->command->info('  • Estructura: Departamentos, áreas, turnos');
         $this->command->info('  • Recursos:   Mesas, máquinas, semi-automáticos');
         $this->command->info('  • Workflow:   Estados WO, tipos de cargo Invoice');
+        $this->command->info('  • Catálogo:   Partes + precios + tiers (CSV del cliente)');
+        $this->command->info('  • Demo CRIMP: Lista de envío en Empaque (Paso 5/Paso 6)');
         $this->command->info('');
-        $this->command->info('  Partes, precios y POs deshabilitados — importa por CSV');
+        $this->command->info('  Empaque CRIMP:  /admin/sent-lists/1  (tab "Empaque")');
+        $this->command->info('  Tablero (Mesa): /admin/sent-lists/display/sl/1');
         $this->command->info('════════════════════════════════════════════════════════');
     }
 
