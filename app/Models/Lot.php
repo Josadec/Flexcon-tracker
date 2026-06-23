@@ -1025,35 +1025,55 @@ class Lot extends Model
         $hasSurplus = $surplus > 0;
         $surplusDelivered = (bool) $this->surplus_delivered;
         $surplusReceived = $this->isSurplusReceived();
+        $isCrimp = (bool) ($this->workOrder->purchaseOrder->part->is_crimp ?? false);
 
-        // ── Viajero ────────────────────────────────────────────────
-        if ($viajeroReceived) {
-            $viajero = ['state' => 'done', 'actor' => null, 'label' => 'Viajero recibido por Materiales'];
-        } elseif ($hasPacked || $hasAvailable) {
-            $viajero = ['state' => 'pending', 'actor' => 'Empaque', 'label' => 'Empaque debe entregar viajero'];
+        $decLabel = match ($this->closure_decision) {
+            self::CLOSURE_COMPLETE_LOT => 'Decisión: Completar Lote',
+            self::CLOSURE_NEW_LOT => 'Decisión: Nuevo Lote',
+            self::CLOSURE_CLOSE_AS_IS => 'Decisión: Cerrar Lote',
+            self::CLOSURE_COMPLETE_CRIMP => 'Decisión: Completar CRIMP',
+            self::CLOSURE_COMPLETE_PIECES => 'Decisión: Completar piezas',
+            self::CLOSURE_COMPLETE_BOTH => 'Decisión: Completar piezas y CRIMP',
+            default => 'Decisión tomada',
+        };
+
+        if ($isCrimp) {
+            // CRIMP (diagramas): Empaque → Decisión (Paso 6) → Entrega de viajero (Paso 7) → Sobrantes (Paso 8).
+            if ($hasDecision) {
+                $decision = ['state' => 'done', 'actor' => null, 'label' => $decLabel];
+            } elseif ($hasPacked || $hasAvailable) {
+                $decision = ['state' => 'pending', 'actor' => 'Materiales', 'label' => 'Materiales debe tomar decisión de cierre'];
+            } else {
+                $decision = ['state' => 'idle', 'actor' => null, 'label' => 'Esperando empaque'];
+            }
+
+            if ($viajeroReceived) {
+                $viajero = ['state' => 'done', 'actor' => null, 'label' => 'Viajero recibido por Materiales'];
+            } elseif ($hasDecision) {
+                $viajero = ['state' => 'pending', 'actor' => 'Empaque', 'label' => 'Empaque debe entregar viajero'];
+            } else {
+                $viajero = ['state' => 'idle', 'actor' => null, 'label' => 'Esperando decisión de Materiales'];
+            }
         } else {
-            $viajero = ['state' => 'idle', 'actor' => null, 'label' => 'Sin actividad de empaque aún'];
+            // NO-CRIMP — flujo ORIGINAL intacto: Empaque → Entrega de viajero → Decisión → Material.
+            if ($viajeroReceived) {
+                $viajero = ['state' => 'done', 'actor' => null, 'label' => 'Viajero recibido por Materiales'];
+            } elseif ($hasPacked || $hasAvailable) {
+                $viajero = ['state' => 'pending', 'actor' => 'Empaque', 'label' => 'Empaque debe entregar viajero'];
+            } else {
+                $viajero = ['state' => 'idle', 'actor' => null, 'label' => 'Sin actividad de empaque aún'];
+            }
+
+            if ($hasDecision) {
+                $decision = ['state' => 'done', 'actor' => null, 'label' => $decLabel];
+            } elseif ($viajeroReceived) {
+                $decision = ['state' => 'pending', 'actor' => 'Materiales', 'label' => 'Materiales debe tomar decisión de cierre'];
+            } else {
+                $decision = ['state' => 'idle', 'actor' => null, 'label' => 'Esperando entrega de viajero'];
+            }
         }
 
-        // ── Decisión ───────────────────────────────────────────────
-        if ($hasDecision) {
-            $decLabel = match ($this->closure_decision) {
-                self::CLOSURE_COMPLETE_LOT => 'Decisión: Completar Lote',
-                self::CLOSURE_NEW_LOT => 'Decisión: Nuevo Lote',
-                self::CLOSURE_CLOSE_AS_IS => 'Decisión: Cerrar Lote',
-                self::CLOSURE_COMPLETE_CRIMP => 'Decisión: Completar CRIMP',
-                self::CLOSURE_COMPLETE_PIECES => 'Decisión: Completar piezas',
-                self::CLOSURE_COMPLETE_BOTH => 'Decisión: Completar piezas y CRIMP',
-                default => 'Decisión tomada',
-            };
-            $decision = ['state' => 'done', 'actor' => null, 'label' => $decLabel];
-        } elseif ($viajeroReceived) {
-            $decision = ['state' => 'pending', 'actor' => 'Materiales', 'label' => 'Materiales debe tomar decisión de cierre'];
-        } else {
-            $decision = ['state' => 'idle', 'actor' => null, 'label' => 'Esperando entrega de viajero'];
-        }
-
-        // ── Material / Sobrantes ───────────────────────────────────
+        // ── Material / Sobrantes — igual para ambos (tras la decisión) ──
         if ($surplusReceived) {
             $material = [
                 'state' => 'done',
@@ -1072,10 +1092,10 @@ class Lot extends Model
             } else {
                 $material = ['state' => 'pending', 'actor' => 'Materiales', 'label' => 'Materiales debe confirmar recepción'];
             }
-        } elseif ($viajeroReceived) {
+        } elseif (! $isCrimp && $viajeroReceived) {
             $material = ['state' => 'idle', 'actor' => null, 'label' => 'Esperando decisión de Materiales'];
         } else {
-            $material = ['state' => 'idle', 'actor' => null, 'label' => 'Esperando entrega de viajero'];
+            $material = ['state' => 'idle', 'actor' => null, 'label' => $isCrimp ? 'Esperando decisión de Materiales' : 'Esperando entrega de viajero'];
         }
 
         return compact('viajero', 'decision', 'material');

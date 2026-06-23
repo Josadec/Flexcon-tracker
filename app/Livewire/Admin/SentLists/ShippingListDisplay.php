@@ -1671,6 +1671,71 @@ class ShippingListDisplay extends Component
     /**
      * Mark viajero as received (Fase 3).
      */
+    // ── Modal Entrega de Viajero (Paso 7) ─────────────────────────────
+    public $showViajeroModal = false;
+    public $viajeroModalLotId = null;
+
+    public function openViajeroModal($lotId)
+    {
+        if (!$this->guardDepartment('packaging')) return;
+        $this->viajeroModalLotId = $lotId;
+        $this->showViajeroModal = true;
+    }
+
+    public function closeViajeroModal()
+    {
+        $this->showViajeroModal = false;
+        $this->viajeroModalLotId = null;
+    }
+
+    /**
+     * Entrega/recepción de viajero (Paso 7) desde el tablero (incluye CRIMP).
+     */
+    public function markViajeroReceived($lotId)
+    {
+        if (!$this->guardDepartment('packaging')) return;
+
+        $lot = Lot::find($lotId);
+        if (!$lot) {
+            session()->flash('error', 'Viajero no encontrado.');
+            return;
+        }
+
+        $lot->update([
+            'viajero_received'    => true,
+            'viajero_received_at' => now(),
+            'viajero_received_by' => auth()->id(),
+        ]);
+
+        session()->flash('message', 'Viajero '.$lot->lot_number.' recibido. Continúa al Paso 8 (sobrantes).');
+        $this->closeViajeroModal();
+        $this->dispatch('refresh-display');
+    }
+
+    /**
+     * Revertir la entrega del viajero (marcar como NO recibido).
+     */
+    public function revertViajeroReceived($lotId)
+    {
+        if (!$this->guardDepartment('packaging')) return;
+
+        $lot = Lot::find($lotId);
+        if (!$lot) {
+            session()->flash('error', 'Viajero no encontrado.');
+            return;
+        }
+
+        $lot->update([
+            'viajero_received'    => false,
+            'viajero_received_at' => null,
+            'viajero_received_by' => null,
+        ]);
+
+        session()->flash('message', 'Entrega del viajero '.$lot->lot_number.' revertida (marcado como NO recibido).');
+        $this->closeViajeroModal();
+        $this->dispatch('refresh-display');
+    }
+
     public function receiveViajero()
     {
         if (!$this->guardDepartment('packaging')) return;

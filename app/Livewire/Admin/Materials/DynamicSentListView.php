@@ -751,6 +751,13 @@ class DynamicSentListView extends Component
         $query = WorkOrder::with([
             'purchaseOrder.part',
             'lots.crimpLots',
+            // Para detectar acciones de Materiales pendientes (Paso 6) sin N+1:
+            'lots.workOrder.purchaseOrder.part',
+            'lots.qualityWeighings',
+            'lots.weighings',
+            'lots.packagingRecords',
+            'lots.packagingPieceWeighings',
+            'lots.packagingCrimpWeighings',
         ])->whereNotIn('status_id', $closedStatusIds); // Excluir cerrados/cancelados
 
         // Apply search

@@ -207,8 +207,34 @@
                                                     <div class="p-3 bg-white dark:bg-gray-800 rounded border-2 border-gray-200 dark:border-gray-700">
                                                         <div class="text-sm font-medium text-gray-900 dark:text-white font-mono">{{ $cl->crimp_lot_number }}</div>
                                                         <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                            {{ number_format($cl->quantity ?? 0) }} pz@if($cl->lote_fabricante) · Fab: {{ $cl->lote_fabricante }}@endif
+                                                            {{ number_format($cl->quantity ?? 0) }} pz{{ $cl->lote_fabricante ? ' · Fab: '.$cl->lote_fabricante : '' }}
                                                         </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
+
+                                        {{-- Acciones de Materiales pendientes (Paso 6) → acceso directo al tablero --}}
+                                        @php
+                                            $pendingViajeros = $workOrder->lots->filter(function ($l) {
+                                                $next = $l->getNextPendingAction();
+                                                return $next && ($next['actor'] ?? null) === 'Materiales';
+                                            });
+                                        @endphp
+                                        @if ($pendingViajeros->isNotEmpty())
+                                            <div class="mt-3 space-y-2">
+                                                @foreach ($pendingViajeros as $vj)
+                                                    @php $act = $vj->getNextPendingAction(); @endphp
+                                                    <div class="flex items-center justify-between gap-3 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+                                                        <div class="min-w-0">
+                                                            <div class="text-xs font-semibold text-amber-800 dark:text-amber-300">Acción de Materiales pendiente · Viajero {{ $vj->lot_number }}</div>
+                                                            <div class="text-[11px] text-amber-700 dark:text-amber-400 truncate">{{ $act['label'] }}</div>
+                                                        </div>
+                                                        <a href="{{ route('admin.sent-lists.display.wo', $workOrder->id) }}" wire:navigate
+                                                            class="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors">
+                                                            Tomar en el tablero
+                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                                        </a>
                                                     </div>
                                                 @endforeach
                                             </div>
