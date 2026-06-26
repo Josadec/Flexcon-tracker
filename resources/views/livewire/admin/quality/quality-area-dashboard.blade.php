@@ -7,6 +7,45 @@
         </div>
     </div>
 
+    {{-- ===== Calidad CRIMP (viajeros) ===== --}}
+    <section class="space-y-4">
+        <div class="flex items-center gap-2">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Calidad CRIMP</h2>
+            <span class="text-xs text-gray-400 dark:text-gray-500">Inspección y verificación a nivel viajero</span>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-purple-200 dark:border-purple-800 p-5 shadow-sm">
+                <div class="text-xs font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wide">Por inspeccionar</div>
+                <div class="mt-1 text-3xl font-bold text-purple-700 dark:text-purple-300">{{ number_format($qInspeccion) }}</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Material liberado · inspección pendiente</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-emerald-200 dark:border-emerald-800 p-5 shadow-sm">
+                <div class="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Por verificar</div>
+                <div class="mt-1 text-3xl font-bold text-emerald-700 dark:text-emerald-300">{{ number_format($qVerificar) }}</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Producción hecha · calidad pendiente</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-cyan-200 dark:border-cyan-800 p-5 shadow-sm">
+                <div class="text-xs font-medium text-cyan-600 dark:text-cyan-400 uppercase tracking-wide">Pendientes</div>
+                <div class="mt-1 text-3xl font-bold text-cyan-700 dark:text-cyan-300">{{ number_format($qPendientes->count()) }}</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Viajeros esperando Calidad</div>
+            </div>
+        </div>
+
+        @include('livewire.admin.partials.crimp-pending-list', [
+            'titulo' => 'Pendientes de Calidad',
+            'pendientes' => $qPendientes,
+            'badges' => [
+                'inspect' => 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300',
+                'verify'  => 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
+            ],
+            'empty' => 'Sin viajeros CRIMP pendientes de Calidad. 🎉',
+        ])
+    </section>
+
     <!-- Pending Sent Lists -->
     @include('livewire.admin.sent-lists.partials.pending-lists-panel', [
         'pendingSentLists' => $pendingSentLists,

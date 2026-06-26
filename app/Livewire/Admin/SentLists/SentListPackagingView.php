@@ -102,11 +102,12 @@ class SentListPackagingView extends Component
     public function savePackaging(): void
     {
         $this->validate([
-            'packedPieces'      => 'required|integer|min:0',
+            'packedPieces'      => 'required|integer|min:1',
             'packedAt'          => 'required|date',
             'packagingComments' => 'nullable|string|max:500',
         ], [
             'packedPieces.required'  => 'Las piezas empacadas son obligatorias.',
+            'packedPieces.min'       => 'Debes registrar al menos 1 pieza empacada.',
             'packedAt.required'      => 'La fecha/hora es obligatoria.',
         ]);
 
@@ -164,6 +165,48 @@ class SentListPackagingView extends Component
         ]);
         $this->sentList->refresh();
         session()->flash('message', "Viajero del lote {$lot->lot_number} confirmado.");
+    }
+
+    // ── Modal Entrega de Viajero (Paso 7) — CRIMP ────────────────────────
+    public bool $showViajeroModal = false;
+    public ?int $viajeroModalLotId = null;
+
+    public function openViajeroModal(int $lotId): void
+    {
+        $this->viajeroModalLotId = $lotId;
+        $this->showViajeroModal = true;
+    }
+
+    public function closeViajeroModal(): void
+    {
+        $this->showViajeroModal = false;
+        $this->viajeroModalLotId = null;
+    }
+
+    public function markViajeroReceived(int $lotId): void
+    {
+        $lot = Lot::findOrFail($lotId);
+        $lot->update([
+            'viajero_received'    => true,
+            'viajero_received_at' => now(),
+            'viajero_received_by' => Auth::id(),
+        ]);
+        $this->closeViajeroModal();
+        $this->sentList->refresh();
+        session()->flash('message', "Viajero {$lot->lot_number} recibido. Continúa al Paso 8 (sobrantes).");
+    }
+
+    public function revertViajeroReceived(int $lotId): void
+    {
+        $lot = Lot::findOrFail($lotId);
+        $lot->update([
+            'viajero_received'    => false,
+            'viajero_received_at' => null,
+            'viajero_received_by' => null,
+        ]);
+        $this->closeViajeroModal();
+        $this->sentList->refresh();
+        session()->flash('message', "Entrega del viajero {$lot->lot_number} revertida (marcado como NO recibido).");
     }
 
     // ── Close list modal ─────────────────────────────────────────────────

@@ -331,7 +331,7 @@
                     <div>
                         <h3 class="text-xl font-bold text-gray-900 dark:text-white">Lotes de CRIMP</h3>
                         @if ($crimpLotViajeroLabel)
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ $crimpLotViajeroLabel }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ $crimpLotViajeroLabel }} · Cantidad del Viajero: {{ number_format($crimpLotViajeroQty) }}</p>
                         @endif
                     </div>
                     <button wire:click="closeCrimpLotModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
@@ -343,6 +343,31 @@
 
                 {{-- Body --}}
                 <div class="px-6 py-4 max-h-[55vh] overflow-y-auto space-y-3">
+                    {{-- Restador automático: Cantidad del viajero − suma de lotes (sin tope, informativo) --}}
+                    @php
+                        $asignado = collect($crimpLots)->sum(fn ($r) => (int) ($r['quantity'] ?? 0));
+                        $restante = (int) $crimpLotViajeroQty - $asignado;
+                    @endphp
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 p-3 text-center">
+                            <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Cantidad del Viajero</div>
+                            <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ number_format($crimpLotViajeroQty) }}</div>
+                        </div>
+                        <div class="rounded-lg bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-700 p-3 text-center">
+                            <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Asignado (lotes)</div>
+                            <div class="text-xl font-bold text-cyan-700 dark:text-cyan-300">{{ number_format($asignado) }}</div>
+                        </div>
+                        <div class="rounded-lg border p-3 text-center {{ $restante === 0 ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' : ($restante < 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700' : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700') }}">
+                            <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Restante</div>
+                            <div class="text-xl font-bold {{ $restante === 0 ? 'text-green-700 dark:text-green-300' : ($restante < 0 ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300') }}">{{ number_format($restante) }}</div>
+                        </div>
+                    </div>
+                    @if ($restante < 0)
+                        <p class="text-xs text-red-600 dark:text-red-400">⚠ La suma de lotes sobrepasa la cantidad del viajero por {{ number_format(abs($restante)) }} pz.</p>
+                    @elseif ($restante === 0 && $asignado > 0)
+                        <p class="text-xs text-green-600 dark:text-green-400">✓ La suma de lotes coincide con la cantidad del viajero.</p>
+                    @endif
+
                     @forelse ($crimpLots as $index => $cl)
                         <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                             <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -363,7 +388,7 @@
                                 </div>
                                 <div>
                                     <label class="flex items-start text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 min-h-[2rem] leading-tight">Cantidad</label>
-                                    <input type="number" wire:model="crimpLots.{{ $index }}.quantity"
+                                    <input type="number" wire:model.live.debounce.400ms="crimpLots.{{ $index }}.quantity"
                                         placeholder="0" min="1"
                                         class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                     @error("crimpLots.{$index}.quantity")

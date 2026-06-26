@@ -7,6 +7,42 @@
         </div>
     </div>
 
+    {{-- ===== Producción CRIMP (viajeros) ===== --}}
+    <section class="space-y-4">
+        <div class="flex items-center gap-2">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+            </span>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Producción CRIMP</h2>
+            <span class="text-xs text-gray-400 dark:text-gray-500">Pesada a nivel viajero</span>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-amber-200 dark:border-amber-800 p-5 shadow-sm">
+                <div class="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide">Por pesar</div>
+                <div class="mt-1 text-3xl font-bold text-amber-700 dark:text-amber-300">{{ number_format($prodPorPesar) }}</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Material liberado · producción incompleta</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-green-200 dark:border-green-800 p-5 shadow-sm">
+                <div class="text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wide">Pesados</div>
+                <div class="mt-1 text-3xl font-bold text-green-700 dark:text-green-300">{{ number_format($prodPesados) }}</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Producción completa</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-cyan-200 dark:border-cyan-800 p-5 shadow-sm">
+                <div class="text-xs font-medium text-cyan-600 dark:text-cyan-400 uppercase tracking-wide">Pendientes</div>
+                <div class="mt-1 text-3xl font-bold text-cyan-700 dark:text-cyan-300">{{ number_format($prodPendientes->count()) }}</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Viajeros esperando pesada</div>
+            </div>
+        </div>
+
+        @include('livewire.admin.partials.crimp-pending-list', [
+            'titulo' => 'Pendientes de Producción',
+            'pendientes' => $prodPendientes,
+            'badges' => ['weigh' => 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'],
+            'empty' => 'Sin viajeros CRIMP por pesar. 🎉',
+        ])
+    </section>
+
     <!-- Area Progress Donuts -->
     @include('partials.area-progress-donuts', ['areaStats' => $areaStats])
 

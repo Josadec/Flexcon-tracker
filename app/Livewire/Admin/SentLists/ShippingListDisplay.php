@@ -127,6 +127,7 @@ class ShippingListDisplay extends Component
     public $showCrimpLotModal = false;
     public $crimpLotViajeroId = null;
     public $crimpLotViajeroLabel = '';
+    public $crimpLotViajeroQty = 0;
     public array $crimpLots = [];
 
     // Modal de Empaque por lote (4 phases)
@@ -969,6 +970,7 @@ class ShippingListDisplay extends Component
 
         $this->crimpLotViajeroId = $lot->id;
         $this->crimpLotViajeroLabel = trim(($lot->workOrder->purchaseOrder->wo ?? $lot->workOrder->wo_number ?? '').' — Viajero '.$lot->lot_number);
+        $this->crimpLotViajeroQty = (int) $lot->quantity;
 
         $this->crimpLots = $lot->crimpLots->map(fn($cl) => [
             'id'               => $cl->id,
@@ -1047,6 +1049,7 @@ class ShippingListDisplay extends Component
         $this->showCrimpLotModal = false;
         $this->crimpLotViajeroId = null;
         $this->crimpLotViajeroLabel = '';
+        $this->crimpLotViajeroQty = 0;
         $this->crimpLots = [];
         $this->resetErrorBag();
     }
@@ -1489,12 +1492,12 @@ class ShippingListDisplay extends Component
         if (!$this->guardDepartment('packaging')) return;
 
         $this->validate([
-            'pkgPackedPieces' => 'required|integer|min:0',
+            'pkgPackedPieces' => 'required|integer|min:1',
             'pkgPackedAt' => 'required|date',
             'pkgComments' => 'nullable|string|max:1000',
         ], [
             'pkgPackedPieces.required' => 'Las piezas empacadas son requeridas.',
-            'pkgPackedPieces.min' => 'Las piezas empacadas no pueden ser negativas.',
+            'pkgPackedPieces.min' => 'Debes registrar al menos 1 pieza empacada.',
             'pkgPackedAt.required' => 'La fecha y hora son requeridas.',
         ]);
 

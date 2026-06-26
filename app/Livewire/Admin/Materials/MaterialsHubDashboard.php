@@ -43,7 +43,46 @@ class MaterialsHubDashboard extends Component
             ->limit(5)
             ->get();
 
+        // ── CRIMP: acciones pendientes de Materiales ─────────────────────
+        $crimpViajeros = Lot::query()
+            ->whereHas('workOrder.purchaseOrder.part', fn ($q) => $q->where('is_crimp', true))
+            ->where('status', '!=', Lot::STATUS_COMPLETED)
+            ->with([
+                'workOrder.purchaseOrder.part',
+                'crimpLots',
+                'qualityWeighings', 'weighings', 'packagingRecords',
+                'packagingPieceWeighings', 'packagingCrimpWeighings',
+            ])
+            ->get();
+
+        $matLiberar = 0;
+        $matDecision = 0;
+        $matSobrantes = 0;
+        $matPendientes = collect();
+
+        foreach ($crimpViajeros as $vj) {
+            if (($vj->material_status ?? 'pending') !== 'released') {
+                $matLiberar++;
+                $matPendientes->push(['lot' => $vj, 'action' => 'Liberar material', 'kind' => 'release']);
+                continue;
+            }
+            $next = $vj->getNextPendingAction();
+            if ($next && ($next['actor'] ?? null) === 'Materiales') {
+                if ($next['phase'] === 'decision') {
+                    $matDecision++;
+                    $matPendientes->push(['lot' => $vj, 'action' => 'Tomar decisión (Paso 6)', 'kind' => 'decision']);
+                } elseif ($next['phase'] === 'material') {
+                    $matSobrantes++;
+                    $matPendientes->push(['lot' => $vj, 'action' => $next['label'], 'kind' => 'surplus']);
+                }
+            }
+        }
+
         return view('livewire.admin.materials.materials-hub-dashboard', [
+            'matLiberar'     => $matLiberar,
+            'matDecision'    => $matDecision,
+            'matSobrantes'   => $matSobrantes,
+            'matPendientes'  => $matPendientes,
             'areaStats' => $this->computeAreaStats(),
             'totalWOs' => $totalWOs,
             'activeWOs' => $activeWOs,

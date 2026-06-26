@@ -69,7 +69,56 @@ class PackagingDashboard extends Component
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // ── CRIMP: viajeros que requieren acción de Empaque ──────────────
+        $crimpViajeros = Lot::query()
+            ->whereHas('workOrder.purchaseOrder.part', fn ($q) => $q->where('is_crimp', true))
+            ->where('status', '!=', Lot::STATUS_COMPLETED)
+            ->with([
+                'workOrder.purchaseOrder.part',
+                'crimpLots',
+                'qualityWeighings', 'weighings', 'packagingRecords',
+                'packagingPieceWeighings', 'packagingCrimpWeighings',
+            ])
+            ->get();
+
+        $crimpPorEmpacar = 0;
+        $crimpEmpacados = 0;
+        $crimpEntregarViajero = 0;
+        $crimpEntregarSobrantes = 0;
+        $empaquePendientes = collect();
+
+        foreach ($crimpViajeros as $vj) {
+            $packed   = $vj->packagingPieceWeighings->isNotEmpty() || $vj->packagingCrimpWeighings->isNotEmpty();
+            $released = ($vj->material_status ?? 'pending') === 'released';
+            $available = $vj->getPackagingAvailablePieces() > 0;
+
+            if (! $packed) {
+                if ($released && $available) {
+                    $crimpPorEmpacar++;
+                    $empaquePendientes->push(['lot' => $vj, 'action' => 'Empacar / Confirmar (Paso 5)', 'kind' => 'pack']);
+                }
+                continue;
+            }
+
+            $crimpEmpacados++;
+            $next = $vj->getNextPendingAction();
+            if ($next && ($next['actor'] ?? null) === 'Empaque') {
+                if ($next['phase'] === 'viajero') {
+                    $crimpEntregarViajero++;
+                    $empaquePendientes->push(['lot' => $vj, 'action' => 'Entregar viajero (Paso 7)', 'kind' => 'viajero']);
+                } elseif ($next['phase'] === 'material') {
+                    $crimpEntregarSobrantes++;
+                    $empaquePendientes->push(['lot' => $vj, 'action' => $next['label'], 'kind' => 'material']);
+                }
+            }
+        }
+
         return view('livewire.admin.packaging.packaging-dashboard', [
+            'crimpPorEmpacar'        => $crimpPorEmpacar,
+            'crimpEmpacados'         => $crimpEmpacados,
+            'crimpEntregarViajero'   => $crimpEntregarViajero,
+            'crimpEntregarSobrantes' => $crimpEntregarSobrantes,
+            'empaquePendientes'      => $empaquePendientes,
             'areaStats' => $this->computeAreaStats(),
             'pendingSentLists'  => $pendingSentLists,
             'lotsWithPackaging' => $lotsWithPackaging,
