@@ -464,9 +464,18 @@
                             <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
                                 @foreach ($itemsGroupedByPo as $poNumber => $poItems)
                                     @foreach ($poItems as $item)
+                                        @php
+                                            // CRIMP (FPL-10): rótulo "Viajero" y desglose viajero -> lotes de CRIMP.
+                                            // Solo partes is_crimp; NO-CRIMP queda idéntico.
+                                            $psIsCrimp = (bool) ($item->lot?->workOrder?->purchaseOrder?->part?->is_crimp ?? false);
+                                            $crimpLots = $psIsCrimp ? ($item->lot?->crimpLots ?? collect()) : collect();
+                                        @endphp
                                         <tr>
                                             <td class="px-4 py-3 text-sm font-mono text-gray-900 dark:text-white">
                                                 {{ $item->wo_number_ps ?? '-' }}
+                                                @if ($psIsCrimp)
+                                                    <span class="ml-1 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">Viajero</span>
+                                                @endif
                                             </td>
                                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
                                                 {{ $item->lot?->workOrder?->purchaseOrder?->po_number ?? '-' }}
@@ -507,6 +516,27 @@
                                                 {{ $item->label_spec ?: ($item->lot?->workOrder?->purchaseOrder?->part?->label_spec ?: '-') }}
                                             </td>
                                         </tr>
+
+                                        {{-- Desglose CRIMP (FPL-10): una sub-fila por lote de CRIMP del viajero. --}}
+                                        @foreach ($crimpLots as $crimp)
+                                            <tr class="bg-indigo-50/40 dark:bg-indigo-900/10">
+                                                <td class="pl-8 pr-4 py-1.5 text-xs text-indigo-700 dark:text-indigo-300 font-medium whitespace-nowrap">
+                                                    ↳ Viajero {{ $item->lot?->lot_number }}
+                                                </td>
+                                                <td class="px-4 py-1.5"></td>
+                                                <td class="px-4 py-1.5 text-xs text-gray-600 dark:text-gray-400 font-mono">
+                                                    {{ $crimp->crimp_lot_number }}
+                                                </td>
+                                                <td class="px-4 py-1.5 text-xs text-gray-600 dark:text-gray-400">
+                                                    {{ $crimp->lote_fabricante ?: '-' }}
+                                                </td>
+                                                <td class="px-4 py-1.5 text-xs text-right text-gray-700 dark:text-gray-300">
+                                                    {{ number_format($crimp->quantity) }}
+                                                </td>
+                                                <td class="px-4 py-1.5"></td>
+                                                <td class="px-4 py-1.5"></td>
+                                            </tr>
+                                        @endforeach
                                     @endforeach
                                     {{-- Fila de subtotal por PO: siempre visible para reflejar el formato FPL-10 --}}
                                     <tr class="bg-blue-50 dark:bg-blue-900/20 border-t-2 border-blue-200 dark:border-blue-700">

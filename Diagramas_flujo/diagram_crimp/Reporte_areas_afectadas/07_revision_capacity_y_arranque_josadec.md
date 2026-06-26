@@ -83,12 +83,13 @@ solo queda:
 
 **Puede arrancar estas pruebas ahora mismo, en dev.**
 
-> 🔴 **Bloqueo de producción (riesgo R2 — confirmado en código).** `Lot::canBeInspected()`
-> ([app/Models/Lot.php](../../../app/Models/Lot.php) ~L501-513) sigue exigiendo, para crimp, un `Kit` con
-> `status = released`. Como Capacidad ya **dejó de crear Kits**, todo viajero crimp generado por el wizard
-> nuevo se **varará en inspección** hasta que Mauricio reescriba el gate a nivel viajero (M7).
-> **En dev:** OK. **Merge a prod:** bloqueado hasta coordinar el merge conjunto con M7
-> (ver [`03 §A R2`](03_riesgos_y_decisiones.md), [`06 §7.6`](06_plan_implementacion_capacity_step3.md)).
+> ✅ **Bloqueo de producción (riesgo R2) — RESUELTO (2026-06-24).** Mauricio ya reescribió el gate M7 en el
+> commit `b1a3083` "work with proyect crimp", que entró a `main_jos` vía el merge `581583d` (b1a3083 es
+> ancestro de HEAD). `Lot::canBeInspected()` ([app/Models/Lot.php](../../../app/Models/Lot.php) ~L518-521)
+> **ya NO exige `Kit released`**: ahora evalúa `($this->material_status ?? 'pending') === 'released'` a nivel
+> viajero, tanto para CRIMP como NO-CRIMP. El Capacity Wizard CRIMP **ya no está bloqueado para merge**.
+> Validado en dev con `CrimpMaterialsInspectionTest` (gate M7) + `CrimpLifecycleOrderTest` (reorden del
+> lifecycle post-calidad). Pendiente menor: ratificar con Mauricio que `b1a3083` es la versión definitiva.
 
 ---
 
@@ -111,7 +112,7 @@ solo queda:
 
 | Frente | Estado | Siguiente acción |
 | ------ | ------ | ---------------- |
-| **Capacidad (Step 3)** | ✅ Implementado y verificado | Prueba en dev + regresión NO-CRIMP. **Merge a prod bloqueado por M7 (Mauricio)** → coordinar. |
+| **Capacidad (Step 3)** | ✅ Implementado y verificado | Validado en dev (tests CRIMP verdes). **Merge a prod DESBLOQUEADO** — M7 ya resuelto en `b1a3083` (§B). Solo ratificar con Mauricio. |
 | **Invoice (FPL-12)** | Sin bloqueo | Arrancar por el doc 09 (entrada recomendada). |
 | **Shipping List (FPL-10)** | Implementado en base | Revisar gaps (docs 07/11) + ver [`08`](08_shipping_list_crimp_analisis.md) para los cambios CRIMP. |
 

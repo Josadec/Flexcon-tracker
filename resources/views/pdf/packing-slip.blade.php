@@ -234,6 +234,28 @@
             white-space: nowrap;
         }
 
+        /* Sub-filas CRIMP: desglose viajero -> lotes de CRIMP (solo partes is_crimp / FPL-10) */
+        .items-table tbody tr.crimp-sub td {
+            padding: 2px 5px;
+            border: 1px solid #e4ebf2;
+            background-color: #fbfdff;
+            color: #44515f;
+            font-size: 7pt;
+            vertical-align: top;
+        }
+
+        .items-table tbody tr.crimp-sub td.crimp-viajero {
+            padding-left: 14px;
+            font-weight: bold;
+            color: #1e3a5f;
+            white-space: nowrap;
+        }
+
+        .items-table tbody tr.crimp-sub td.col-qty {
+            text-align: right;
+            white-space: nowrap;
+        }
+
         /* Fila de total por grupo PO */
         .items-table tbody tr.subtotal-row td {
             padding: 3px 5px;
@@ -468,6 +490,25 @@
                             <td>{{ $item->lot_date_code ?? '-' }}</td>
                             <td>{{ $labelSpec }}</td>
                         </tr>
+
+                        {{-- Desglose CRIMP (FPL-10): sub-filas viajero -> lotes de CRIMP. Solo partes is_crimp. --}}
+                        @php
+                            $psIsCrimp = (bool) ($item->lot?->workOrder?->purchaseOrder?->part?->is_crimp ?? false);
+                            $crimpLots = $psIsCrimp ? ($item->lot?->crimpLots ?? collect()) : collect();
+                        @endphp
+                        @if ($crimpLots->isNotEmpty())
+                            @foreach ($crimpLots as $crimp)
+                                <tr class="crimp-sub">
+                                    <td class="crimp-viajero">Viajero {{ $item->lot?->lot_number }}</td>
+                                    <td></td>
+                                    <td>{{ $crimp->crimp_lot_number }}</td>
+                                    <td>{{ $crimp->lote_fabricante ?: '-' }}</td>
+                                    <td class="col-qty">{{ number_format($crimp->quantity) }}</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            @endforeach
+                        @endif
                     @endforeach
 
                     {{-- Fila de subtotal por grupo PO --}}

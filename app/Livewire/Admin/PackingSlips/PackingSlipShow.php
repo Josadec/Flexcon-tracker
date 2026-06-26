@@ -302,6 +302,10 @@ class PackingSlipShow extends Component
         // replicando la estructura del Excel FPL-10 (columna C agrupada con subtotal).
         // Dentro de cada grupo PO, los items se ordenan de mayor a menor cantidad
         // segun el requerimiento del cliente (formato FPL-10).
+        // CRIMP (FPL-10): asegurar el desglose viajero -> lotes de CRIMP disponible en la vista,
+        // sea cual sea el load path previo. Solo se usa si la parte es is_crimp.
+        $this->packingSlip->loadMissing('items.lot.crimpLots');
+
         $itemsGroupedByPo = $this->packingSlip->items
             ->groupBy(fn ($item) => $item->lot?->workOrder?->purchaseOrder?->po_number ?? 'Sin PO')
             ->map(fn ($poItems) => $poItems->sortByDesc('quantity_packed')->values());

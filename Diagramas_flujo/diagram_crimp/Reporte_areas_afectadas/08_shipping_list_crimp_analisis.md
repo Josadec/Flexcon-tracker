@@ -20,6 +20,10 @@ formato que **ya existe** en el PDF de Lista de Envío **FPL-02** (precedente di
 > totalmente desacoplado de CRIMP hoy. La única dependencia real es de **datos** (cantidades empacadas de CRIMP
 > que produce Empaque / M6 de Mauricio) y de **decisiones de negocio** con el cliente. Ver §6.
 
+> 🔓 **Actualización 2026-06-24 — candado M7 resuelto.** El gate `Lot::canBeInspected()` ya no exige `Kit
+> released` (commit `b1a3083`, ya en `main_jos`); el Capacity Wizard CRIMP quedó desbloqueado para merge. No
+> afecta a FPL-10 (que ya estaba desacoplado), pero elimina el riesgo R2 que arrastraban los docs 07/08.
+
 ---
 
 ## 1. Mapeo de conceptos
@@ -125,11 +129,18 @@ Todo condicionado por `part->is_crimp`. NO-CRIMP: sin cambios.
 
 ## 7. Checklist de archivos a tocar y orden sugerido
 
-- [ ] **Investigar y reutilizar** el patrón de `resources/views/sent-lists/pdf/shipping-list.blade.php` (FPL-02).
-- [ ] `resources/views/pdf/packing-slip.blade.php` — sub-filas viajero → lotes de CRIMP (`@if ($isCrimp)`).
-- [ ] `app/Livewire/Admin/PackingSlips/PackingSlipShow.php` — eager-load `items.lot.crimpLots`; rótulos.
-- [ ] Controlador/servicio del PDF del packing slip — mismo eager-load.
-- [ ] Regresión NO-CRIMP (parte `is_crimp = false`): packing slip y PDF idénticos.
+- [x] **Patrón de referencia LISTO** en `resources/views/sent-lists/pdf/shipping-list.blade.php` (FPL-02) — ya
+  implementado y probado (L128-178: `@if ($isCrimp)` → `@foreach ($lots)` → `@forelse ($crimps)`). Es la plantilla a calcar.
+- [x] `app/Http/Controllers/PackingSlipPdfController.php` (`buildData()` ~L17) — eager-load `items.lot.crimpLots`. **Este alimenta el PDF.**
+- [x] `app/Livewire/Admin/PackingSlips/PackingSlipShow.php` — mismo eager-load `items.lot.crimpLots` (`loadMissing`); rótulos "Lote"→"Viajero".
+- [x] `resources/views/pdf/packing-slip.blade.php` (~L457-471) — sub-filas viajero → lotes de CRIMP dentro de `@if ($isCrimp)`.
+- [x] Regresión NO-CRIMP (parte `is_crimp = false`): packing slip y PDF idénticos. Cubierta por tests dedicados (ver abajo).
+
+> ✅ **Implementado y probado (2026-06-24):** desglose viajero→lotes de CRIMP en pantalla y PDF del Packing Slip.
+> Tests: `PackingSlipCrimpScreenTest`, `PackingSlipCrimpPdfTest`, `CrimpLifecycleOrderTest` — **9 passed / 36 assertions**.
+
+> **Defaults de negocio adoptados (2026-06-24, a confirmar con cliente):** sí al desglose viajero→lotes de CRIMP,
+> `lote_fabricante` visible, cantidad **capturada** (`crimp_lots.quantity`); integrar la empacada cuando M6 entregue.
 
 **Orden sugerido:**
 1. Confirmar decisiones §6 con el cliente.
