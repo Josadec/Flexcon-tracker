@@ -1445,7 +1445,7 @@
                     {{-- Header --}}
                     <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <div>
-                            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Historial de Ciclos — Viajero {{ $lot_h->lot_number }}</h3>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Historial de Ciclos — {{ ($lot_h->workOrder->purchaseOrder->part->is_crimp ?? false) ? 'Viajero' : 'Lote' }} {{ $lot_h->lot_number }}</h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                                 WO: {{ $lot_h->workOrder->purchaseOrder->wo ?? '—' }}
                                 · Parte: {{ $lot_h->workOrder->purchaseOrder->part->number ?? '—' }}
@@ -2393,7 +2393,7 @@
                             @if ($confirmDone)
                                 <button wire:click="confirmAndNotifyFromModal"
                                     class="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg">
-                                    {{ $cfLot?->packaging_notified_at ? 'Reenviar correo' : 'Confirmar y notificar' }}
+                                    {{ $cfLot?->packaging_notified_at ? 'Reenviar notificación' : 'Confirmar y notificar' }}
                                 </button>
                             @endif
                             <button @if (!$confirmDone) disabled @endif
@@ -2425,10 +2425,10 @@
                     {{-- Header --}}
                     <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <div>
-                            <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="material-modal-title">Material del viajero</h3>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="material-modal-title">Material del {{ ($selectedLotForMaterial->workOrder->purchaseOrder->part->is_crimp ?? false) ? 'Viajero' : 'Lote' }}</h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                                 WO: {{ $selectedLotForMaterial->workOrder->purchaseOrder->wo ?? 'N/A' }} ·
-                                Viajero: {{ $selectedLotForMaterial->lot_number }}
+                                {{ ($selectedLotForMaterial->workOrder->purchaseOrder->part->is_crimp ?? false) ? 'Viajero' : 'Lote' }}: {{ $selectedLotForMaterial->lot_number }}
                             </p>
                         </div>
                         <button wire:click="closeMaterialModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 shrink-0">
@@ -2808,7 +2808,7 @@
                                 <div class="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-700 rounded-t-lg">
                                     <h4 class="text-sm font-semibold text-blue-800 dark:text-blue-200 flex items-center gap-2">
                                         <span class="w-6 h-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-bold">3</span>
-                                        Recibir Viajero
+                                        Recibir Lote
                                     </h4>
                                 </div>
                                 <div class="p-4">
@@ -2825,12 +2825,12 @@
                                             </div>
                                         </div>
                                         <button wire:click="receiveViajero"
-                                            wire:confirm="¿Confirma que recibió el viajero? Esta acción no se puede deshacer."
+                                            wire:confirm="¿Confirma que recibió el lote? Esta acción no se puede deshacer."
                                             class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                             </svg>
-                                            Recibí Viajero
+                                            Recibí Lote
                                         </button>
                                 </div>
                             </div>
@@ -2841,7 +2841,7 @@
                                         <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                         </svg>
-                                        <span class="text-sm font-medium text-blue-800 dark:text-blue-200">Viajero recibido</span>
+                                        <span class="text-sm font-medium text-blue-800 dark:text-blue-200">Lote recibido</span>
                                     </div>
                                     <button wire:click="openDecisionFromPackaging"
                                         class="px-3 py-1.5 text-xs font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors cursor-pointer">
@@ -2849,7 +2849,7 @@
                                     </button>
                                 </div>
                                 <button wire:click="reopenPackaging"
-                                    wire:confirm="¿Reabrir el empaque? El viajero quedará como no recibido y podrás registrar más piezas."
+                                    wire:confirm="¿Reabrir el empaque? El lote quedará como no recibido y podrás registrar más piezas."
                                     class="w-full px-3 py-2 text-xs font-medium text-yellow-700 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -2899,7 +2899,7 @@
                 @else
                     <x-ui-modal.ctx label="Parte" :value="$dPart?->number ?? '—'" />
                 @endif
-                <x-ui-modal.ctx label="Cantidad en viajero" :value="number_format($decLotTotal)" />
+                <x-ui-modal.ctx :label="$decIsCrimp ? 'Cantidad en viajero' : 'Cantidad en lote'" :value="number_format($decLotTotal)" />
             </x-slot:context>
 
                         {{-- Resumen --}}
@@ -3467,7 +3467,7 @@
                         <div>
                             <h3 class="text-xl font-bold text-gray-900 dark:text-white">Entregar Material</h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                                Viajero {{ $selectedLotForDelivery->lot_number }} ·
+                                {{ ($selectedLotForDelivery->workOrder->purchaseOrder->part->is_crimp ?? false) ? 'Viajero' : 'Lote' }} {{ $selectedLotForDelivery->lot_number }} ·
                                 WO: {{ $selectedLotForDelivery->workOrder->purchaseOrder->wo ?? 'N/A' }} ·
                                 Parte: {{ $selectedLotForDelivery->workOrder->purchaseOrder->part->number ?? 'N/A' }}
                             </p>
@@ -3542,10 +3542,10 @@
                     {{-- Header --}}
                     <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <div>
-                            <h3 id="quality-modal-title" class="text-xl font-bold text-gray-900 dark:text-white">Pesada de Calidad — Viajero</h3>
+                            <h3 id="quality-modal-title" class="text-xl font-bold text-gray-900 dark:text-white">Pesada de Calidad — {{ ($selectedLotForQuality->workOrder->purchaseOrder->part->is_crimp ?? false) ? 'Viajero' : 'Lote' }}</h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                                 WO: {{ $selectedLotForQuality->workOrder->purchaseOrder->wo ?? 'N/A' }} ·
-                                Viajero: {{ $selectedLotForQuality->lot_number }}
+                                {{ ($selectedLotForQuality->workOrder->purchaseOrder->part->is_crimp ?? false) ? 'Viajero' : 'Lote' }}: {{ $selectedLotForQuality->lot_number }}
                             </p>
                         </div>
                         <button wire:click="closeQualityModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 shrink-0">
@@ -3770,7 +3770,7 @@
                             <h3 id="production-modal-title" class="text-xl font-bold text-gray-900 dark:text-white">Nueva Pesada — Producción</h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                                 WO: {{ $selectedLotForProduction->workOrder->purchaseOrder->wo ?? 'N/A' }} ·
-                                Viajero: {{ $selectedLotForProduction->lot_number }}
+                                {{ ($selectedLotForProduction->workOrder->purchaseOrder->part->is_crimp ?? false) ? 'Viajero' : 'Lote' }}: {{ $selectedLotForProduction->lot_number }}
                             </p>
                         </div>
                         <button wire:click="closeProductionModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 shrink-0">
