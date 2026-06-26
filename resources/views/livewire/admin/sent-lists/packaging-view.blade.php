@@ -108,22 +108,43 @@
                                 </div>
                                 {{-- Derecha: botones de acción --}}
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    {{-- Viajero status --}}
-                                    @if ($lot->viajero_received)
-                                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                            </svg>
-                                            Viajero &#10003; {{ \Carbon\Carbon::parse($lot->viajero_received_at)->format('d/m/Y') }}
-                                        </span>
+                                    {{-- Viajero status (CRIMP: modal Paso 7 con resumen + marcar/revertir; NO-CRIMP: botón simple original) --}}
+                                    @if ($isCrimp)
+                                        @if ($lot->viajero_received)
+                                            <button wire:click="openViajeroModal({{ $lot->id }})"
+                                                class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+                                                title="Ver entrega de viajero / revertir">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                Viajero &#10003; {{ \Carbon\Carbon::parse($lot->viajero_received_at)->format('d/m/Y') }}
+                                            </button>
+                                        @else
+                                            <button wire:click="openViajeroModal({{ $lot->id }})"
+                                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                                </svg>
+                                                Entregar Viajero
+                                            </button>
+                                        @endif
                                     @else
-                                        <button wire:click="receiveViajero({{ $lot->id }})"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                                            </svg>
-                                            Recibir Viajero
-                                        </button>
+                                        @if ($lot->viajero_received)
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                Viajero &#10003; {{ \Carbon\Carbon::parse($lot->viajero_received_at)->format('d/m/Y') }}
+                                            </span>
+                                        @else
+                                            <button wire:click="receiveViajero({{ $lot->id }})"
+                                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                                </svg>
+                                                Recibir Viajero
+                                            </button>
+                                        @endif
                                     @endif
                                     {{-- Toma de decisiones --}}
                                     @if ($lot->closure_decision)
@@ -500,6 +521,100 @@
                 </div>
             </div>
         </div>
+    @endif
+
+    {{-- ===== PASO 7 · MODAL ENTREGA DE VIAJERO ===== --}}
+    @if ($showViajeroModal)
+        @php
+            $vjLot = \App\Models\Lot::with(['crimpLots','workOrder.purchaseOrder.part','qualityWeighings','packagingPieceWeighings','packagingCrimpWeighings'])->find($viajeroModalLotId);
+            $vjWO = $vjLot?->workOrder;
+            $vjPart = $vjWO?->purchaseOrder?->part;
+            $vjWoNum = $vjWO?->purchaseOrder?->wo ?? $vjWO?->wo_number ?? '—';
+            $vjReceived = (bool) ($vjLot?->viajero_received);
+            $vjPiezas = $vjLot ? $vjLot->getPackagedPiecesTotal() : 0;
+            $vjCrimp = $vjLot ? $vjLot->getPackagedCrimpTotal() : 0;
+            $vjPiezasSob = $vjLot ? $vjLot->getPackagedPiecesSurplus() : 0;
+            $vjCrimpSob = $vjLot ? $vjLot->getPackagedCrimpSurplus() : 0;
+            $vjDecLabel = ($vjLot && $vjLot->closure_decision) ? $vjLot->getPostQualityLifecycle()['decision']['label'] : 'Sin decisión todavía';
+            $vjCrimpLots = $vjLot?->crimpLots ?? collect();
+        @endphp
+        <x-ui-modal badge="Paso 7" title="Entrega de Viajero" subtitle="Empaque confirma «Viajero recibido»"
+            close="closeViajeroModal" maxWidth="2xl">
+            <x-slot:context>
+                <x-ui-modal.ctx label="Descripción" :value="$vjPart?->description ?? $vjPart?->number ?? '—'" />
+                <x-ui-modal.ctx label="No. Order (WO + Viajero)" :value="$vjWoNum.' · '.($vjLot?->lot_number ?? '—')" />
+                <x-ui-modal.ctx label="Lotes de CRIMP" :value="$vjCrimpLots->pluck('crimp_lot_number')->join(', ') ?: '—'" />
+                <x-ui-modal.ctx label="Cantidad en viajero" :value="number_format($vjLot?->quantity ?? 0)" />
+            </x-slot:context>
+
+            {{-- Estado actual --}}
+            <div class="rounded-lg p-4 border {{ $vjReceived ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700' }}">
+                <div class="flex items-center gap-3">
+                    <svg class="w-6 h-6 shrink-0 {{ $vjReceived ? 'text-green-600 dark:text-green-400' : 'text-amber-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        @if ($vjReceived)
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        @else
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        @endif
+                    </svg>
+                    <div>
+                        <div class="text-sm font-semibold {{ $vjReceived ? 'text-green-800 dark:text-green-200' : 'text-amber-800 dark:text-amber-200' }}">
+                            {{ $vjReceived ? 'Viajero recibido por Materiales' : 'Pendiente: Empaque debe entregar el viajero' }}
+                        </div>
+                        @if ($vjReceived && $vjLot?->viajero_received_at)
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Recibido el {{ \Carbon\Carbon::parse($vjLot->viajero_received_at)->format('d/m/Y H:i') }}{{ $vjLot->viajeroReceivedByUser?->name ? ' · por '.$vjLot->viajeroReceivedByUser->name : '' }}</div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- Resumen del empaque --}}
+            <div>
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Resumen del empaque</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="rounded-lg bg-green-50 dark:bg-green-900/20 p-3 text-center">
+                        <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Piezas «manguitas»</div>
+                        <div class="text-lg font-bold text-green-700 dark:text-green-300">{{ number_format($vjPiezas) }}</div>
+                    </div>
+                    <div class="rounded-lg bg-cyan-50 dark:bg-cyan-900/20 p-3 text-center">
+                        <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Piezas CRIMP</div>
+                        <div class="text-lg font-bold text-cyan-700 dark:text-cyan-300">{{ number_format($vjCrimp) }}</div>
+                    </div>
+                    <div class="rounded-lg bg-orange-50 dark:bg-orange-900/20 p-3 text-center">
+                        <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Sobr. piezas</div>
+                        <div class="text-lg font-bold text-orange-700 dark:text-orange-300">{{ number_format($vjPiezasSob) }}</div>
+                    </div>
+                    <div class="rounded-lg bg-orange-50 dark:bg-orange-900/20 p-3 text-center">
+                        <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Sobr. CRIMP</div>
+                        <div class="text-lg font-bold text-orange-700 dark:text-orange-300">{{ number_format($vjCrimpSob) }}</div>
+                    </div>
+                </div>
+                <div class="mt-3 text-sm text-gray-600 dark:text-gray-300">
+                    <span class="text-gray-500 dark:text-gray-400">Decisión de Materiales:</span> <strong>{{ $vjDecLabel }}</strong>
+                </div>
+            </div>
+
+            <x-slot:footer>
+                <span class="text-xs text-gray-500 dark:text-gray-400">Paso 7 · luego Paso 8 (regresar sobrantes)</span>
+                <div class="flex items-center gap-2">
+                    <button wire:click="closeViajeroModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">Cerrar</button>
+                    @if ($vjReceived)
+                        <button wire:click="revertViajeroReceived({{ $viajeroModalLotId }})"
+                            wire:confirm="¿Revertir la entrega? El viajero quedará como NO recibido."
+                            class="px-4 py-2 text-sm font-semibold text-yellow-700 dark:text-yellow-300 bg-white dark:bg-gray-800 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 inline-flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Revertir entrega
+                        </button>
+                    @else
+                        <button wire:click="markViajeroReceived({{ $viajeroModalLotId }})"
+                            class="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg inline-flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            Marcar viajero como recibido
+                        </button>
+                    @endif
+                </div>
+            </x-slot:footer>
+        </x-ui-modal>
     @endif
 
     {{-- ===== PASO 5 · MODAL DE CONFIRMACIÓN DE EMPAQUE (CRIMP) ===== --}}

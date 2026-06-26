@@ -64,7 +64,34 @@ class ProductionHubDashboard extends Component
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // ── CRIMP: viajeros por pesar en Producción ──────────────────────
+        $crimpViajeros = Lot::query()
+            ->whereHas('workOrder.purchaseOrder.part', fn ($q) => $q->where('is_crimp', true))
+            ->where('status', '!=', Lot::STATUS_COMPLETED)
+            ->with(['workOrder.purchaseOrder.part', 'crimpLots', 'weighings'])
+            ->get();
+
+        $prodPorPesar = 0;
+        $prodPesados = 0;
+        $prodPendientes = collect();
+
+        foreach ($crimpViajeros as $vj) {
+            if (($vj->material_status ?? 'pending') !== 'released') {
+                continue; // aún esperando liberación de Materiales
+            }
+            $weighed = (int) $vj->weighings->sum('good_pieces') + (int) $vj->weighings->sum('bad_pieces');
+            if ($weighed < (int) $vj->quantity) {
+                $prodPorPesar++;
+                $prodPendientes->push(['lot' => $vj, 'action' => $weighed > 0 ? 'Continuar pesada' : 'Pesar producción', 'kind' => 'weigh']);
+            } else {
+                $prodPesados++;
+            }
+        }
+
         return view('livewire.admin.production.production-hub-dashboard', [
+            'prodPorPesar'   => $prodPorPesar,
+            'prodPesados'    => $prodPesados,
+            'prodPendientes' => $prodPendientes,
             'areaStats' => $this->computeAreaStats(),
             'pendingSentLists'   => $pendingSentLists,
             'totalWeighings' => $totalWeighings,

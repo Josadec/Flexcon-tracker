@@ -57,7 +57,39 @@ class QualityAreaDashboard extends Component
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // ── CRIMP: viajeros pendientes de Inspección / Calidad ───────────
+        $crimpViajeros = Lot::query()
+            ->whereHas('workOrder.purchaseOrder.part', fn ($q) => $q->where('is_crimp', true))
+            ->where('status', '!=', Lot::STATUS_COMPLETED)
+            ->with(['workOrder.purchaseOrder.part', 'crimpLots', 'weighings', 'qualityWeighings'])
+            ->get();
+
+        $qInspeccion = 0;
+        $qVerificar = 0;
+        $qPendientes = collect();
+
+        foreach ($crimpViajeros as $vj) {
+            if (($vj->material_status ?? 'pending') !== 'released') {
+                continue; // esperando liberación de Materiales
+            }
+            if (($vj->inspection_status ?? 'pending') === 'pending') {
+                $qInspeccion++;
+                $qPendientes->push(['lot' => $vj, 'action' => 'Inspeccionar viajero', 'kind' => 'inspect']);
+                continue;
+            }
+            if ($vj->hasProductionWeighings()) {
+                $pend = $vj->getQualityPendingPieces();
+                if ($pend > 0) {
+                    $qVerificar++;
+                    $qPendientes->push(['lot' => $vj, 'action' => 'Verificar calidad ('.number_format($pend).' pz)', 'kind' => 'verify']);
+                }
+            }
+        }
+
         return view('livewire.admin.quality.quality-area-dashboard', [
+            'qInspeccion'  => $qInspeccion,
+            'qVerificar'   => $qVerificar,
+            'qPendientes'  => $qPendientes,
             'areaStats' => $this->computeAreaStats(),
             'pendingSentLists'  => $pendingSentLists,
             'totalWOs' => $totalWOs,

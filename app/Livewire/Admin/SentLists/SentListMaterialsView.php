@@ -22,6 +22,7 @@ class SentListMaterialsView extends Component
     public bool $showCrimpLotModal = false;
     public ?int $crimpLotViajeroId = null;
     public string $crimpLotViajeroLabel = '';
+    public int $crimpLotViajeroQty = 0;
     public array $crimpLots = [];
 
     // Send to inspection modal
@@ -138,6 +139,7 @@ class SentListMaterialsView extends Component
         $this->crimpLotViajeroId    = $lot->id;
         $this->crimpLotViajeroLabel = trim(($lot->workOrder->purchaseOrder->wo ?? $lot->workOrder->wo_number ?? '')
             . ' — Viajero ' . $lot->lot_number);
+        $this->crimpLotViajeroQty = (int) $lot->quantity;
 
         $this->crimpLots = $lot->crimpLots->map(fn($cl) => [
             'id'               => $cl->id,
@@ -215,6 +217,7 @@ class SentListMaterialsView extends Component
         $this->showCrimpLotModal    = false;
         $this->crimpLotViajeroId    = null;
         $this->crimpLotViajeroLabel = '';
+        $this->crimpLotViajeroQty   = 0;
         $this->crimpLots            = [];
     }
 

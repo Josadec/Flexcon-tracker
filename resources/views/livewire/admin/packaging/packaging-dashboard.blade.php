@@ -7,6 +7,84 @@
         </div>
     </div>
 
+    {{-- ===== Empaque CRIMP (viajeros) ===== --}}
+    <section class="space-y-4">
+        <div class="flex items-center gap-2">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </span>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Empaque CRIMP</h2>
+            <span class="text-xs text-gray-400 dark:text-gray-500">Viajeros · Paso 5 → 6 → 7 → 8</span>
+        </div>
+
+        {{-- KPIs --}}
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-indigo-200 dark:border-indigo-800 p-5 shadow-sm">
+                <div class="text-xs font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">Por empacar</div>
+                <div class="mt-1 text-3xl font-bold text-indigo-700 dark:text-indigo-300">{{ number_format($crimpPorEmpacar) }}</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Material liberado · listo para Paso 5</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-green-200 dark:border-green-800 p-5 shadow-sm">
+                <div class="text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wide">Empacados</div>
+                <div class="mt-1 text-3xl font-bold text-green-700 dark:text-green-300">{{ number_format($crimpEmpacados) }}</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Con pesadas de piezas / CRIMP</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-amber-200 dark:border-amber-800 p-5 shadow-sm">
+                <div class="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide">Entregar viajero</div>
+                <div class="mt-1 text-3xl font-bold text-amber-700 dark:text-amber-300">{{ number_format($crimpEntregarViajero) }}</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Paso 7 · tras la decisión</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-orange-200 dark:border-orange-800 p-5 shadow-sm">
+                <div class="text-xs font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wide">Entregar sobrantes</div>
+                <div class="mt-1 text-3xl font-bold text-orange-700 dark:text-orange-300">{{ number_format($crimpEntregarSobrantes) }}</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Paso 8 · regresar a Materiales</div>
+            </div>
+        </div>
+
+        {{-- Lista de pendientes de Empaque --}}
+        <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+            <div class="px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800 dark:text-gray-100">Pendientes de Empaque</h3>
+                <span class="px-2 py-0.5 text-xs font-semibold bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded-full">{{ $empaquePendientes->count() }}</span>
+            </div>
+            @if ($empaquePendientes->isNotEmpty())
+                <div class="divide-y divide-gray-100 dark:divide-gray-700">
+                    @foreach ($empaquePendientes as $row)
+                        @php
+                            $vj = $row['lot']; $wo = $vj->workOrder;
+                            $badge = match ($row['kind']) {
+                                'pack'     => 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300',
+                                'viajero'  => 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
+                                'material' => 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300',
+                                default    => 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+                            };
+                        @endphp
+                        <div class="flex items-center justify-between gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">Viajero {{ $vj->lot_number }}</span>
+                                    <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full {{ $badge }}">{{ $row['action'] }}</span>
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    WO {{ $wo->purchaseOrder->wo ?? $wo->wo_number }} · {{ $wo->purchaseOrder->part->number ?? '' }} · {{ $wo->purchaseOrder->part->description ?? '' }}
+                                </div>
+                            </div>
+                            <a href="{{ route('admin.sent-lists.display.wo', $wo->id) }}" wire:navigate
+                                class="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors">
+                                Ir al tablero
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </a>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="px-5 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+                    Sin acciones de empaque CRIMP pendientes. 🎉
+                </div>
+            @endif
+        </div>
+    </section>
+
     <!-- Pending Sent Lists -->
     @include('livewire.admin.sent-lists.partials.pending-lists-panel', [
         'pendingSentLists' => $pendingSentLists,
