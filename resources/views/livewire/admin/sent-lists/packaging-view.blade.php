@@ -134,7 +134,7 @@
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                 </svg>
-                                                Viajero &#10003; {{ \Carbon\Carbon::parse($lot->viajero_received_at)->format('d/m/Y') }}
+                                                Lote &#10003; {{ \Carbon\Carbon::parse($lot->viajero_received_at)->format('d/m/Y') }}
                                             </span>
                                         @else
                                             <button wire:click="receiveViajero({{ $lot->id }})"
@@ -142,7 +142,7 @@
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                                 </svg>
-                                                Recibir Viajero
+                                                Recibir Lote
                                             </button>
                                         @endif
                                     @endif
@@ -908,7 +908,7 @@
                             @if ($confirmDone)
                                 <button wire:click="confirmAndNotifyFromModal"
                                     class="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg">
-                                    {{ $cfLot?->packaging_notified_at ? 'Reenviar correo' : 'Confirmar y notificar' }}
+                                    {{ $cfLot?->packaging_notified_at ? 'Reenviar notificación' : 'Confirmar y notificar' }}
                                 </button>
                             @endif
                             <button @if (!$confirmDone) disabled @endif
@@ -1038,7 +1038,7 @@
                 @else
                     <x-ui-modal.ctx label="Parte" :value="$dPart?->number ?? '—'" />
                 @endif
-                <x-ui-modal.ctx label="Cantidad en viajero" :value="number_format($decLotTotal)" />
+                <x-ui-modal.ctx :label="$decIsCrimp ? 'Cantidad en viajero' : 'Cantidad en lote'" :value="number_format($decLotTotal)" />
             </x-slot:context>
 
                         {{-- Resumen --}}
