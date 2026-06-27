@@ -71,7 +71,6 @@ class CrimpConfirmModalTest extends TestCase
             ->call('openConfirmModal', $viajero->id)
             ->assertSet('confirmCrimpLotId', $cl1->id) // primer lote por defecto
             ->set('cPieceQty', 300)
-            ->set('cPieceWeight', 1.250)
             ->call('addConfirmPieceWeighing')
             ->assertHasNoErrors()
             ->set('cCrimpQty', 580)
@@ -84,11 +83,50 @@ class CrimpConfirmModalTest extends TestCase
         $this->assertNotNull($pw);
         $this->assertSame($cl1->id, $pw->crimp_lot_id);
         $this->assertSame(300, $pw->quantity);
+        $this->assertNull($pw->weight); // Paso 5 ya no captura kg
 
         $cw = PackagingCrimpWeighing::where('lot_id', $viajero->id)->first();
         $this->assertNotNull($cw);
         $this->assertSame($cl1->id, $cw->crimp_lot_id);
         $this->assertSame(580, $cw->quantity);
+        $this->assertNull($cw->weight); // Paso 5 ya no captura kg
+    }
+
+    public function test_can_edit_a_registered_piece_weighing(): void
+    {
+        $packer = User::factory()->create();
+        $this->actingAs($packer);
+
+        [$sentList, $viajero, $cl1] = $this->makeViajero($packer);
+
+        $component = Livewire::test(SentListPackagingView::class, ['sentList' => $sentList])
+            ->call('openConfirmModal', $viajero->id)
+            ->set('cPieceQty', 300)
+            ->call('addConfirmPieceWeighing')
+            ->assertHasNoErrors();
+
+        $pw = PackagingPieceWeighing::where('lot_id', $viajero->id)->first();
+
+        // Editar: corregir cantidad equivocada (300 → 250) sin borrar
+        $component
+            ->call('editConfirmPieceWeighing', $pw->id)
+            ->assertSet('editPieceWId', $pw->id)
+            ->assertSet('editPieceWQty', 300)
+            ->set('editPieceWQty', 250)
+            ->call('saveConfirmPieceWeighing')
+            ->assertHasNoErrors()
+            ->assertSet('editPieceWId', null);
+
+        $this->assertSame(250, $pw->fresh()->quantity);
+
+        // No permite guardar 0
+        $component
+            ->call('editConfirmPieceWeighing', $pw->id)
+            ->set('editPieceWQty', 0)
+            ->call('saveConfirmPieceWeighing')
+            ->assertHasErrors('editPieceWQty');
+
+        $this->assertSame(250, $pw->fresh()->quantity);
     }
 
     public function test_confirm_modal_requires_quantity(): void
