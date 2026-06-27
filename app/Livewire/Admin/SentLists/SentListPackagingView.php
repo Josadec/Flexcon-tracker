@@ -72,11 +72,16 @@ class SentListPackagingView extends Component
     public ?int $confirmCrimpLotId = null;     // lote de CRIMP seleccionado
     public bool $confirmDone = false;          // confirmado → muestra Empaque Terminado
     public int $cPieceQty = 0;                 // alta inline de pesada de piezas
-    public ?float $cPieceWeight = null;
+    public ?float $cPieceWeight = null;        // (deprecado) ya no se captura kg en Paso 5
     public int $cCrimpQty = 0;                 // alta inline de pesada de CRIMP
-    public ?float $cCrimpWeight = null;
+    public ?float $cCrimpWeight = null;        // (deprecado) ya no se captura kg en Paso 5
     public ?int $confirmLabelCount = null;     // No. etiquetas (opcional, B.5)
     public string $confirmComments = '';
+    // Edición inline de pesadas ya registradas (corregir cantidad sin borrar)
+    public ?int $editPieceWId = null;
+    public int $editPieceWQty = 0;
+    public ?int $editCrimpWId = null;
+    public int $editCrimpWQty = 0;
 
     public function mount(SentList $sentList): void
     {
@@ -708,7 +713,11 @@ class SentListPackagingView extends Component
 
     public function openConfirmModal(int $lotId): void
     {
-        $lot = Lot::with('crimpLots')->findOrFail($lotId);
+        $lot = Lot::with('crimpLots')->find($lotId);
+        if (!$lot) {
+            session()->flash('error', 'El viajero ya no existe. Actualiza la página.');
+            return;
+        }
 
         $this->confirmLotId       = $lotId;
         $this->confirmCrimpLotId  = $lot->crimpLots->first()?->id;
@@ -717,6 +726,10 @@ class SentListPackagingView extends Component
         $this->cPieceWeight       = null;
         $this->cCrimpQty          = 0;
         $this->cCrimpWeight       = null;
+        $this->editPieceWId       = null;
+        $this->editPieceWQty      = 0;
+        $this->editCrimpWId       = null;
+        $this->editCrimpWQty      = 0;
         $this->confirmLabelCount  = $lot->packaging_label_count;
         $this->confirmComments    = '';
         $this->resetErrorBag();
@@ -729,7 +742,6 @@ class SentListPackagingView extends Component
         $this->validate([
             'confirmCrimpLotId' => 'required|exists:crimp_lots,id',
             'cPieceQty'         => 'required|integer|min:1',
-            'cPieceWeight'      => 'nullable|numeric|min:0',
         ], [
             'confirmCrimpLotId.required' => 'Selecciona primero el lote de CRIMP.',
             'cPieceQty.required'         => 'La cantidad de piezas es obligatoria.',
@@ -740,7 +752,7 @@ class SentListPackagingView extends Component
             'lot_id'       => $this->confirmLotId,
             'crimp_lot_id' => $this->confirmCrimpLotId,
             'quantity'     => $this->cPieceQty,
-            'weight'       => $this->cPieceWeight,
+            'weight'       => null,
             'weighed_at'   => now(),
             'weighed_by'   => Auth::id(),
         ]);
@@ -757,7 +769,6 @@ class SentListPackagingView extends Component
         $this->validate([
             'confirmCrimpLotId' => 'required|exists:crimp_lots,id',
             'cCrimpQty'         => 'required|integer|min:1',
-            'cCrimpWeight'      => 'nullable|numeric|min:0',
         ], [
             'confirmCrimpLotId.required' => 'Selecciona primero el lote de CRIMP.',
             'cCrimpQty.required'         => 'La cantidad de CRIMP es obligatoria.',
@@ -768,7 +779,7 @@ class SentListPackagingView extends Component
             'lot_id'       => $this->confirmLotId,
             'crimp_lot_id' => $this->confirmCrimpLotId,
             'quantity'     => $this->cCrimpQty,
-            'weight'       => $this->cCrimpWeight,
+            'weight'       => null,
             'weighed_at'   => now(),
             'weighed_by'   => Auth::id(),
         ]);
@@ -781,16 +792,77 @@ class SentListPackagingView extends Component
 
     public function deleteConfirmPieceWeighing(int $id): void
     {
-        PackagingPieceWeighing::findOrFail($id)->delete();
+        PackagingPieceWeighing::find($id)?->delete();
         $this->confirmDone = false;
         $this->sentList->refresh();
     }
 
     public function deleteConfirmCrimpWeighing(int $id): void
     {
-        PackagingCrimpWeighing::findOrFail($id)->delete();
+        PackagingCrimpWeighing::find($id)?->delete();
         $this->confirmDone = false;
         $this->sentList->refresh();
+    }
+
+    // ── Edición inline de pesadas ya registradas (corregir cantidad) ──
+    public function editConfirmPieceWeighing(int $id): void
+    {
+        $w = PackagingPieceWeighing::find($id);
+        if (!$w) { $this->sentList->refresh(); return; }
+        $this->editPieceWId  = $w->id;
+        $this->editPieceWQty = $w->quantity;
+        $this->resetErrorBag('editPieceWQty');
+    }
+
+    public function saveConfirmPieceWeighing(): void
+    {
+        $this->validate(
+            ['editPieceWQty' => 'required|integer|min:1'],
+            ['editPieceWQty.required' => 'La cantidad es obligatoria.', 'editPieceWQty.min' => 'La cantidad debe ser mayor a 0.']
+        );
+        $w = PackagingPieceWeighing::find($this->editPieceWId);
+        if ($w) { $w->update(['quantity' => $this->editPieceWQty]); }
+        $this->editPieceWId  = null;
+        $this->editPieceWQty = 0;
+        $this->confirmDone   = false;
+        $this->sentList->refresh();
+    }
+
+    public function cancelEditPieceWeighing(): void
+    {
+        $this->editPieceWId  = null;
+        $this->editPieceWQty = 0;
+        $this->resetErrorBag('editPieceWQty');
+    }
+
+    public function editConfirmCrimpWeighing(int $id): void
+    {
+        $w = PackagingCrimpWeighing::find($id);
+        if (!$w) { $this->sentList->refresh(); return; }
+        $this->editCrimpWId  = $w->id;
+        $this->editCrimpWQty = $w->quantity;
+        $this->resetErrorBag('editCrimpWQty');
+    }
+
+    public function saveConfirmCrimpWeighing(): void
+    {
+        $this->validate(
+            ['editCrimpWQty' => 'required|integer|min:1'],
+            ['editCrimpWQty.required' => 'La cantidad es obligatoria.', 'editCrimpWQty.min' => 'La cantidad debe ser mayor a 0.']
+        );
+        $w = PackagingCrimpWeighing::find($this->editCrimpWId);
+        if ($w) { $w->update(['quantity' => $this->editCrimpWQty]); }
+        $this->editCrimpWId  = null;
+        $this->editCrimpWQty = 0;
+        $this->confirmDone   = false;
+        $this->sentList->refresh();
+    }
+
+    public function cancelEditCrimpWeighing(): void
+    {
+        $this->editCrimpWId  = null;
+        $this->editCrimpWQty = 0;
+        $this->resetErrorBag('editCrimpWQty');
     }
 
     /** Paso 5 · paso 3 — el empacador confirma las cantidades → genera "Empaque Terminado". */
@@ -843,6 +915,10 @@ class SentListPackagingView extends Component
         $this->cPieceWeight      = null;
         $this->cCrimpQty         = 0;
         $this->cCrimpWeight      = null;
+        $this->editPieceWId      = null;
+        $this->editPieceWQty     = 0;
+        $this->editCrimpWId      = null;
+        $this->editCrimpWQty     = 0;
         $this->confirmLabelCount = null;
         $this->confirmComments   = '';
         $this->resetErrorBag();

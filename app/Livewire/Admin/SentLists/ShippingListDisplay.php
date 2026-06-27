@@ -162,11 +162,16 @@ class ShippingListDisplay extends Component
     public $confirmCrimpLotId = null;     // lote de CRIMP seleccionado
     public $confirmDone = false;          // confirmado → muestra Empaque Terminado
     public $cPieceQty = 0;
-    public $cPieceWeight = null;
+    public $cPieceWeight = null;          // (deprecado) ya no se captura kg en Paso 5
     public $cCrimpQty = 0;
-    public $cCrimpWeight = null;
+    public $cCrimpWeight = null;          // (deprecado) ya no se captura kg en Paso 5
     public $confirmLabelCount = null;     // No. etiquetas (opcional, B.5)
     public $confirmComments = '';
+    // Edición inline de pesadas ya registradas (corregir cantidad sin borrar)
+    public $editPieceWId = null;
+    public $editPieceWQty = 0;
+    public $editCrimpWId = null;
+    public $editCrimpWQty = 0;
 
     // Modal Decisión Control de Materiales (separate modal)
     public $showDecisionModal = false;
@@ -1063,7 +1068,11 @@ class ShippingListDisplay extends Component
     {
         if (!$this->guardDepartment('packaging')) return;
 
-        $lot = Lot::with('crimpLots')->findOrFail($lotId);
+        $lot = Lot::with('crimpLots')->find($lotId);
+        if (!$lot) {
+            session()->flash('error', 'El viajero ya no existe. Actualiza la página.');
+            return;
+        }
 
         $this->confirmLotId      = $lotId;
         $this->confirmCrimpLotId = $lot->crimpLots->first()?->id;
@@ -1072,6 +1081,10 @@ class ShippingListDisplay extends Component
         $this->cPieceWeight      = null;
         $this->cCrimpQty         = 0;
         $this->cCrimpWeight      = null;
+        $this->editPieceWId      = null;
+        $this->editPieceWQty     = 0;
+        $this->editCrimpWId      = null;
+        $this->editCrimpWQty     = 0;
         $this->confirmLabelCount = $lot->packaging_label_count;
         $this->confirmComments   = '';
         $this->resetErrorBag();
@@ -1085,7 +1098,6 @@ class ShippingListDisplay extends Component
         $this->validate([
             'confirmCrimpLotId' => 'required|exists:crimp_lots,id',
             'cPieceQty'         => 'required|integer|min:1',
-            'cPieceWeight'      => 'nullable|numeric|min:0',
         ], [
             'confirmCrimpLotId.required' => 'Selecciona primero el lote de CRIMP.',
             'cPieceQty.required'         => 'La cantidad de piezas es obligatoria.',
@@ -1096,7 +1108,7 @@ class ShippingListDisplay extends Component
             'lot_id'       => $this->confirmLotId,
             'crimp_lot_id' => $this->confirmCrimpLotId,
             'quantity'     => $this->cPieceQty,
-            'weight'       => $this->cPieceWeight,
+            'weight'       => null,
             'weighed_at'   => now(),
             'weighed_by'   => Auth::id(),
         ]);
@@ -1114,7 +1126,6 @@ class ShippingListDisplay extends Component
         $this->validate([
             'confirmCrimpLotId' => 'required|exists:crimp_lots,id',
             'cCrimpQty'         => 'required|integer|min:1',
-            'cCrimpWeight'      => 'nullable|numeric|min:0',
         ], [
             'confirmCrimpLotId.required' => 'Selecciona primero el lote de CRIMP.',
             'cCrimpQty.required'         => 'La cantidad de CRIMP es obligatoria.',
@@ -1125,7 +1136,7 @@ class ShippingListDisplay extends Component
             'lot_id'       => $this->confirmLotId,
             'crimp_lot_id' => $this->confirmCrimpLotId,
             'quantity'     => $this->cCrimpQty,
-            'weight'       => $this->cCrimpWeight,
+            'weight'       => null,
             'weighed_at'   => now(),
             'weighed_by'   => Auth::id(),
         ]);
@@ -1139,7 +1150,7 @@ class ShippingListDisplay extends Component
     public function deleteConfirmPieceWeighing($id)
     {
         if (!$this->guardDepartment('packaging')) return;
-        PackagingPieceWeighing::findOrFail($id)->delete();
+        PackagingPieceWeighing::find($id)?->delete();
         $this->confirmDone = false;
         $this->dispatch('refresh-display');
     }
@@ -1147,9 +1158,74 @@ class ShippingListDisplay extends Component
     public function deleteConfirmCrimpWeighing($id)
     {
         if (!$this->guardDepartment('packaging')) return;
-        PackagingCrimpWeighing::findOrFail($id)->delete();
+        PackagingCrimpWeighing::find($id)?->delete();
         $this->confirmDone = false;
         $this->dispatch('refresh-display');
+    }
+
+    // ── Edición inline de pesadas ya registradas (corregir cantidad) ──
+    public function editConfirmPieceWeighing($id)
+    {
+        if (!$this->guardDepartment('packaging')) return;
+        $w = PackagingPieceWeighing::find($id);
+        if (!$w) { $this->dispatch('refresh-display'); return; }
+        $this->editPieceWId  = $w->id;
+        $this->editPieceWQty = $w->quantity;
+        $this->resetErrorBag('editPieceWQty');
+    }
+
+    public function saveConfirmPieceWeighing()
+    {
+        if (!$this->guardDepartment('packaging')) return;
+        $this->validate(
+            ['editPieceWQty' => 'required|integer|min:1'],
+            ['editPieceWQty.required' => 'La cantidad es obligatoria.', 'editPieceWQty.min' => 'La cantidad debe ser mayor a 0.']
+        );
+        $w = PackagingPieceWeighing::find($this->editPieceWId);
+        if ($w) { $w->update(['quantity' => $this->editPieceWQty]); }
+        $this->editPieceWId  = null;
+        $this->editPieceWQty = 0;
+        $this->confirmDone   = false;
+        $this->dispatch('refresh-display');
+    }
+
+    public function cancelEditPieceWeighing()
+    {
+        $this->editPieceWId  = null;
+        $this->editPieceWQty = 0;
+        $this->resetErrorBag('editPieceWQty');
+    }
+
+    public function editConfirmCrimpWeighing($id)
+    {
+        if (!$this->guardDepartment('packaging')) return;
+        $w = PackagingCrimpWeighing::find($id);
+        if (!$w) { $this->dispatch('refresh-display'); return; }
+        $this->editCrimpWId  = $w->id;
+        $this->editCrimpWQty = $w->quantity;
+        $this->resetErrorBag('editCrimpWQty');
+    }
+
+    public function saveConfirmCrimpWeighing()
+    {
+        if (!$this->guardDepartment('packaging')) return;
+        $this->validate(
+            ['editCrimpWQty' => 'required|integer|min:1'],
+            ['editCrimpWQty.required' => 'La cantidad es obligatoria.', 'editCrimpWQty.min' => 'La cantidad debe ser mayor a 0.']
+        );
+        $w = PackagingCrimpWeighing::find($this->editCrimpWId);
+        if ($w) { $w->update(['quantity' => $this->editCrimpWQty]); }
+        $this->editCrimpWId  = null;
+        $this->editCrimpWQty = 0;
+        $this->confirmDone   = false;
+        $this->dispatch('refresh-display');
+    }
+
+    public function cancelEditCrimpWeighing()
+    {
+        $this->editCrimpWId  = null;
+        $this->editCrimpWQty = 0;
+        $this->resetErrorBag('editCrimpWQty');
     }
 
     public function confirmPackaging()
@@ -1239,6 +1315,10 @@ class ShippingListDisplay extends Component
         $this->cPieceWeight      = null;
         $this->cCrimpQty         = 0;
         $this->cCrimpWeight      = null;
+        $this->editPieceWId      = null;
+        $this->editPieceWQty     = 0;
+        $this->editCrimpWId      = null;
+        $this->editCrimpWQty     = 0;
         $this->confirmLabelCount = null;
         $this->confirmComments   = '';
         $this->resetErrorBag();

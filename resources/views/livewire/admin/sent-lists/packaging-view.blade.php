@@ -728,25 +728,33 @@
                                     <div class="px-3 py-1.5 bg-gray-50 dark:bg-gray-700/50 text-xs font-semibold text-gray-600 dark:text-gray-300">Piezas «manguitas»</div>
                                     <table class="w-full text-xs">
                                         <thead class="text-gray-400 dark:text-gray-500">
-                                            <tr><th class="px-3 py-1 text-left font-medium">Peso (kg)</th><th class="px-3 py-1 text-right font-medium">Piezas</th><th class="px-2 py-1"></th></tr>
+                                            <tr><th class="px-3 py-1 text-right font-medium">Piezas</th><th class="px-2 py-1"></th></tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                                             @forelse ($cfPW as $w)
                                                 <tr wire:key="cfpw-{{ $w->id }}">
-                                                    <td class="px-3 py-1 text-gray-600 dark:text-gray-400">{{ $w->weight !== null ? number_format($w->weight, 3) : '—' }}</td>
-                                                    <td class="px-3 py-1 text-right font-semibold text-green-700 dark:text-green-400">{{ number_format($w->quantity) }}</td>
-                                                    <td class="px-2 py-1 text-center">
-                                                        <button wire:click="deleteConfirmPieceWeighing({{ $w->id }})" class="text-red-400 hover:text-red-600">✕</button>
-                                                    </td>
+                                                    @if ($editPieceWId === $w->id)
+                                                        <td class="px-3 py-1.5">
+                                                            <input type="number" min="1" wire:model="editPieceWQty"
+                                                                class="w-full px-2 py-1 text-xs text-right border border-indigo-400 dark:border-indigo-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                                            @error('editPieceWQty') <span class="block text-[10px] text-red-600 dark:text-red-400 mt-0.5">{{ $message }}</span> @enderror
+                                                        </td>
+                                                        <td class="px-2 py-1 text-center whitespace-nowrap">
+                                                            <button wire:click="saveConfirmPieceWeighing" class="text-green-600 hover:text-green-800 font-bold" title="Guardar">✓</button>
+                                                            <button wire:click="cancelEditPieceWeighing" class="text-gray-400 hover:text-gray-600 ml-1" title="Cancelar">✕</button>
+                                                        </td>
+                                                    @else
+                                                        <td class="px-3 py-1 text-right font-semibold text-green-700 dark:text-green-400">{{ number_format($w->quantity) }}</td>
+                                                        <td class="px-2 py-1 text-center whitespace-nowrap">
+                                                            <button wire:click="editConfirmPieceWeighing({{ $w->id }})" class="text-indigo-500 hover:text-indigo-700" title="Editar">✎</button>
+                                                            <button wire:click="deleteConfirmPieceWeighing({{ $w->id }})" class="text-red-400 hover:text-red-600 ml-1" title="Eliminar">✕</button>
+                                                        </td>
+                                                    @endif
                                                 </tr>
                                             @empty
-                                                <tr><td colspan="3" class="px-3 py-2 text-center text-gray-400 italic">Sin pesadas</td></tr>
+                                                <tr><td colspan="2" class="px-3 py-2 text-center text-gray-400 italic">Sin pesadas</td></tr>
                                             @endforelse
                                             <tr class="bg-gray-50/60 dark:bg-gray-900/20">
-                                                <td class="px-3 py-1.5">
-                                                    <input type="number" step="0.001" min="0" wire:model="cPieceWeight" placeholder="kg"
-                                                        class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                                                </td>
                                                 <td class="px-3 py-1.5">
                                                     <input type="number" min="1" wire:model="cPieceQty" placeholder="pzs"
                                                         class="w-full px-2 py-1 text-xs text-right border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
@@ -757,7 +765,7 @@
                                             </tr>
                                         </tbody>
                                         <tfoot class="bg-gray-50 dark:bg-gray-900/30">
-                                            <tr><td class="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">Total</td><td class="px-3 py-1.5 text-right text-xs font-bold text-green-700 dark:text-green-400">{{ number_format($cfPiecesTotal) }}</td><td></td></tr>
+                                            <tr><td class="px-3 py-1.5 text-right text-xs font-bold text-green-700 dark:text-green-400">Total: {{ number_format($cfPiecesTotal) }}</td><td></td></tr>
                                         </tfoot>
                                     </table>
                                     @error('cPieceQty') <p class="text-xs text-red-600 dark:text-red-400 px-3 py-1">{{ $message }}</p> @enderror
@@ -768,25 +776,33 @@
                                     <div class="px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/20 text-xs font-semibold text-cyan-700 dark:text-cyan-300">Piezas CRIMP <span class="font-normal text-gray-400">(objetivo: {{ number_format($cfSel?->quantity ?? 0) }})</span></div>
                                     <table class="w-full text-xs">
                                         <thead class="text-gray-400 dark:text-gray-500">
-                                            <tr><th class="px-3 py-1 text-left font-medium">Peso (kg)</th><th class="px-3 py-1 text-right font-medium">Piezas</th><th class="px-2 py-1"></th></tr>
+                                            <tr><th class="px-3 py-1 text-right font-medium">Piezas</th><th class="px-2 py-1"></th></tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                                             @forelse ($cfCW as $w)
                                                 <tr wire:key="cfcw-{{ $w->id }}">
-                                                    <td class="px-3 py-1 text-gray-600 dark:text-gray-400">{{ $w->weight !== null ? number_format($w->weight, 3) : '—' }}</td>
-                                                    <td class="px-3 py-1 text-right font-semibold text-cyan-700 dark:text-cyan-400">{{ number_format($w->quantity) }}</td>
-                                                    <td class="px-2 py-1 text-center">
-                                                        <button wire:click="deleteConfirmCrimpWeighing({{ $w->id }})" class="text-red-400 hover:text-red-600">✕</button>
-                                                    </td>
+                                                    @if ($editCrimpWId === $w->id)
+                                                        <td class="px-3 py-1.5">
+                                                            <input type="number" min="1" wire:model="editCrimpWQty"
+                                                                class="w-full px-2 py-1 text-xs text-right border border-cyan-400 dark:border-cyan-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                                            @error('editCrimpWQty') <span class="block text-[10px] text-red-600 dark:text-red-400 mt-0.5">{{ $message }}</span> @enderror
+                                                        </td>
+                                                        <td class="px-2 py-1 text-center whitespace-nowrap">
+                                                            <button wire:click="saveConfirmCrimpWeighing" class="text-green-600 hover:text-green-800 font-bold" title="Guardar">✓</button>
+                                                            <button wire:click="cancelEditCrimpWeighing" class="text-gray-400 hover:text-gray-600 ml-1" title="Cancelar">✕</button>
+                                                        </td>
+                                                    @else
+                                                        <td class="px-3 py-1 text-right font-semibold text-cyan-700 dark:text-cyan-400">{{ number_format($w->quantity) }}</td>
+                                                        <td class="px-2 py-1 text-center whitespace-nowrap">
+                                                            <button wire:click="editConfirmCrimpWeighing({{ $w->id }})" class="text-cyan-500 hover:text-cyan-700" title="Editar">✎</button>
+                                                            <button wire:click="deleteConfirmCrimpWeighing({{ $w->id }})" class="text-red-400 hover:text-red-600 ml-1" title="Eliminar">✕</button>
+                                                        </td>
+                                                    @endif
                                                 </tr>
                                             @empty
-                                                <tr><td colspan="3" class="px-3 py-2 text-center text-gray-400 italic">Sin pesadas</td></tr>
+                                                <tr><td colspan="2" class="px-3 py-2 text-center text-gray-400 italic">Sin pesadas</td></tr>
                                             @endforelse
                                             <tr class="bg-gray-50/60 dark:bg-gray-900/20">
-                                                <td class="px-3 py-1.5">
-                                                    <input type="number" step="0.001" min="0" wire:model="cCrimpWeight" placeholder="kg"
-                                                        class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                                                </td>
                                                 <td class="px-3 py-1.5">
                                                     <input type="number" min="1" wire:model="cCrimpQty" placeholder="pzs"
                                                         class="w-full px-2 py-1 text-xs text-right border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
@@ -797,7 +813,7 @@
                                             </tr>
                                         </tbody>
                                         <tfoot class="bg-gray-50 dark:bg-gray-900/30">
-                                            <tr><td class="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">Total</td><td class="px-3 py-1.5 text-right text-xs font-bold text-cyan-700 dark:text-cyan-400">{{ number_format($cfCrimpTotal) }}</td><td></td></tr>
+                                            <tr><td class="px-3 py-1.5 text-right text-xs font-bold text-cyan-700 dark:text-cyan-400">Total: {{ number_format($cfCrimpTotal) }}</td><td></td></tr>
                                         </tfoot>
                                     </table>
                                     @error('cCrimpQty') <p class="text-xs text-red-600 dark:text-red-400 px-3 py-1">{{ $message }}</p> @enderror
