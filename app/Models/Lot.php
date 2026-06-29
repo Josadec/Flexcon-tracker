@@ -414,13 +414,9 @@ class Lot extends Model
             ->pluck('lot_number')
             ->toArray();
 
-        if (empty($allLotNumbers)) {
-            return '001';
-        }
-
-        // Detect padding length from existing lot numbers
-        $maxPadding = max(array_map('strlen', $allLotNumbers));
-        $padLength = max($maxPadding, 3); // at least 3 digits
+        // El viajero/lote (Lot) usa SIEMPRE 2 dígitos (01, 02, …), tanto CRIMP como
+        // no-CRIMP. (El "lote de CRIMP" —CrimpLot— sí usa 3 dígitos, aparte.)
+        $padLength = 2;
 
         // Find highest numeric value among all lot numbers
         $maxNumeric = 0;

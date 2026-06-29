@@ -1894,9 +1894,18 @@ class ShippingListDisplay extends Component
 
         // LOT-level calculations — descartadas por calidad cuentan como faltantes (piezas perdidas).
         // En CRIMP las "empacadas/sobrante" se calculan desde las pesadas de piezas.
-        $this->decLotTotal = $lot->quantity;
-        $this->decPacked = $isCrimp ? $lot->getPackagedPiecesTotal() : $lot->getPackagingPackedPieces();
-        $this->decSurplus = $isCrimp ? $lot->getPackagedPiecesSurplus() : $lot->getPackagingTotalSurplus();
+        // Para CRIMP el "lote" que se decide es el LOTE DE CRIMP: Total/Empacadas/
+        // Sobrantes/Faltantes se miden contra el OBJETIVO del lote de CRIMP (igual que la
+        // fila CRIMP y que el Paso 5), no contra la cantidad del viajero.
+        if ($isCrimp) {
+            $this->decLotTotal = $lot->getCrimpTargetTotal();
+            $this->decPacked   = $lot->getPackagedPiecesTotal();
+            $this->decSurplus  = max(0, $this->decLotTotal - $this->decPacked);
+        } else {
+            $this->decLotTotal = $lot->quantity;
+            $this->decPacked   = $lot->getPackagingPackedPieces();
+            $this->decSurplus  = $lot->getPackagingTotalSurplus();
+        }
         $this->decMissing = max(0, $this->decLotTotal - $this->decPacked - $this->decSurplus);
 
         // Acumulado de ciclos de completado previos (ya decididos)
