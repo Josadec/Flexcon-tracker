@@ -379,12 +379,20 @@
                                 <tr wire:key="wo-row-{{ $wo->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                                     <td class="px-4 py-3 text-gray-900 dark:text-white font-medium">WO</td>
                                     <td class="px-4 py-3 font-medium">
-                                        <a href="{{ route('admin.sent-lists.display.wo', $wo->id) }}"
-                                            wire:navigate
-                                            class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline cursor-pointer"
-                                            title="Ver solo este WO">
-                                            {{ $po->wo }}
-                                        </a>
+                                        <div class="flex items-center gap-2">
+                                            <a href="{{ route('admin.sent-lists.display.wo', $wo->id) }}"
+                                                wire:navigate
+                                                class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline cursor-pointer"
+                                                title="Ver solo este WO">
+                                                {{ $po->wo }}
+                                            </a>
+                                            <a href="{{ route('admin.sent-lists.display.wo.resume', $wo->id) }}"
+                                                wire:navigate
+                                                class="inline-flex items-center justify-center w-6 h-6 rounded bg-cyan-600 hover:bg-cyan-700 text-white shadow-sm shrink-0 transition-colors"
+                                                title="Resumen del WO — viajeros y lotes de CRIMP (total · empacadas · sobrantes · faltantes · estado)">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6h6v6m-9 4h12a2 2 0 002-2V7l-5-4H6a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                            </a>
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $part->item_number }}
                                     </td>
