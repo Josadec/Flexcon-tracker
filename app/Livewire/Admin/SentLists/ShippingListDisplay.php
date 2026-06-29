@@ -1894,18 +1894,9 @@ class ShippingListDisplay extends Component
 
         // LOT-level calculations — descartadas por calidad cuentan como faltantes (piezas perdidas).
         // En CRIMP las "empacadas/sobrante" se calculan desde las pesadas de piezas.
-        // Para CRIMP el "lote" que se decide es el LOTE DE CRIMP: Total/Empacadas/
-        // Sobrantes/Faltantes se miden contra el OBJETIVO del lote de CRIMP (igual que la
-        // fila CRIMP y que el Paso 5), no contra la cantidad del viajero.
-        if ($isCrimp) {
-            $this->decLotTotal = $lot->getCrimpTargetTotal();
-            $this->decPacked   = $lot->getPackagedPiecesTotal();
-            $this->decSurplus  = max(0, $this->decLotTotal - $this->decPacked);
-        } else {
-            $this->decLotTotal = $lot->quantity;
-            $this->decPacked   = $lot->getPackagingPackedPieces();
-            $this->decSurplus  = $lot->getPackagingTotalSurplus();
-        }
+        $this->decLotTotal = $lot->quantity;
+        $this->decPacked = $isCrimp ? $lot->getPackagedPiecesTotal() : $lot->getPackagingPackedPieces();
+        $this->decSurplus = $isCrimp ? $lot->getPackagedPiecesSurplus() : $lot->getPackagingTotalSurplus();
         $this->decMissing = max(0, $this->decLotTotal - $this->decPacked - $this->decSurplus);
 
         // Acumulado de ciclos de completado previos (ya decididos)
@@ -1951,6 +1942,19 @@ class ShippingListDisplay extends Component
         $this->decClosureDecision = null;
         $this->decSurplusReceived = false;
         $this->resetErrorBag();
+    }
+
+    /**
+     * D3 atajo: crear un LOTE DE CRIMP directamente para el viajero actual,
+     * sin salir a Materiales (cierra la decisión y abre el modal de Lotes de CRIMP).
+     */
+    public function createCrimpLotFromDecision()
+    {
+        $lotId = $this->selectedLotForDecision?->id;
+        $this->closeDecisionModal();
+        if ($lotId) {
+            $this->openCrimpLotModal($lotId);
+        }
     }
 
     /**

@@ -3080,8 +3080,8 @@
                                         <button type="button" x-on:click="sel='D3'; sub=null"
                                             :class="sel==='D3' ? 'border-emerald-500 bg-emerald-100 dark:bg-emerald-900/40 ring-2 ring-emerald-300 dark:ring-emerald-700' : 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/15 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'"
                                             class="p-3.5 border-2 rounded-xl text-left transition-all">
-                                            <div class="text-sm font-bold text-emerald-800 dark:text-emerald-300">D3 · Nuevo lote</div>
-                                            <div class="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1">Crear o reiniciar un nuevo lote de CRIMP.</div>
+                                            <div class="text-sm font-bold text-emerald-800 dark:text-emerald-300">D3 · Nuevo viajero</div>
+                                            <div class="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1">Crear o reiniciar un nuevo viajero de CRIMP.</div>
                                         </button>
                                     </div>
 
@@ -3159,17 +3159,23 @@
 
                                     {{-- Detalle D3 --}}
                                     <div x-show="sel==='D3'" style="display:none" class="mt-4 p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50/50 dark:bg-gray-900/20">
-                                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">D3 · Nuevo lote de CRIMP</div>
-                                        <p class="text-xs text-gray-600 dark:text-gray-300 mb-2">¿Reiniciar el mismo lote o crear uno nuevo? → <strong>Nuevo lote de CRIMP</strong></p>
+                                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">D3 · Nuevo viajero</div>
+                                        <p class="text-xs text-gray-600 dark:text-gray-300 mb-2">¿Reiniciar el mismo viajero o crear uno nuevo? → <strong>Nuevo viajero</strong></p>
                                         <div class="flex flex-wrap items-center gap-2 text-xs mb-3">
-                                            <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">Sobrantes piezas (manguitas) = Nuevo lote = {{ number_format(intdiv(max(0, (int) $decSurplus), 100) * 100) }}</span>
+                                            <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">Sobrantes piezas (manguitas) = Nuevo viajero = {{ number_format(intdiv(max(0, (int) $decSurplus), 100) * 100) }}</span>
                                             <span class="text-gray-400">→</span>
                                             <span class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded inline-flex items-center gap-1">Reporte de Decisión 6 <span class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded text-[10px]">por definir</span></span>
                                             <span class="text-gray-400">→</span>
                                             <span class="px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded">Paso 7</span>
                                         </div>
                                         <div class="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded px-2 py-1 mb-3">Nota: redondear hacia abajo en múltiplos de 100.</div>
-                                        <button wire:click="decisionNewLot" class="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg">Confirmar D3 — crear nuevo lote ▸</button>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <button wire:click="decisionNewLot" class="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg">Confirmar D3 — crear nuevo viajero ▸</button>
+                                            <button wire:click="createCrimpLotFromDecision" class="px-4 py-2 text-sm font-semibold text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-700 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 rounded-lg inline-flex items-center gap-1">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                                Crear lote de CRIMP
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             @else
