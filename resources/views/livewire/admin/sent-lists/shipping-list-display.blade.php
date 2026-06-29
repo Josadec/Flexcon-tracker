@@ -2031,7 +2031,7 @@
             close="closeViajeroModal" maxWidth="2xl">
             <x-slot:context>
                 <x-ui-modal.ctx label="Descripción" :value="$vjPart?->description ?? $vjPart?->number ?? '—'" />
-                <x-ui-modal.ctx label="No. Order (WO + Viajero)" :value="$vjWoNum.' · '.($vjLot?->lot_number ?? '—')" />
+                <x-ui-modal.ctx label="No. Order (WO + Viajero)" :value="$vjWoNum.($vjLot?->lot_number ?? '—')" />
                 <x-ui-modal.ctx label="Lotes de CRIMP" :value="$vjCrimpLots->pluck('crimp_lot_number')->join(', ') ?: '—'" />
                 <x-ui-modal.ctx label="Cantidad en viajero" :value="number_format($vjLot?->quantity ?? 0)" />
             </x-slot:context>
@@ -2148,11 +2148,11 @@
                         </div>
                         <div class="bg-white dark:bg-gray-800 px-4 py-2.5">
                             <div class="text-[10px] uppercase text-gray-400 dark:text-gray-500">No. Order (WO + Viajero)</div>
-                            <div class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ $cfWoNum }} · {{ $cfLot?->lot_number }}</div>
+                            <div class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ $cfWoNum }}{{ $cfLot?->lot_number }}</div>
                         </div>
                         <div class="bg-white dark:bg-gray-800 px-4 py-2.5">
                             <div class="text-[10px] uppercase text-gray-400 dark:text-gray-500">No. en etiquetas (WO + Lote)</div>
-                            <div class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ $cfWoNum }} · {{ $cfSel?->crimp_lot_number ?? '—' }}</div>
+                            <div class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ $cfWoNum }}{{ $cfSel?->crimp_lot_number ?? '—' }}</div>
                         </div>
                         <div class="bg-white dark:bg-gray-800 px-4 py-2.5">
                             <div class="text-[10px] uppercase text-gray-400 dark:text-gray-500">Cantidad en viajero</div>
@@ -2323,11 +2323,23 @@
                                     <div class="text-lg font-bold text-cyan-700 dark:text-cyan-300">{{ number_format($cfCrimpTotal) }}</div>
                                 </div>
                                 <div class="rounded-lg bg-orange-50 dark:bg-orange-900/20 p-3 text-center">
-                                    <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">CRIMP sobrante</div>
+                                    <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">
+                                        <span class="relative inline-flex items-center gap-1 group cursor-help">
+                                            CRIMP sobrante
+                                            <svg class="w-3 h-3 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            <span class="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 z-30 hidden group-hover:block w-56 rounded-lg bg-gray-900 text-white text-[11px] font-normal normal-case leading-snug px-3 py-2 shadow-lg text-left">CRIMP del objetivo que aún no se empacaron (quedan disponibles).</span>
+                                        </span>
+                                    </div>
                                     <div class="text-lg font-bold text-orange-700 dark:text-orange-300">{{ number_format($cfCrimpSurplus) }}</div>
                                 </div>
                                 <div class="rounded-lg bg-orange-50 dark:bg-orange-900/20 p-3 text-center">
-                                    <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Piezas sobrantes</div>
+                                    <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">
+                                        <span class="relative inline-flex items-center gap-1 group cursor-help">
+                                            Piezas sobrantes
+                                            <svg class="w-3 h-3 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            <span class="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 z-30 hidden group-hover:block w-56 rounded-lg bg-gray-900 text-white text-[11px] font-normal normal-case leading-snug px-3 py-2 shadow-lg text-left">Piezas buenas que NO se empacaron (existen físicamente). Empaque debe entregarlas.</span>
+                                        </span>
+                                    </div>
                                     <div class="text-lg font-bold text-orange-700 dark:text-orange-300">{{ number_format($cfPiecesSurplus) }}</div>
                                 </div>
                             </div>
@@ -2359,8 +2371,8 @@
                                             $cfRows = [
                                                 ['Destinatarios', 'Empaque + Materiales'],
                                                 ['Descripción', $cfPart?->description ?? $cfPart?->number ?? '—'],
-                                                ['No. Order (WO + Viajero)', $cfWoNum.' + '.($cfLot?->lot_number ?? '—')],
-                                                ['Número de orden en etiquetas (WO + Lote de CRIMP)', $cfWoNum.' + '.($cfSel?->crimp_lot_number ?? '—')],
+                                                ['No. Order (WO + Viajero)', $cfWoNum.($cfLot?->lot_number ?? '—')],
+                                                ['Número de orden en etiquetas (WO + Lote de CRIMP)', $cfWoNum.($cfSel?->crimp_lot_number ?? '—')],
                                                 ['Cantidad en el viajero', number_format($cfLot?->quantity ?? 0)],
                                                 ['División del lote', $cfOtherLots->isNotEmpty()
                                                     ? 'Este lote contiene '.number_format($cfSel?->quantity ?? 0).' y existe'.($cfOtherLots->count() > 1 ? 'n otros lotes' : ' otro lote').' por '.$cfOtherLots->map(fn($l) => number_format($l->quantity))->join(', ')
@@ -2909,7 +2921,7 @@
             bodyClass="px-6 py-5 space-y-5 max-h-[72vh] overflow-y-auto">
             <x-slot:context>
                 <x-ui-modal.ctx label="Descripción" :value="$dPart?->description ?? $dPart?->number ?? '—'" />
-                <x-ui-modal.ctx :label="$dOrderLabel" :value="$dWoNum.' · '.$selectedLotForDecision->lot_number" />
+                <x-ui-modal.ctx :label="$dOrderLabel" :value="$dWoNum.$selectedLotForDecision->lot_number" />
                 @if ($decIsCrimp)
                     <x-ui-modal.ctx label="Lote de CRIMP" :value="$dFirstCrimp" />
                 @else
@@ -2934,8 +2946,20 @@
                                                 <th class="px-3 py-2 text-left">Concepto</th>
                                                 <th class="px-3 py-2 text-right">Total</th>
                                                 <th class="px-3 py-2 text-right">Empacadas</th>
-                                                <th class="px-3 py-2 text-right">Sobrantes</th>
-                                                <th class="px-3 py-2 text-right">Faltantes</th>
+                                                <th class="px-3 py-2 text-right">
+                                                    <span class="relative inline-flex items-center gap-1 group cursor-help justify-end">
+                                                        Sobrantes
+                                                        <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                        <span class="pointer-events-none absolute right-0 top-full mt-1 z-30 hidden group-hover:block w-60 rounded-lg bg-gray-900 text-white text-[11px] font-normal normal-case leading-snug px-3 py-2 shadow-lg text-left">Piezas/CRIMP buenos que NO se empacaron (existen físicamente). Quedan como sobrante y Empaque debe entregarlos.</span>
+                                                    </span>
+                                                </th>
+                                                <th class="px-3 py-2 text-right">
+                                                    <span class="relative inline-flex items-center gap-1 group cursor-help justify-end">
+                                                        Faltantes
+                                                        <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                        <span class="pointer-events-none absolute right-0 top-full mt-1 z-30 hidden group-hover:block w-60 rounded-lg bg-gray-900 text-white text-[11px] font-normal normal-case leading-snug px-3 py-2 shadow-lg text-left">Piezas que faltan del objetivo: se perdieron o las rechazó Calidad. Se reponen al «Completar» o se aceptan al «Cerrar».</span>
+                                                    </span>
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
