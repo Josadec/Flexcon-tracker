@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -47,6 +48,18 @@ class PurchaseOrder extends Model
     public const STATUS_REJECTED = 'rejected';
 
     public const STATUS_PENDING_CORRECTION = 'pending_correction';
+
+    /**
+     * Normaliza el numero de WO al guardar: elimina espacios en los extremos.
+     *
+     * Evita que un valor sucio (p.ej. " 2040057" con espacio inicial) se propague
+     * al codigo "W0..." que se arma con getEffectiveWoNumber() en la cola de envio
+     * y en los Packing Slips (FPL-10). Null-safe: null permanece null.
+     */
+    protected function wo(): Attribute
+    {
+        return Attribute::set(fn ($value) => $value === null ? null : trim($value));
+    }
 
     /**
      * Get the part that owns the purchase order.
