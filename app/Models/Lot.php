@@ -769,7 +769,12 @@ class Lot extends Model
             $alreadyLogged = $this->completionLogs->contains('cycle_number', $finalCycle);
 
             if (! $alreadyLogged) {
-                $finalPacked = (int) $this->packagingRecords->sum('packed_pieces');
+                // Fuente CRIMP-aware (regla 1:1 confirmada 2026-06-29): para un viajero CRIMP
+                // las "piezas completadas" son las manguitas empacadas (packaging_piece_weighings),
+                // ya que el flujo CRIMP nunca escribe packaging_records. NO-CRIMP sin cambios.
+                $finalPacked = $this->isViajero()
+                    ? $this->getPackagedPiecesTotal()
+                    : (int) $this->packagingRecords->sum('packed_pieces');
                 if ($finalPacked > 0) {
                     $cycles[] = ['cycle' => $finalCycle, 'pieces' => $finalPacked];
                 }

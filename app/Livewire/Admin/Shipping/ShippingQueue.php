@@ -180,7 +180,7 @@ class ShippingQueue extends Component
         }
 
         // Cargar lotes con sus relaciones necesarias
-        $lots = Lot::with(['workOrder', 'packagingRecords', 'completionLogs'])
+        $lots = Lot::with(['workOrder', 'packagingRecords', 'completionLogs', 'packagingPieceWeighings'])
             ->whereIn('id', $this->selectedLotIds)
             ->where('ready_for_shipping', true)
             ->whereDoesntHave('packingSlipItem')
@@ -458,6 +458,7 @@ class ShippingQueue extends Component
                 'workOrder.purchaseOrder.part',
                 'completionLogs',
                 'packagingRecords',
+                'packagingPieceWeighings',
             ]);
 
         // Filtro de busqueda por lot_number o numero de parte
