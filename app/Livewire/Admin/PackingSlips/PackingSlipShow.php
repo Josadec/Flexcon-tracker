@@ -101,10 +101,12 @@ class PackingSlipShow extends Component
     {
         $value = strtoupper(trim($value));
 
-        if ($this->packingSlip->isShipped() || $this->packingSlip->isPending() || $this->packingSlip->isCancelled()) {
+        // Editable solo en Borrador o Pendiente; bloqueado en Despachado o Cancelado
+        // (mismo criterio que updateItemDate / updateCrimpLotDate).
+        if ($this->packingSlip->isShipped() || $this->packingSlip->isCancelled()) {
             $this->dispatch('notify', [
                 'type'    => 'error',
-                'message' => 'No se puede cambiar el número en el estado actual del Packing Slip.',
+                'message' => 'No se puede editar el Numero de PS de un Packing Slip despachado o cancelado.',
             ]);
             return;
         }
@@ -127,7 +129,8 @@ class PackingSlipShow extends Component
         // Construir la URL de redirect usando getRouteKey() que ya aplica rawurlencode(),
         // evitando que route() haga doble-encoding en versiones de Livewire con wire:navigate.
         // getRouteKey() retorna ej: %23000012544 para ps_number=#000012544
-        $redirectUrl = url('/admin/packing-slips/' . $this->packingSlip->getRouteKey());
+        // La ruta de esta pantalla es admin/shipping-list/{packingSlip} (admin.shipping-list.show).
+        $redirectUrl = url('/admin/shipping-list/' . $this->packingSlip->getRouteKey());
 
         session()->flash('notify', [
             'type'    => 'success',

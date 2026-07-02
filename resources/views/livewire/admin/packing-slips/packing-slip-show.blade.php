@@ -212,7 +212,9 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Número de PS</p>
-                        @if ($packingSlip->isDraft())
+                        {{-- Editable en Borrador o Pendiente; solo lectura en Despachado o Cancelado
+                             (mismo criterio que las celdas Date). --}}
+                        @if (! $packingSlip->isShipped() && ! $packingSlip->isCancelled())
                             <div wire:key="ps-number-editor-{{ $packingSlip->id }}"
                                  x-data="{ editing: false, submitting: false, value: '{{ $packingSlip->ps_number }}' }"
                                  class="mt-1">
