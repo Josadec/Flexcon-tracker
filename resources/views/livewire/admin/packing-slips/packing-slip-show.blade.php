@@ -465,36 +465,81 @@
                                 @foreach ($itemsGroupedByPo as $poNumber => $poItems)
                                     @foreach ($poItems as $item)
                                         @php
-                                            // CRIMP (FPL-10): rótulo "Viajero" y desglose viajero -> lotes de CRIMP.
-                                            // Solo partes is_crimp; NO-CRIMP queda idéntico.
-                                            $psIsCrimp = (bool) ($item->lot?->workOrder?->purchaseOrder?->part?->is_crimp ?? false);
+                                            // CRIMP (FPL-10): una fila por lote de CRIMP, formato idéntico al PDF del cliente.
+                                            // Solo partes is_crimp; NO-CRIMP queda idéntico al comportamiento previo.
+                                            $part      = $item->lot?->workOrder?->purchaseOrder?->part;
+                                            $psIsCrimp = (bool) ($part?->is_crimp ?? false);
                                             $crimpLots = $psIsCrimp ? ($item->lot?->crimpLots ?? collect()) : collect();
+                                            $poNum     = $item->lot?->workOrder?->purchaseOrder?->po_number ?? '-';
+                                            $itemLabel = $item->label_spec ?: ($part?->label_spec ?: '-');
                                         @endphp
+
+                                        @if ($psIsCrimp && $crimpLots->isNotEmpty())
+                                            {{-- CRIMP (FPL-10): cada lote de CRIMP es UNA fila. Sin rótulo "Viajero".
+                                                 Item No = número de parte, Description = descripción de la parte,
+                                                 Quantity = cantidad del lote de CRIMP, Label Spec = del part. --}}
+                                            @foreach ($crimpLots as $crimp)
+                                                <tr>
+                                                    <td class="px-4 py-3 text-sm font-mono text-gray-900 dark:text-white">
+                                                        {{ $item->wo_number_ps ?? '-' }}
+                                                    </td>
+                                                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                                        {{ $poNum }}
+                                                    </td>
+                                                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                                        {{ $part?->item_number ?? '-' }}
+                                                    </td>
+                                                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                                        {{ $part?->description ?? '-' }}
+                                                    </td>
+                                                    <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
+                                                        {{ number_format($crimp->quantity) }}
+                                                    </td>
+                                                    {{-- Date: editable inline por lote de CRIMP (date_code manual, formato FPL-10). --}}
+                                                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400"
+                                                        x-data="{ editing: false, value: '{{ $crimp->date_code ?? '' }}' }">
+                                                        @if ($packingSlip->isShipped() || $packingSlip->isCancelled())
+                                                            <span class="min-w-[80px] inline-block">{{ $crimp->date_code ?: '-' }}</span>
+                                                        @else
+                                                            <span x-show="!editing" @click="editing = true"
+                                                                  class="cursor-pointer hover:text-blue-600 hover:underline min-w-[80px] inline-block"
+                                                                  x-text="value || '-'"></span>
+                                                            <input x-show="editing" x-model="value" type="text"
+                                                                   maxlength="20"
+                                                                   placeholder="ej: 250512A22"
+                                                                   class="border border-blue-400 rounded px-2 py-0.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                   @blur="editing = false; $wire.updateCrimpLotDate({{ $crimp->id }}, value)"
+                                                                   @keydown.enter="editing = false; $wire.updateCrimpLotDate({{ $crimp->id }}, value)"
+                                                                   @keydown.escape="editing = false"
+                                                                   x-effect="if (editing) $el.focus()">
+                                                        @endif
+                                                    </td>
+                                                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
+                                                        {{ $itemLabel }}
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        @else
                                         <tr>
                                             <td class="px-4 py-3 text-sm font-mono text-gray-900 dark:text-white">
                                                 {{ $item->wo_number_ps ?? '-' }}
-                                                @if ($psIsCrimp)
-                                                    <span class="ml-1 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">Viajero</span>
-                                                @endif
                                             </td>
                                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                                                {{ $item->lot?->workOrder?->purchaseOrder?->po_number ?? '-' }}
+                                                {{ $poNum }}
                                             </td>
                                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                                {{ $item->lot?->workOrder?->purchaseOrder?->part?->item_number ?? '-' }}
+                                                {{ $part?->item_number ?? '-' }}
                                             </td>
                                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                                {{ $item->lot?->workOrder?->purchaseOrder?->part?->description ?? '-' }}
+                                                {{ $part?->description ?? '-' }}
                                             </td>
                                             <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
                                                 {{ number_format($item->quantity_packed) }}
                                             </td>
                                             {{-- Celda Date: editable solo en Borrador --}}
                                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400"
-                                                @if ($packingSlip->isDraft())
-                                                x-data="{ editing: false, value: '{{ $item->lot_date_code ?? '' }}' }"
-                                                @endif>
-                                                @if (!$packingSlip->isDraft())
+                                                x-data="{ editing: false, value: '{{ $item->lot_date_code ?? '' }}' }">
+                                                @if ($packingSlip->isShipped() || $packingSlip->isCancelled())
                                                     <span class="min-w-[80px] inline-block">{{ $item->lot_date_code ?: '-' }}</span>
                                                 @else
                                                     <span x-show="!editing" @click="editing = true"
@@ -513,30 +558,10 @@
                                             {{-- Label Spec: muestra snapshot si existe, si no jala del Part.
                                                  Si ninguno tiene valor, se muestra "-" segun requerimiento del cliente. --}}
                                             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
-                                                {{ $item->label_spec ?: ($item->lot?->workOrder?->purchaseOrder?->part?->label_spec ?: '-') }}
+                                                {{ $itemLabel }}
                                             </td>
                                         </tr>
-
-                                        {{-- Desglose CRIMP (FPL-10): una sub-fila por lote de CRIMP del viajero. --}}
-                                        @foreach ($crimpLots as $crimp)
-                                            <tr class="bg-indigo-50/40 dark:bg-indigo-900/10">
-                                                <td class="pl-8 pr-4 py-1.5 text-xs text-indigo-700 dark:text-indigo-300 font-medium whitespace-nowrap">
-                                                    ↳ Viajero {{ $item->lot?->lot_number }}
-                                                </td>
-                                                <td class="px-4 py-1.5"></td>
-                                                <td class="px-4 py-1.5 text-xs text-gray-600 dark:text-gray-400 font-mono">
-                                                    {{ $crimp->crimp_lot_number }}
-                                                </td>
-                                                <td class="px-4 py-1.5 text-xs text-gray-600 dark:text-gray-400">
-                                                    {{ $crimp->lote_fabricante ?: '-' }}
-                                                </td>
-                                                <td class="px-4 py-1.5 text-xs text-right text-gray-700 dark:text-gray-300">
-                                                    {{ number_format($crimp->quantity) }}
-                                                </td>
-                                                <td class="px-4 py-1.5"></td>
-                                                <td class="px-4 py-1.5"></td>
-                                            </tr>
-                                        @endforeach
+                                        @endif
                                     @endforeach
                                     {{-- Fila de subtotal por PO: siempre visible para reflejar el formato FPL-10 --}}
                                     <tr class="bg-blue-50 dark:bg-blue-900/20 border-t-2 border-blue-200 dark:border-blue-700">

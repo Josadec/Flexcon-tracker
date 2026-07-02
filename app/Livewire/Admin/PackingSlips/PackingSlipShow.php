@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\PackingSlips;
 
+use App\Models\CrimpLot;
 use App\Models\Lot;
 use App\Models\PackingSlip;
 use App\Models\PackingSlipItem;
@@ -163,9 +164,47 @@ class PackingSlipShow extends Component
     // -----------------------------------------------------------------------
     public function updateItemDate(int $itemId, string $value): void
     {
+        // Editable solo en Borrador o Pendiente; bloqueado si Despachado o Cancelado.
+        if ($this->packingSlip->isShipped() || $this->packingSlip->isCancelled()) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => 'No se puede editar el Date de un Packing Slip despachado o cancelado.',
+            ]);
+            return;
+        }
+
         $item = $this->packingSlip->items()->findOrFail($itemId);
         $item->update(['lot_date_code' => trim($value) ?: null]);
         $this->packingSlip->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part']);
+
+        $this->dispatch('notify', [
+            'type'    => 'success',
+            'message' => 'Date actualizado correctamente.',
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Edición inline del Date por Lote de CRIMP (FPL-10)
+    // Cada lote de CRIMP es una fila con su propio date_code manual (ej. 260602B01).
+    // -----------------------------------------------------------------------
+    public function updateCrimpLotDate(int $crimpLotId, string $value): void
+    {
+        // Editable solo en Borrador o Pendiente; bloqueado si Despachado o Cancelado.
+        if ($this->packingSlip->isShipped() || $this->packingSlip->isCancelled()) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => 'No se puede editar el Date de un Packing Slip despachado o cancelado.',
+            ]);
+            return;
+        }
+
+        // Verificar que el lote de CRIMP pertenece a un lote (viajero) de este Packing Slip.
+        $lotIds = $this->packingSlip->items()->pluck('lot_id')->toArray();
+
+        $crimpLot = CrimpLot::whereIn('lot_id', $lotIds)->findOrFail($crimpLotId);
+        $crimpLot->update(['date_code' => trim($value) ?: null]);
+
+        $this->packingSlip->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'items.lot.crimpLots']);
 
         $this->dispatch('notify', [
             'type'    => 'success',

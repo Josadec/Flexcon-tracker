@@ -20,6 +20,7 @@ class CrimpLot extends Model
         'lot_id',
         'crimp_lot_number',
         'lote_fabricante',
+        'date_code',
         'quantity',
         'comments',
     ];
