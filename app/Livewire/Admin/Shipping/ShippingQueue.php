@@ -123,6 +123,59 @@ class ShippingQueue extends Component
         $this->errorMessage = null;
     }
 
+    /**
+     * Selecciona o deselecciona TODOS los lotes seleccionables de la pagina
+     * actual (respetando busqueda y filtro de tipo de cierre).
+     *
+     * "Seleccionables" = lotes cuyo WO tiene numero externo (decision D-06-05);
+     * los lotes sin WO externo se ignoran (no pueden incluirse en un PS).
+     *
+     * Comportamiento tipo toggle:
+     *  - Si TODOS los seleccionables de la pagina ya estan seleccionados -> los quita.
+     *  - En caso contrario -> agrega los que falten (conserva la seleccion de otras paginas).
+     *
+     * NOTA: opera solo sobre la PAGINA ACTUAL (comportamiento estandar y seguro).
+     * Reutiliza la misma consulta/orden de la tabla via buildQueue().
+     */
+    public function toggleSelectAll(): void
+    {
+        $pageLots = $this->buildQueue()->paginate(25)->getCollection();
+
+        // Solo lotes con WO externo son seleccionables
+        $selectableIds = $pageLots
+            ->filter(fn ($lot) => $lot->workOrder?->hasExternalWoNumber())
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $this->errorMessage = null;
+
+        if (empty($selectableIds)) {
+            return;
+        }
+
+        $allSelected = empty(array_diff($selectableIds, $this->selectedLotIds));
+
+        if ($allSelected) {
+            // Deseleccionar los lotes de esta pagina
+            $this->selectedLotIds = array_values(array_diff($this->selectedLotIds, $selectableIds));
+            foreach ($selectableIds as $id) {
+                unset($this->labelSpecs[$id]);
+            }
+
+            return;
+        }
+
+        // Seleccionar los que falten, preservando la seleccion de otras paginas
+        foreach ($selectableIds as $id) {
+            if (!in_array($id, $this->selectedLotIds)) {
+                $this->selectedLotIds[] = $id;
+                $lot = $pageLots->firstWhere('id', $id);
+                $this->labelSpecs[$id] = $lot?->workOrder?->purchaseOrder?->part?->label_spec ?? '';
+            }
+        }
+    }
+
     // =========================================================
     // Modal de creacion de Packing Slip
     // =========================================================
@@ -450,7 +503,14 @@ class ShippingQueue extends Component
     // Render
     // =========================================================
 
-    public function render()
+    /**
+     * Construye la consulta de la cola de despacho aplicando los mismos
+     * filtros (busqueda + tipo de cierre) y orden que muestra la tabla.
+     *
+     * Se centraliza aqui para que render() y toggleSelectAll() usen exactamente
+     * la misma consulta/orden y no se dupliquen ni se desincronice la logica.
+     */
+    protected function buildQueue()
     {
         // Cola principal: lotes listos para shipping, sin PS asignado
         $query = Lot::readyForShipping()
@@ -480,7 +540,24 @@ class ShippingQueue extends Component
             $query->where('closed_by_type', $this->filterClosedByType);
         }
 
-        $lotsInQueue = $query->orderBy('ready_for_shipping_at', 'desc')->paginate(25);
+        return $query->orderBy('ready_for_shipping_at', 'desc');
+    }
+
+    public function render()
+    {
+        $lotsInQueue = $this->buildQueue()->paginate(25);
+
+        // Estado del checkbox maestro "Seleccionar todos" (solo pagina actual).
+        // Seleccionables = lotes con WO externo (los demas no pueden ir en un PS).
+        $pageSelectableIds = $lotsInQueue->getCollection()
+            ->filter(fn ($lot) => $lot->workOrder?->hasExternalWoNumber())
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $selectedOnPage  = array_intersect($pageSelectableIds, $this->selectedLotIds);
+        $allPageSelected = !empty($pageSelectableIds) && count($selectedOnPage) === count($pageSelectableIds);
+        $somePageSelected = !empty($selectedOnPage) && !$allPageSelected;
 
         // Datos de los lotes seleccionados para el modal de confirmacion
         $selectedLots = [];
@@ -501,10 +578,12 @@ class ShippingQueue extends Component
         }
 
         return view('livewire.admin.shipping.shipping-queue', [
-            'lotsInQueue'  => $lotsInQueue,
-            'selectedLots' => $selectedLots,
-            'canCreatePs'  => $canCreatePs,
-            'returningLot' => $returningLot,
+            'lotsInQueue'      => $lotsInQueue,
+            'selectedLots'     => $selectedLots,
+            'canCreatePs'      => $canCreatePs,
+            'returningLot'     => $returningLot,
+            'allPageSelected'  => $allPageSelected,
+            'somePageSelected' => $somePageSelected,
             'closureTypes' => [
                 ''               => 'Todos los tipos',
                 'complete_lot'   => 'Lote completo',

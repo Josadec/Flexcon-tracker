@@ -125,7 +125,21 @@
                             <tr class="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
                                 @if($canCreatePs)
                                     <th class="w-10 px-4 py-3 text-left">
-                                        <span class="sr-only">Seleccionar</span>
+                                        {{-- Checkbox maestro: selecciona/deselecciona todos los lotes
+                                             seleccionables de la pagina actual (respeta filtros).
+                                             El wire:key cambia con el estado para forzar el re-init de
+                                             Alpine y asi actualizar el estado "indeterminate". --}}
+                                        <input
+                                            type="checkbox"
+                                            wire:click="toggleSelectAll"
+                                            wire:key="select-all-{{ $allPageSelected ? 1 : 0 }}-{{ $somePageSelected ? 1 : 0 }}"
+                                            @checked($allPageSelected)
+                                            x-data
+                                            x-init="$el.indeterminate = @js($somePageSelected)"
+                                            title="Seleccionar todos los de esta pagina"
+                                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
+                                        >
+                                        <span class="sr-only">Seleccionar todos</span>
                                     </th>
                                 @endif
                                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">Viajero/Lote</th>
