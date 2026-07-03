@@ -3,11 +3,14 @@
 namespace Tests\Feature;
 
 use App\Livewire\Admin\SentLists\SentListPackagingView;
+use App\Livewire\Admin\SentLists\ShippingListDisplay;
 use App\Models\CrimpLot;
 use App\Models\Lot;
 use App\Models\Part;
 use App\Models\PackagingCrimpWeighing;
 use App\Models\PackagingPieceWeighing;
+use App\Models\PackingSlip;
+use App\Models\PackingSlipItem;
 use App\Models\PurchaseOrder;
 use App\Models\QualityWeighing;
 use App\Models\SentList;
@@ -16,6 +19,8 @@ use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -103,5 +108,151 @@ class CrimpDecisionTest extends TestCase
             ->call('decisionNewLot')
             ->assertSet('createLotQuantity', 300) // floor(350/100)*100
             ->assertSet('showCreateLotFormModal', true);
+    }
+
+    // ---------------------------------------------------------------------
+    // Hueco D2 → cola de shipping (marca diferida al Paso 7).
+    // ---------------------------------------------------------------------
+
+    private function packagingUser(): User
+    {
+        Role::firstOrCreate(['name' => 'Empaques', 'guard_name' => 'web']);
+        $u = User::factory()->create();
+        $u->assignRole('Empaques');
+        return $u;
+    }
+
+    private function materialsUser(): User
+    {
+        Role::firstOrCreate(['name' => 'Materiales', 'guard_name' => 'web']);
+        $u = User::factory()->create();
+        $u->assignRole('Materiales');
+        return $u;
+    }
+
+    /** Toma una decisión D2 y devuelve el viajero refrescado (aún NO recibido). */
+    private function decideCompletion(SentList $sentList, Lot $viajero, string $method): Lot
+    {
+        Livewire::test(SentListPackagingView::class, ['sentList' => $sentList])
+            ->call('openDecisionModal', $viajero->id)
+            ->call($method)
+            ->assertHasNoErrors();
+
+        return $viajero->refresh();
+    }
+
+    #[DataProvider('completionDecisions')]
+    public function test_d2_not_ready_until_viajero_received(string $method, string $decision): void
+    {
+        [$sentList, $viajero] = $this->makeScenario();
+
+        // Paso 6: la decisión dispara el observer, que NO marca los complete_*.
+        $this->decideCompletion($sentList, $viajero, $method);
+        $this->assertSame($decision, $viajero->closure_decision);
+        $this->assertFalse((bool) $viajero->ready_for_shipping);
+        $this->assertFalse(Lot::readyForShipping()->whereKey($viajero->id)->exists());
+
+        // Paso 7: Empaque recibe el viajero → ahora entra a la cola.
+        $this->actingAs($this->packagingUser());
+        Livewire::test(ShippingListDisplay::class)
+            ->call('markViajeroReceived', $viajero->id)
+            ->assertHasNoErrors();
+
+        $viajero->refresh();
+        $this->assertTrue((bool) $viajero->ready_for_shipping);
+        $this->assertSame(500, $viajero->quantity_packed_final); // getPackagedPiecesTotal()
+        $this->assertSame($decision, $viajero->closed_by_type);
+        $this->assertTrue(Lot::readyForShipping()->whereKey($viajero->id)->exists());
+    }
+
+    public static function completionDecisions(): array
+    {
+        return [
+            'D2a completar CRIMP'  => ['decisionCompleteCrimp', Lot::CLOSURE_COMPLETE_CRIMP],
+            'D2b completar piezas' => ['decisionCompletePieces', Lot::CLOSURE_COMPLETE_PIECES],
+            'D2c completar ambos'  => ['decisionCompleteBoth', Lot::CLOSURE_COMPLETE_BOTH],
+        ];
+    }
+
+    public function test_revert_viajero_received_removes_from_queue(): void
+    {
+        [$sentList, $viajero] = $this->makeScenario();
+        $this->decideCompletion($sentList, $viajero, 'decisionCompleteCrimp');
+
+        $this->actingAs($this->packagingUser());
+        Livewire::test(ShippingListDisplay::class)
+            ->call('markViajeroReceived', $viajero->id)
+            ->call('revertViajeroReceived', $viajero->id)
+            ->assertHasNoErrors();
+
+        $viajero->refresh();
+        $this->assertFalse((bool) $viajero->ready_for_shipping);
+        $this->assertNull($viajero->quantity_packed_final);
+        $this->assertNull($viajero->closed_by_type);
+        $this->assertFalse(Lot::readyForShipping()->whereKey($viajero->id)->exists());
+    }
+
+    public function test_revert_blocked_when_packing_slip_exists(): void
+    {
+        [$sentList, $viajero] = $this->makeScenario();
+        $this->decideCompletion($sentList, $viajero, 'decisionCompleteCrimp');
+
+        $packer = $this->packagingUser();
+        $this->actingAs($packer);
+        Livewire::test(ShippingListDisplay::class)
+            ->call('markViajeroReceived', $viajero->id)
+            ->assertHasNoErrors();
+
+        // Ya facturado en un Packing Slip (D-12).
+        $ps = PackingSlip::create([
+            'ps_number'  => 'PS-TEST-1', 'created_by' => $packer->id, 'status' => 'draft',
+        ]);
+        PackingSlipItem::create([
+            'packing_slip_id' => $ps->id, 'lot_id' => $viajero->id, 'quantity_packed' => 500,
+        ]);
+
+        Livewire::test(ShippingListDisplay::class)
+            ->call('revertViajeroReceived', $viajero->id);
+
+        $viajero->refresh();
+        // El guard D-12 bloquea: el viajero sigue recibido y marcado.
+        $this->assertTrue((bool) $viajero->viajero_received);
+        $this->assertTrue((bool) $viajero->ready_for_shipping);
+    }
+
+    public function test_d1_close_as_is_still_marked_ready_by_observer(): void
+    {
+        [$sentList, $viajero] = $this->makeScenario();
+        $this->decideCompletion($sentList, $viajero, 'decisionCloseAsIs');
+
+        // Regresión: D1 lo marca el observer en el Paso 6 (no toca markViajeroReceived).
+        $this->assertSame(Lot::CLOSURE_CLOSE_AS_IS, $viajero->closure_decision);
+        $this->assertTrue((bool) $viajero->ready_for_shipping);
+        $this->assertTrue(Lot::readyForShipping()->whereKey($viajero->id)->exists());
+    }
+
+    public function test_reopen_removes_received_d2_from_queue(): void
+    {
+        [$sentList, $viajero] = $this->makeScenario();
+        $this->decideCompletion($sentList, $viajero, 'decisionCompleteCrimp');
+
+        $this->actingAs($this->packagingUser());
+        Livewire::test(ShippingListDisplay::class)
+            ->call('markViajeroReceived', $viajero->id)
+            ->assertHasNoErrors();
+        $this->assertTrue((bool) $viajero->refresh()->ready_for_shipping);
+
+        // Materiales reabre el lote → debe salir de la cola (no queda fantasma).
+        $this->actingAs($this->materialsUser());
+        Livewire::test(ShippingListDisplay::class)
+            ->call('openDecisionModal', $viajero->id)
+            ->call('reopenLot')
+            ->assertHasNoErrors();
+
+        $viajero->refresh();
+        $this->assertNull($viajero->closure_decision);
+        $this->assertFalse((bool) $viajero->ready_for_shipping);
+        $this->assertFalse((bool) $viajero->viajero_received);
+        $this->assertFalse(Lot::readyForShipping()->whereKey($viajero->id)->exists());
     }
 }
