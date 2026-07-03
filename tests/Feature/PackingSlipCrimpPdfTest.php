@@ -85,35 +85,35 @@ class PackingSlipCrimpPdfTest extends TestCase
     }
 
     /**
-     * CRIMP: un viajero con 2 lotes de CRIMP produce una sub-fila por cada uno,
-     * mostrando crimp_lot_number, lote_fabricante y cantidad; y la etiqueta "Viajero".
+     * CRIMP (FPL-10, commit 7a2aac2): un viajero con 2 lotes de CRIMP produce UNA fila
+     * por cada uno, con formato del PDF del cliente — item_number, cantidad y date_code —
+     * SIN la etiqueta "Viajero" ni el crimp_lot_number / lote_fabricante del diseño previo.
      */
-    public function test_crimp_packing_slip_muestra_desglose_de_lotes_de_crimp(): void
+    public function test_crimp_packing_slip_muestra_una_fila_por_lote_de_crimp(): void
     {
         [$ps, $lot] = $this->makePackingSlipWithItem(isCrimp: true);
 
         CrimpLot::create([
             'lot_id' => $lot->id, 'crimp_lot_number' => 'CL-001',
-            'lote_fabricante' => 'PROV-AAA', 'quantity' => 600,
+            'lote_fabricante' => 'PROV-AAA', 'quantity' => 600, 'date_code' => '250512A22',
         ]);
         CrimpLot::create([
             'lot_id' => $lot->id, 'crimp_lot_number' => 'CL-002',
-            'lote_fabricante' => 'PROV-BBB', 'quantity' => 400,
+            'lote_fabricante' => 'PROV-BBB', 'quantity' => 400, 'date_code' => '250512A23',
         ]);
 
         $html = $this->renderPdf($ps);
 
-        // Etiqueta "Viajero" + el lot_number en la sub-fila.
-        $this->assertStringContainsString('Viajero V-PS-001', $html);
-        // crimp_lot_number de cada lote de CRIMP.
-        $this->assertStringContainsString('CL-001', $html);
-        $this->assertStringContainsString('CL-002', $html);
-        // lote_fabricante de cada lote de CRIMP.
-        $this->assertStringContainsString('PROV-AAA', $html);
-        $this->assertStringContainsString('PROV-BBB', $html);
-        // Cantidad capturada de cada lote de CRIMP.
+        // Una fila por lote de CRIMP: item_number + cantidad + date_code.
+        $this->assertStringContainsString('IT-100', $html);
         $this->assertStringContainsString(number_format(600), $html);
         $this->assertStringContainsString(number_format(400), $html);
+        $this->assertStringContainsString('250512A22', $html);
+        $this->assertStringContainsString('250512A23', $html);
+        // El diseño previo (etiqueta "Viajero" y crimp_lot_number/lote_fabricante) fue eliminado.
+        $this->assertStringNotContainsString('Viajero V-PS-001', $html);
+        $this->assertStringNotContainsString('CL-001', $html);
+        $this->assertStringNotContainsString('PROV-AAA', $html);
     }
 
     /**

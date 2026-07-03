@@ -77,26 +77,33 @@ class PackingSlipCrimpScreenTest extends TestCase
         return [$ps, $lot];
     }
 
-    public function test_crimp_screen_muestra_rotulo_viajero_y_desglose(): void
+    public function test_crimp_screen_muestra_una_fila_por_lote_sin_rotulo_viajero(): void
     {
+        // FPL-10 (commit 7a2aac2): cada lote de CRIMP es UNA fila con formato del PDF del
+        // cliente — item_number, cantidad y date_code — SIN el rótulo "Viajero" ni el
+        // crimp_lot_number / lote_fabricante del diseño previo.
         [$ps, $lot] = $this->makePackingSlipWithItem(isCrimp: true);
 
         CrimpLot::create([
             'lot_id' => $lot->id, 'crimp_lot_number' => 'CL-001',
-            'lote_fabricante' => 'PROV-AAA', 'quantity' => 600,
+            'lote_fabricante' => 'PROV-AAA', 'quantity' => 600, 'date_code' => '250512A22',
         ]);
         CrimpLot::create([
             'lot_id' => $lot->id, 'crimp_lot_number' => 'CL-002',
-            'lote_fabricante' => 'PROV-BBB', 'quantity' => 400,
+            'lote_fabricante' => 'PROV-BBB', 'quantity' => 400, 'date_code' => '250512A23',
         ]);
 
         Livewire::test(PackingSlipShow::class, ['packingSlip' => $ps])
-            ->assertSee('Viajero')          // rótulo
-            ->assertSee('V-PS-777')         // viajero en la sub-fila
-            ->assertSee('CL-001')
-            ->assertSee('CL-002')
-            ->assertSee('PROV-AAA')
-            ->assertSee('PROV-BBB');
+            // Una fila por lote de CRIMP: item_number + cantidad + date_code.
+            ->assertSee('IT-100')
+            ->assertSee('600')
+            ->assertSee('400')
+            ->assertSee('250512A22')
+            ->assertSee('250512A23')
+            // El diseño previo (rótulo "Viajero" y crimp_lot_number/lote_fabricante) fue eliminado.
+            ->assertDontSee('Viajero')
+            ->assertDontSee('CL-001')
+            ->assertDontSee('PROV-AAA');
     }
 
     public function test_no_crimp_screen_no_muestra_desglose(): void
