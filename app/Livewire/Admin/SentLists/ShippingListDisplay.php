@@ -1784,11 +1784,24 @@ class ShippingListDisplay extends Component
             return;
         }
 
-        $lot->update([
+        $updates = [
             'viajero_received'    => true,
             'viajero_received_at' => now(),
             'viajero_received_by' => auth()->id(),
-        ]);
+        ];
+
+        // D2a/b/c: la marca de shipping se difiere aquí (Paso 7), no en el observer
+        // (Paso 6), porque una decisión "completar" deja trabajo pendiente. D1/D3 ya
+        // fueron marcados por el observer, así que el gate solo aplica a los complete_*.
+        if ($lot->isCompletionClosure()) {
+            $updates['ready_for_shipping']    = true;
+            $updates['ready_for_shipping_at'] = now();
+            $updates['quantity_packed_final'] = $lot->getPackagedPiecesTotal();
+            $updates['closed_by_type']        = $lot->closure_decision;
+        }
+
+        // update() normal: no cambia closure_decision, no re-dispara el observer.
+        $lot->update($updates);
 
         session()->flash('message', 'Viajero '.$lot->lot_number.' recibido. Continúa al Paso 8 (sobrantes).');
         $this->closeViajeroModal();
@@ -1808,11 +1821,27 @@ class ShippingListDisplay extends Component
             return;
         }
 
-        $lot->update([
+        // D-12: no revertir si el lote ya tiene un Packing Slip generado (ya facturado).
+        if ($lot->packingSlipItem()->exists()) {
+            session()->flash('error', 'No se puede revertir: el lote ya tiene un Packing Slip generado.');
+            return;
+        }
+
+        $updates = [
             'viajero_received'    => false,
             'viajero_received_at' => null,
             'viajero_received_by' => null,
-        ]);
+        ];
+
+        // Simétrico al Paso 2: sacar de la cola de shipping solo los complete_* (D2).
+        if ($lot->isCompletionClosure()) {
+            $updates['ready_for_shipping']    = false;
+            $updates['ready_for_shipping_at'] = null;
+            $updates['quantity_packed_final'] = null;
+            $updates['closed_by_type']        = null;
+        }
+
+        $lot->update($updates);
 
         session()->flash('message', 'Entrega del viajero '.$lot->lot_number.' revertida (marcado como NO recibido).');
         $this->closeViajeroModal();
@@ -2161,7 +2190,7 @@ class ShippingListDisplay extends Component
 
         $lot = $this->selectedLotForDecision;
 
-        $lot->update([
+        $updates = [
             'closure_decision' => null,
             'closure_decided_by' => null,
             'closure_decided_at' => null,
@@ -2173,7 +2202,21 @@ class ShippingListDisplay extends Component
             'surplus_received_by' => null,
             'status' => Lot::STATUS_IN_PROGRESS,
             'packaging_status' => 'pending',
-        ]);
+        ];
+
+        // Evitar viajero "fantasma": un D2 ya recibido (ready_for_shipping=true) que se
+        // reabre debe salir de la cola. Solo si aún NO tiene Packing Slip (no facturado).
+        if (!$lot->packingSlipItem()->exists()) {
+            $updates['ready_for_shipping']    = false;
+            $updates['ready_for_shipping_at'] = null;
+            $updates['quantity_packed_final'] = null;
+            $updates['closed_by_type']        = null;
+            $updates['viajero_received']      = false;
+            $updates['viajero_received_at']   = null;
+            $updates['viajero_received_by']   = null;
+        }
+
+        $lot->update($updates);
 
         session()->flash('message', 'Lote ' . $lot->lot_number . ' reabierto exitosamente.');
         $this->openDecisionModal($lot->id);

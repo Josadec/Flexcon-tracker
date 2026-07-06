@@ -1010,6 +1010,25 @@ class Lot extends Model
     public const CLOSURE_COMPLETE_BOTH = 'complete_both';
 
     /**
+     * Decisiones D2 (Paso 6 CRIMP) que dejan trabajo pendiente y cuya marca de
+     * shipping se difiere al Paso 7 (recepción del viajero), no al observer.
+     */
+    public const CLOSURE_COMPLETION_TYPES = [
+        self::CLOSURE_COMPLETE_CRIMP,
+        self::CLOSURE_COMPLETE_PIECES,
+        self::CLOSURE_COMPLETE_BOTH,
+    ];
+
+    /**
+     * ¿La decisión de cierre es un tipo "completar" (D2a/b/c)?
+     * Se usa como gate para marcar ready_for_shipping en el Paso 7.
+     */
+    public function isCompletionClosure(): bool
+    {
+        return in_array($this->closure_decision, self::CLOSURE_COMPLETION_TYPES, true);
+    }
+
+    /**
      * Get the post-quality lifecycle state for visual indicators.
      * Returns 3 phases (viajero, decision, material) each with:
      *   - state: 'idle' | 'pending' | 'in_progress' | 'done'
