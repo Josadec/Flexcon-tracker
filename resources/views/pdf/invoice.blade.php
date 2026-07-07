@@ -284,14 +284,38 @@
 
         /* ============================================================
            CONTENIDO PRINCIPAL
-           margin-top debe compensar la altura total del header fijo:
-             banner(~70px) + address(~22px) + contact(~22px)
-             + client(~62px) + invoice-id(~34px) = ~210px
+           El espacio para el header y el footer fijos lo reservan ahora
+           los spacers dentro del <thead>/<tfoot> de la tabla de items.
+           dompdf repite thead/tfoot y RESERVA su altura en TODAS las
+           paginas, por lo que las filas nunca quedan tapadas por el header
+           fijo. Aqui NO se usa margin-top/margin-bottom (eso solo empujaba
+           la 1ra pagina y dejaba la 2da tapada por el header).
            ============================================================ */
         #main-content {
-            margin-top: 255px;
-            margin-bottom: 24px;
             padding: 0 10px;
+        }
+
+        /* ============================================================
+           SPACERS DE REPETICION (dompdf reserva thead/tfoot por pagina)
+           Filas transparentes sin borde: su UNICA funcion es reservar en
+           cada pagina el alto del header fijo (255px) y del footer fijo
+           (24px), de modo que las filas de datos que fluyen a la 2da pagina
+           en adelante arranquen por debajo del header y no se oculten.
+           Los valores replican el espaciado previo (margin-top:255px /
+           margin-bottom:24px) SIN alterar el estilo visual.
+           ============================================================ */
+        .items-table thead tr.header-spacer td {
+            height: 255px;
+            padding: 0;
+            border: none;
+            background: transparent;
+        }
+
+        .items-table tfoot tr.footer-spacer td {
+            height: 24px;
+            padding: 0;
+            border: none;
+            background: transparent;
         }
 
         /* ============================================================
@@ -509,6 +533,11 @@
 
         <table class="items-table">
             <thead>
+                {{-- Spacer transparente: reserva en CADA pagina el alto del
+                     header fijo para que las filas no queden ocultas. --}}
+                <tr class="header-spacer">
+                    <td colspan="8"></td>
+                </tr>
                 <tr>
                     <th class="th-left" style="width:22%;">DESCRIPTION</th>
                     <th style="width:10%;">Item No.</th>
@@ -520,6 +549,13 @@
                     <th class="th-right" style="width:10%;">TOTAL</th>
                 </tr>
             </thead>
+            <tfoot>
+                {{-- Spacer transparente: reserva en CADA pagina el alto del
+                     footer fijo para que la ultima fila no lo tape. --}}
+                <tr class="footer-spacer">
+                    <td colspan="8"></td>
+                </tr>
+            </tfoot>
             <tbody>
 
                 {{-- Filas de producto (is_fixed_charge = false) --}}
