@@ -241,6 +241,7 @@ Route::middleware(['auth', 'verified', 'role:admin|Materiales'])->group(function
 Route::middleware(['auth', 'verified', 'role:admin|Empaques'])->group(function () {
     Route::get('/packaging', \App\Livewire\Admin\Packaging\PackagingDashboard::class)->name('packaging.index');
     Route::get('/packaging/manage', \App\Livewire\Admin\Packaging\PackagingManagement::class)->name('packaging.manage');
+    Route::get('/packaging/weighings', \App\Livewire\Admin\Packaging\PackagingWeighings::class)->name('packaging.weighings');
 
     // Gestión de Shipping List (FPL-10)
     Route::get('/shipping-list', \App\Livewire\Admin\PackingSlips\PackingSlipList::class)->name('shipping-list.index');
