@@ -152,10 +152,15 @@ class ShippingQueueTest extends TestCase
             ->call('confirmReturnLot')
             ->assertSet('showReturnModal', false);
 
-        // Contrato observable: el lote sale de la cola de despacho...
+        // El lote sale de la cola de despacho...
         $fresh = $lot->fresh();
         $this->assertFalse((bool) $fresh->ready_for_shipping);
         $this->assertFalse(Lot::readyForShipping()->where('id', $lot->id)->exists());
+
+        // ...los campos de trazabilidad del retorno se persisten en el lote...
+        $this->assertNotNull($fresh->returned_to_packaging_at);
+        $this->assertSame($this->admin->id, $fresh->returned_to_packaging_by);
+        $this->assertSame('Error de conteo, reempacar.', $fresh->returned_to_packaging_reason);
 
         // ...y queda registrado en el AuditTrail con el motivo.
         $this->assertDatabaseHas('audit_trails', [
@@ -163,13 +168,6 @@ class ShippingQueueTest extends TestCase
             'auditable_id'   => $lot->id,
             'action'         => 'returned_to_packaging',
         ]);
-
-        // NOTA (bug latente): confirmReturnLot() intenta setear
-        // returned_to_packaging_at/by/reason en el Lot, pero esas columnas NO estan
-        // en $fillable (app/Models/Lot.php:20-63), asi que el ->update() las descarta
-        // silenciosamente y quedan NULL. El retorno funciona (sale de la cola + AuditTrail),
-        // pero esos campos de trazabilidad en el lote no se persisten. Ver reporte al usuario.
-        $this->assertNull($fresh->returned_to_packaging_at);
     }
 
     public function test_confirm_return_lot_requiere_motivo(): void

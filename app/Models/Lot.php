@@ -60,6 +60,9 @@ class Lot extends Model
         'packaging_notified_by',
         'complete_crimp_qty',
         'complete_pieces_qty',
+        'returned_to_packaging_at',
+        'returned_to_packaging_by',
+        'returned_to_packaging_reason',
     ];
 
     protected $casts = [
@@ -84,6 +87,7 @@ class Lot extends Model
         'packaging_notified_at' => 'datetime',
         'complete_crimp_qty' => 'integer',
         'complete_pieces_qty' => 'integer',
+        'returned_to_packaging_at' => 'datetime',
     ];
 
     /**
