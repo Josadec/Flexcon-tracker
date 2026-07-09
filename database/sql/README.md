@@ -53,7 +53,7 @@ cd d:\xampp\htdocs\Laravel\Flexcon-tracker
 ### Paso 1 — Respaldo (obligatorio)
 
 ```powershell
-& "d:\xampp\mysql\bin\mysqldump.exe" -u root "flexcon-tracker" > backup_antes_de_reset.sql
+& "d:\xampp\mysql\bin\mysqldump.exe" -u root "flexcon_db" > backup_antes_de_reset.sql
 ```
 
 Verifica que el archivo `backup_antes_de_reset.sql` se haya creado y **no esté vacío**
@@ -62,7 +62,7 @@ antes de seguir.
 ### Paso 2 — Limpiar los datos (SQL)
 
 ```powershell
-Get-Content database\sql\reset_corrida.sql | & "d:\xampp\mysql\bin\mysql.exe" -u root "flexcon-tracker"
+Get-Content database\sql\reset_corrida.sql | & "c:\xampp\mysql\bin\mysql.exe" -u root "flexcon_db"
 ```
 
 ### Paso 3 — Limpiar los archivos físicos (storage)
