@@ -275,6 +275,46 @@ class User extends Authenticatable
     }
 
     /**
+     * Departamentos del flujo SentList sobre los que este usuario puede actuar,
+     * según su rol operativo. Fuente ÚNICA de la verdad para el mapeo rol → etapa.
+     *
+     * Roles canónicos: admin, Materiales, Produccion, Calidad, Empaques.
+     * Calidad cubre tanto Inspección como Calidad (etapas contiguas).
+     *
+     * @return array<int,string> constantes SentList::DEPT_*
+     */
+    public function sentListDepartments(): array
+    {
+        if ($this->hasRole('admin')) {
+            return [
+                \App\Models\SentList::DEPT_MATERIALS,
+                \App\Models\SentList::DEPT_INSPECTION,
+                \App\Models\SentList::DEPT_PRODUCTION,
+                \App\Models\SentList::DEPT_QUALITY,
+                \App\Models\SentList::DEPT_SHIPPING,
+            ];
+        }
+
+        return match (true) {
+            $this->hasRole('Materiales') => [\App\Models\SentList::DEPT_MATERIALS],
+            $this->hasRole('Produccion') => [\App\Models\SentList::DEPT_PRODUCTION],
+            $this->hasRole('Calidad')    => [\App\Models\SentList::DEPT_INSPECTION, \App\Models\SentList::DEPT_QUALITY],
+            $this->hasRole('Empaques')   => [\App\Models\SentList::DEPT_SHIPPING],
+            default                      => [],
+        };
+    }
+
+    /**
+     * ¿El usuario puede actuar sobre esta etapa del flujo SentList?
+     * (Solo valida pertenencia por rol; la etapa/estado de la lista se valida aparte
+     * con SentList::canDepartmentEdit()).
+     */
+    public function canActOnSentListDepartment(string $department): bool
+    {
+        return in_array($department, $this->sentListDepartments(), true);
+    }
+
+    /**
      * Check if user can supervise an area
      */
     public function canSupervise(Area $area): bool

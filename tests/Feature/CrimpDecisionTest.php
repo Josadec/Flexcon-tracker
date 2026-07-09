@@ -36,7 +36,11 @@ class CrimpDecisionTest extends TestCase
 
     private function makeScenario(): array
     {
+        // El actor debe tener rol Empaques: la vista de Empaque ahora exige que el
+        // usuario pertenezca al departamento y que la lista esté en la etapa 'envios'.
+        Role::firstOrCreate(['name' => 'Empaques', 'guard_name' => 'web']);
         $packer = User::factory()->create();
+        $packer->assignRole('Empaques');
         $this->actingAs($packer);
 
         $part = Part::factory()->create(['is_crimp' => true]);
@@ -44,6 +48,7 @@ class CrimpDecisionTest extends TestCase
 
         $sentList = SentList::create([
             'po_id' => $po->id, 'status' => SentList::STATUS_PENDING, 'shift_ids' => [],
+            'current_department' => SentList::DEPT_SHIPPING,
             'num_persons' => 1, 'start_date' => now()->toDateString(), 'end_date' => now()->toDateString(),
             'total_available_hours' => 0, 'used_hours' => 0, 'remaining_hours' => 0,
         ]);

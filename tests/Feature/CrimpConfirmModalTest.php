@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -34,6 +35,7 @@ class CrimpConfirmModalTest extends TestCase
         $sentList = SentList::create([
             'po_id'                 => $po->id,
             'status'                => SentList::STATUS_PENDING,
+            'current_department'    => SentList::DEPT_SHIPPING,
             'shift_ids'             => [],
             'num_persons'           => 1,
             'start_date'            => now()->toDateString(),
@@ -62,7 +64,9 @@ class CrimpConfirmModalTest extends TestCase
 
     public function test_confirm_modal_captures_weighings_scoped_to_crimp_lot(): void
     {
+        Role::firstOrCreate(['name' => 'Empaques', 'guard_name' => 'web']);
         $packer = User::factory()->create();
+        $packer->assignRole('Empaques');
         $this->actingAs($packer);
 
         [$sentList, $viajero, $cl1] = $this->makeViajero($packer);
@@ -94,7 +98,9 @@ class CrimpConfirmModalTest extends TestCase
 
     public function test_can_edit_a_registered_piece_weighing(): void
     {
+        Role::firstOrCreate(['name' => 'Empaques', 'guard_name' => 'web']);
         $packer = User::factory()->create();
+        $packer->assignRole('Empaques');
         $this->actingAs($packer);
 
         [$sentList, $viajero, $cl1] = $this->makeViajero($packer);
@@ -131,7 +137,9 @@ class CrimpConfirmModalTest extends TestCase
 
     public function test_confirm_modal_requires_quantity(): void
     {
+        Role::firstOrCreate(['name' => 'Empaques', 'guard_name' => 'web']);
         $packer = User::factory()->create();
+        $packer->assignRole('Empaques');
         $this->actingAs($packer);
 
         [$sentList, $viajero] = $this->makeViajero($packer);
@@ -145,7 +153,9 @@ class CrimpConfirmModalTest extends TestCase
 
     public function test_continue_to_paso6_opens_decision_modal(): void
     {
+        Role::firstOrCreate(['name' => 'Empaques', 'guard_name' => 'web']);
         $packer = User::factory()->create();
+        $packer->assignRole('Empaques');
         $this->actingAs($packer);
 
         [$sentList, $viajero] = $this->makeViajero($packer);

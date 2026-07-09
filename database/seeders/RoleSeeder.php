@@ -14,15 +14,17 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         // Create roles
+        // Convención canónica ÚNICA de roles operativos (español Capitalizado),
+        // alineada con las rutas, el sidebar, show.blade y User::sentListDepartments().
         $roles = [
-            'admin',     // Cambiado a minúsculas para consistencia
+            'admin',     // minúsculas para consistencia
             'HR',
             'Maintenance',
-            'Production',
-            'Shipping',
+            'Produccion',
+            'Empaques',
             'Warehouse',
-            'Materials',
-            'Quality',
+            'Materiales',
+            'Calidad',
             'employee',  // Rol para empleados (panel de empleado)
         ];
 
@@ -54,11 +56,11 @@ class RoleSeeder extends Seeder
                     break;
 
                 case 'Maintenance':
-                case 'Production':
-                case 'Shipping':
+                case 'Produccion':
+                case 'Empaques':
                 case 'Warehouse':
-                case 'Materials':
-                case 'Quality':
+                case 'Materiales':
+                case 'Calidad':
                     // Roles operativos tienen permisos básicos
                     $role->syncPermissions([
                         'admin.view-dashboard',

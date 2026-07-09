@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\SentLists;
 
+use App\Livewire\Concerns\GuardsSentListDepartment;
 use App\Mail\EmpaqueTerminadoCrimpViajero;
 use App\Models\Lot;
 use App\Models\LotCompletionLog;
@@ -19,7 +20,14 @@ use Spatie\Permission\Models\Role;
 
 class SentListPackagingView extends Component
 {
+    use GuardsSentListDepartment;
+
     public SentList $sentList;
+
+    protected function guardedDepartment(): string
+    {
+        return SentList::DEPT_SHIPPING;
+    }
 
     // Packaging modal
     public bool $showPackagingModal = false;
@@ -93,7 +101,7 @@ class SentListPackagingView extends Component
 
     public function openPackagingModal(int $lotId): void
     {
-        $lot = Lot::with('qualityWeighings')->findOrFail($lotId);
+        $lot = Lot::with('qualityWeighings')->whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
 
         $this->packagingLotId      = $lotId;
         $this->packedPieces        = 0;
@@ -106,6 +114,11 @@ class SentListPackagingView extends Component
 
     public function savePackaging(): void
     {
+        $this->ensureCanEditDepartment();
+
+        // Anti-IDOR: el lote debe pertenecer a esta lista.
+        abort_unless($this->sentListLotIds()->contains($this->packagingLotId), 403);
+
         $this->validate([
             'packedPieces'      => 'required|integer|min:1',
             'packedAt'          => 'required|date',
@@ -155,14 +168,18 @@ class SentListPackagingView extends Component
 
     public function deletePackaging(int $id): void
     {
-        PackagingRecord::findOrFail($id)->delete();
+        $this->ensureCanEditDepartment();
+
+        PackagingRecord::whereIn('lot_id', $this->sentListLotIds())->findOrFail($id)->delete();
         $this->sentList->refresh();
         session()->flash('message', 'Registro de empaque eliminado.');
     }
 
     public function receiveViajero(int $lotId): void
     {
-        $lot = Lot::findOrFail($lotId);
+        $this->ensureCanEditDepartment();
+
+        $lot = Lot::whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
         $lot->update([
             'viajero_received'    => true,
             'viajero_received_at' => now(),
@@ -190,7 +207,9 @@ class SentListPackagingView extends Component
 
     public function markViajeroReceived(int $lotId): void
     {
-        $lot = Lot::findOrFail($lotId);
+        $this->ensureCanEditDepartment();
+
+        $lot = Lot::whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
         $lot->update([
             'viajero_received'    => true,
             'viajero_received_at' => now(),
@@ -203,7 +222,9 @@ class SentListPackagingView extends Component
 
     public function revertViajeroReceived(int $lotId): void
     {
-        $lot = Lot::findOrFail($lotId);
+        $this->ensureCanEditDepartment();
+
+        $lot = Lot::whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
         $lot->update([
             'viajero_received'    => false,
             'viajero_received_at' => null,
@@ -223,6 +244,8 @@ class SentListPackagingView extends Component
 
     public function closeList(): void
     {
+        $this->ensureCanEditDepartment();
+
         $this->sentList->update(['status' => SentList::STATUS_CONFIRMED]);
         session()->flash('message', 'Lista completada y cerrada exitosamente.');
         $this->redirect(route('admin.sent-lists.index'));
@@ -232,7 +255,9 @@ class SentListPackagingView extends Component
 
     public function openDecisionModal(int $lotId): void
     {
-        $lot = Lot::with(['workOrder.purchaseOrder.part', 'packagingRecords'])->find($lotId);
+        $lot = Lot::with(['workOrder.purchaseOrder.part', 'packagingRecords'])
+            ->whereIn('id', $this->sentListLotIds())
+            ->find($lotId);
 
         if (!$lot) {
             session()->flash('error', 'Lote no encontrado.');
@@ -289,6 +314,8 @@ class SentListPackagingView extends Component
      */
     public function decisionCompleteLot(): void
     {
+        $this->ensureCanEditDepartment();
+
         if (!$this->selectedLotForDecision) return;
 
         $lot     = $this->selectedLotForDecision;
@@ -362,6 +389,8 @@ class SentListPackagingView extends Component
      */
     public function decisionNewLot(): void
     {
+        $this->ensureCanEditDepartment();
+
         if (!$this->selectedLotForDecision) return;
 
         $this->createLotType = 'new_lot';
@@ -383,6 +412,8 @@ class SentListPackagingView extends Component
      */
     private function recordCrimpCompletion(string $decision, ?int $crimpQty, ?int $piecesQty, string $message): void
     {
+        $this->ensureCanEditDepartment();
+
         $lot = $this->selectedLotForDecision;
 
         $lot->update([
@@ -442,6 +473,8 @@ class SentListPackagingView extends Component
      */
     public function decisionCloseAsIs(): void
     {
+        $this->ensureCanEditDepartment();
+
         if (!$this->selectedLotForDecision) {
             session()->flash('error', 'Lote no encontrado.');
             return;
@@ -471,6 +504,8 @@ class SentListPackagingView extends Component
      */
     public function reopenLot(): void
     {
+        $this->ensureCanEditDepartment();
+
         if (!$this->selectedLotForDecision) {
             session()->flash('error', 'Lote no encontrado.');
             return;
@@ -502,6 +537,8 @@ class SentListPackagingView extends Component
      */
     public function confirmSurplusReceived(): void
     {
+        $this->ensureCanEditDepartment();
+
         if (!$this->selectedLotForDecision) {
             session()->flash('error', 'Lote no encontrado.');
             return;
@@ -539,6 +576,8 @@ class SentListPackagingView extends Component
      */
     public function confirmCreateLot(): void
     {
+        $this->ensureCanEditDepartment();
+
         $this->validate([
             'createLotName'     => 'required|string|max:255',
             'createLotQuantity' => 'required|integer|min:1',
@@ -619,14 +658,18 @@ class SentListPackagingView extends Component
 
     public function deletePieceWeighing(int $id): void
     {
-        PackagingPieceWeighing::findOrFail($id)->delete();
+        $this->ensureCanEditDepartment();
+
+        PackagingPieceWeighing::whereIn('lot_id', $this->sentListLotIds())->findOrFail($id)->delete();
         $this->sentList->refresh();
         session()->flash('message', 'Pesada de piezas eliminada.');
     }
 
     public function deleteCrimpWeighing(int $id): void
     {
-        PackagingCrimpWeighing::findOrFail($id)->delete();
+        $this->ensureCanEditDepartment();
+
+        PackagingCrimpWeighing::whereIn('lot_id', $this->sentListLotIds())->findOrFail($id)->delete();
         $this->sentList->refresh();
         session()->flash('message', 'Pesada de CRIMP eliminada.');
     }
@@ -643,6 +686,8 @@ class SentListPackagingView extends Component
 
     public function confirmAndNotify(): void
     {
+        $this->ensureCanEditDepartment();
+
         $this->validate([
             'notifyLabelCount' => 'nullable|integer|min:0',
             'notifyComments'   => 'nullable|string|max:1000',
@@ -666,7 +711,7 @@ class SentListPackagingView extends Component
      */
     private function dispatchEmpaqueTerminado(int $lotId, ?int $labelCount, ?string $comments): int
     {
-        $lot = Lot::with('workOrder.purchaseOrder.part')->findOrFail($lotId);
+        $lot = Lot::with('workOrder.purchaseOrder.part')->whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
 
         // Historial de notificación + No. de etiquetas (decisiones B.5).
         $lot->update([
@@ -713,7 +758,7 @@ class SentListPackagingView extends Component
 
     public function openConfirmModal(int $lotId): void
     {
-        $lot = Lot::with('crimpLots')->find($lotId);
+        $lot = Lot::with('crimpLots')->whereIn('id', $this->sentListLotIds())->find($lotId);
         if (!$lot) {
             session()->flash('error', 'El viajero ya no existe. Actualiza la página.');
             return;
@@ -739,6 +784,9 @@ class SentListPackagingView extends Component
     /** Paso 5 · captura — agrega una pesada de piezas ("manguitas") al lote de CRIMP. */
     public function addConfirmPieceWeighing(): void
     {
+        $this->ensureCanEditDepartment();
+        abort_unless($this->sentListLotIds()->contains($this->confirmLotId), 403);
+
         $this->validate([
             'confirmCrimpLotId' => 'required|exists:crimp_lots,id',
             'cPieceQty'         => 'required|integer|min:1',
@@ -766,6 +814,9 @@ class SentListPackagingView extends Component
     /** Paso 5 · captura — agrega una pesada de CRIMP al lote de CRIMP. */
     public function addConfirmCrimpWeighing(): void
     {
+        $this->ensureCanEditDepartment();
+        abort_unless($this->sentListLotIds()->contains($this->confirmLotId), 403);
+
         $this->validate([
             'confirmCrimpLotId' => 'required|exists:crimp_lots,id',
             'cCrimpQty'         => 'required|integer|min:1',
@@ -792,14 +843,18 @@ class SentListPackagingView extends Component
 
     public function deleteConfirmPieceWeighing(int $id): void
     {
-        PackagingPieceWeighing::find($id)?->delete();
+        $this->ensureCanEditDepartment();
+
+        PackagingPieceWeighing::whereIn('lot_id', $this->sentListLotIds())->find($id)?->delete();
         $this->confirmDone = false;
         $this->sentList->refresh();
     }
 
     public function deleteConfirmCrimpWeighing(int $id): void
     {
-        PackagingCrimpWeighing::find($id)?->delete();
+        $this->ensureCanEditDepartment();
+
+        PackagingCrimpWeighing::whereIn('lot_id', $this->sentListLotIds())->find($id)?->delete();
         $this->confirmDone = false;
         $this->sentList->refresh();
     }
@@ -807,7 +862,7 @@ class SentListPackagingView extends Component
     // ── Edición inline de pesadas ya registradas (corregir cantidad) ──
     public function editConfirmPieceWeighing(int $id): void
     {
-        $w = PackagingPieceWeighing::find($id);
+        $w = PackagingPieceWeighing::whereIn('lot_id', $this->sentListLotIds())->find($id);
         if (!$w) { $this->sentList->refresh(); return; }
         $this->editPieceWId  = $w->id;
         $this->editPieceWQty = $w->quantity;
@@ -816,11 +871,13 @@ class SentListPackagingView extends Component
 
     public function saveConfirmPieceWeighing(): void
     {
+        $this->ensureCanEditDepartment();
+
         $this->validate(
             ['editPieceWQty' => 'required|integer|min:1'],
             ['editPieceWQty.required' => 'La cantidad es obligatoria.', 'editPieceWQty.min' => 'La cantidad debe ser mayor a 0.']
         );
-        $w = PackagingPieceWeighing::find($this->editPieceWId);
+        $w = PackagingPieceWeighing::whereIn('lot_id', $this->sentListLotIds())->find($this->editPieceWId);
         if ($w) { $w->update(['quantity' => $this->editPieceWQty]); }
         $this->editPieceWId  = null;
         $this->editPieceWQty = 0;
@@ -837,7 +894,7 @@ class SentListPackagingView extends Component
 
     public function editConfirmCrimpWeighing(int $id): void
     {
-        $w = PackagingCrimpWeighing::find($id);
+        $w = PackagingCrimpWeighing::whereIn('lot_id', $this->sentListLotIds())->find($id);
         if (!$w) { $this->sentList->refresh(); return; }
         $this->editCrimpWId  = $w->id;
         $this->editCrimpWQty = $w->quantity;
@@ -846,11 +903,13 @@ class SentListPackagingView extends Component
 
     public function saveConfirmCrimpWeighing(): void
     {
+        $this->ensureCanEditDepartment();
+
         $this->validate(
             ['editCrimpWQty' => 'required|integer|min:1'],
             ['editCrimpWQty.required' => 'La cantidad es obligatoria.', 'editCrimpWQty.min' => 'La cantidad debe ser mayor a 0.']
         );
-        $w = PackagingCrimpWeighing::find($this->editCrimpWId);
+        $w = PackagingCrimpWeighing::whereIn('lot_id', $this->sentListLotIds())->find($this->editCrimpWId);
         if ($w) { $w->update(['quantity' => $this->editCrimpWQty]); }
         $this->editCrimpWId  = null;
         $this->editCrimpWQty = 0;
@@ -868,6 +927,8 @@ class SentListPackagingView extends Component
     /** Paso 5 · paso 3 — el empacador confirma las cantidades → genera "Empaque Terminado". */
     public function confirmPackaging(): void
     {
+        $this->ensureCanEditDepartment();
+
         if (! $this->confirmLotId) return;
 
         $this->confirmDone = true;
@@ -877,6 +938,8 @@ class SentListPackagingView extends Component
     /** Paso 5 · genera el resumen y notifica a Empaque + Materiales (correo M9). */
     public function confirmAndNotifyFromModal(): void
     {
+        $this->ensureCanEditDepartment();
+
         if (! $this->confirmLotId) return;
 
         $this->validate([

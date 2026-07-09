@@ -190,7 +190,7 @@
                     />
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                        <select wire:model="form.status" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <select wire:model="form.status" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm">
                             <option value="pending">Pendiente</option>
                             <option value="in_progress">En Progreso</option>
                             <option value="completed">Completado</option>

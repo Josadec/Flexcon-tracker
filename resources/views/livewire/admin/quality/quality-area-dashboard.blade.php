@@ -1,11 +1,12 @@
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Área de Calidad</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Panel de control, inspecciones y verificación de pesadas</p>
-        </div>
-    </div>
+    <x-area-header accent="teal" title="Calidad" subtitle="Inspección y verificación de pesadas">
+        <x-slot:icon>
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+            </svg>
+        </x-slot:icon>
+    </x-area-header>
 
     {{-- ===== Calidad CRIMP (viajeros) ===== --}}
     <section class="space-y-4">
@@ -18,9 +19,9 @@
         </div>
 
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-purple-200 dark:border-purple-800 p-5 shadow-sm">
-                <div class="text-xs font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wide">Por inspeccionar</div>
-                <div class="mt-1 text-3xl font-bold text-purple-700 dark:text-purple-300">{{ number_format($qInspeccion) }}</div>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-teal-200 dark:border-teal-800 p-5 shadow-sm">
+                <div class="text-xs font-medium text-teal-600 dark:text-teal-400 uppercase tracking-wide">Por inspeccionar</div>
+                <div class="mt-1 text-3xl font-bold text-teal-700 dark:text-teal-300">{{ number_format($qInspeccion) }}</div>
                 <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Material liberado · inspección pendiente</div>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-2xl border border-emerald-200 dark:border-emerald-800 p-5 shadow-sm">
@@ -39,7 +40,7 @@
             'titulo' => 'Pendientes de Calidad',
             'pendientes' => $qPendientes,
             'badges' => [
-                'inspect' => 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300',
+                'inspect' => 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300',
                 'verify'  => 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
             ],
             'empty' => 'Sin viajeros CRIMP pendientes de Calidad. 🎉',
@@ -118,15 +119,15 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Inspección Card -->
             <a href="{{ route('admin.quality.inspection') }}" wire:navigate
-                class="group bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-lg transition-all">
+                class="group bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-lg transition-all">
                 <div class="flex items-start gap-4">
-                    <div class="w-14 h-14 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-200 dark:border-indigo-700 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/40 transition-colors">
-                        <svg class="w-7 h-7 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-14 h-14 rounded-xl bg-teal-50 dark:bg-teal-900/20 border-2 border-teal-200 dark:border-teal-700 flex items-center justify-center flex-shrink-0 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/40 transition-colors">
+                        <svg class="w-7 h-7 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Inspección</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">Inspección</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Revisar y aprobar/rechazar lotes de producción</p>
                         <div class="flex items-center gap-4 mt-4">
                             <div class="flex items-center gap-1.5">
@@ -143,7 +144,7 @@
                             </div>
                         </div>
                     </div>
-                    <svg class="w-5 h-5 text-gray-400 group-hover:text-indigo-500 transition-colors flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 text-gray-400 group-hover:text-teal-500 transition-colors flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                     </svg>
                 </div>
@@ -189,7 +190,7 @@
     <!-- Resumen General -->
     <section>
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
             Resumen General

@@ -48,14 +48,14 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-700 rounded-lg p-5">
+        <div class="bg-white dark:bg-gray-800 border-2 border-amber-200 dark:border-amber-700 rounded-lg p-5">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs text-purple-600 dark:text-purple-400 mb-1">Sobrantes Ajustados</p>
-                    <p class="text-2xl font-semibold text-purple-700 dark:text-purple-300">{{ number_format($totalAdjustedSurplus) }}</p>
+                    <p class="text-xs text-amber-600 dark:text-amber-400 mb-1">Sobrantes Ajustados</p>
+                    <p class="text-2xl font-semibold text-amber-700 dark:text-amber-300">{{ number_format($totalAdjustedSurplus) }}</p>
                 </div>
-                <div class="w-12 h-12 rounded-lg bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-700 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-700 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                     </svg>
                 </div>
@@ -166,7 +166,7 @@
                             <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Disponibles</th>
                             <th class="px-6 py-3 text-right text-xs font-semibold text-green-600 dark:text-green-400 uppercase">Empacadas</th>
                             <th class="px-6 py-3 text-right text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase">Sobrantes</th>
-                            <th class="px-6 py-3 text-right text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase">Ajustado</th>
+                            <th class="px-6 py-3 text-right text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase">Ajustado</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Empacó</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Fecha</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Comentarios</th>
@@ -177,7 +177,7 @@
                         @foreach($records as $record)
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                                 <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $record->id }}</td>
-                                <td class="px-6 py-4 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                                <td class="px-6 py-4 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                                     {{ $record->lot->lot_number ?? 'N/A' }}
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
@@ -197,7 +197,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-sm text-right">
                                     @if($record->adjusted_surplus !== null)
-                                        <span class="font-medium text-purple-600 dark:text-purple-400">{{ number_format($record->adjusted_surplus) }}</span>
+                                        <span class="font-medium text-amber-600 dark:text-amber-400">{{ number_format($record->adjusted_surplus) }}</span>
                                         @if($record->adjustment_reason)
                                             <span class="block text-xs text-gray-400" title="{{ $record->adjustment_reason }}">{{ Str::limit($record->adjustment_reason, 20) }}</span>
                                         @endif
@@ -216,7 +216,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-center">
                                     <div class="flex items-center justify-center gap-2">
-                                        <button wire:click="openEditModal({{ $record->id }})" class="inline-flex items-center justify-center w-8 h-8 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border-2 border-transparent hover:border-indigo-300 dark:hover:border-indigo-700 rounded-md transition-colors" title="Editar">
+                                        <button wire:click="openEditModal({{ $record->id }})" class="inline-flex items-center justify-center w-8 h-8 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-2 border-transparent hover:border-emerald-300 dark:hover:border-emerald-700 rounded-md transition-colors" title="Editar">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                             </svg>
@@ -252,12 +252,12 @@
                 <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border-2 border-gray-200 dark:border-gray-700">
 
                     {{-- Header --}}
-                    <div class="px-6 py-4 border-b-2 border-indigo-500 bg-indigo-600">
+                    <div class="px-6 py-4 border-b-2 border-emerald-500 bg-emerald-600">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-semibold text-white">
                                 {{ $editingId ? 'Editar Registro de Empaque' : 'Nuevo Registro de Empaque' }}
                             </h3>
-                            <button wire:click="closeModal" class="text-white hover:text-indigo-200 cursor-pointer">
+                            <button wire:click="closeModal" class="text-white hover:text-emerald-200 cursor-pointer">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
@@ -279,7 +279,7 @@
                                 </div>
                             @else
                                 <select wire:model.live="formLotId"
-                                    class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     <option value="">Seleccionar lote...</option>
                                     @foreach($lotsForCreate as $lot)
                                         <option value="{{ $lot->id }}">
@@ -297,7 +297,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Piezas Empacadas</label>
                             <input type="number" wire:model="formPackedPieces" min="0"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                             @error('formPackedPieces')
                                 <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                             @enderror
@@ -307,7 +307,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Piezas Sobrantes</label>
                             <input type="number" wire:model="formSurplusPieces" min="0"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                             @error('formSurplusPieces')
                                 <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                             @enderror
@@ -317,7 +317,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sobrante Ajustado <span class="text-gray-400 font-normal">(opcional)</span></label>
                             <input type="number" wire:model="formAdjustedSurplus" min="0" placeholder="Dejar vacío si no aplica"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                             @error('formAdjustedSurplus')
                                 <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                             @enderror
@@ -328,7 +328,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Razón del Ajuste</label>
                                 <textarea wire:model="formAdjustmentReason" rows="2"
-                                    class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                     placeholder="Indique la razón del ajuste..."></textarea>
                                 @error('formAdjustmentReason')
                                     <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
@@ -340,7 +340,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fecha y Hora de Empaque</label>
                             <input type="datetime-local" wire:model="formPackedAt"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                             @error('formPackedAt')
                                 <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                             @enderror
@@ -350,7 +350,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comentarios <span class="text-gray-400 font-normal">(opcional)</span></label>
                             <textarea wire:model="formComments" rows="2"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                 placeholder="Observaciones..."></textarea>
                             @error('formComments')
                                 <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
@@ -365,7 +365,7 @@
                             Cancelar
                         </button>
                         <button wire:click="save"
-                            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors cursor-pointer">
+                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors cursor-pointer">
                             {{ $editingId ? 'Actualizar' : 'Crear' }}
                         </button>
                     </div>

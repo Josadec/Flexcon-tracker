@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\SentLists;
 
+use App\Livewire\Concerns\GuardsSentListDepartment;
 use App\Models\Lot;
 use App\Models\QualityWeighing;
 use App\Models\SentList;
@@ -10,7 +11,14 @@ use Livewire\Component;
 
 class SentListQualityView extends Component
 {
+    use GuardsSentListDepartment;
+
     public SentList $sentList;
+
+    protected function guardedDepartment(): string
+    {
+        return SentList::DEPT_QUALITY;
+    }
 
     // Quality weighing modal
     public bool $showWeighingModal = false;
@@ -74,7 +82,7 @@ class SentListQualityView extends Component
 
     public function editQualityWeighing(int $lotId, int $id): void
     {
-        $qw = QualityWeighing::find($id);
+        $qw = QualityWeighing::whereIn('lot_id', $this->sentListLotIds())->find($id);
         if (!$qw) return;
 
         // Pesada a nivel viajero (CRIMP ya no usa kit).
@@ -106,6 +114,11 @@ class SentListQualityView extends Component
 
     public function saveWeighing(): void
     {
+        $this->ensureCanEditDepartment();
+
+        // Anti-IDOR: el lote debe pertenecer a esta lista.
+        abort_unless($this->sentListLotIds()->contains($this->weighingLotId), 403);
+
         $this->validate([
             'goodPieces'       => 'required|integer|min:0',
             'badPieces'        => 'required|integer|min:0',
@@ -144,7 +157,7 @@ class SentListQualityView extends Component
         ];
 
         if ($this->editingId) {
-            $qw = QualityWeighing::find($this->editingId);
+            $qw = QualityWeighing::whereIn('lot_id', $this->sentListLotIds())->find($this->editingId);
             if ($qw) {
                 // Pesadas existentes conservan su kit_id (historial); no se reasigna.
                 $qw->update($data);
@@ -186,7 +199,9 @@ class SentListQualityView extends Component
 
     public function deleteWeighing(int $id): void
     {
-        $qw = QualityWeighing::findOrFail($id);
+        $this->ensureCanEditDepartment();
+
+        $qw = QualityWeighing::whereIn('lot_id', $this->sentListLotIds())->findOrFail($id);
         $qw->delete();
 
         // Refresh the modal if open (pesada a nivel viajero).
@@ -212,6 +227,8 @@ class SentListQualityView extends Component
 
     public function sendToPackaging(): void
     {
+        $this->ensureCanEditDepartment();
+
         if (!empty($this->sendNotes)) {
             $this->sentList->update([
                 'notes' => trim(($this->sentList->notes ?? '') . "\n[Calidad " . now()->format('d/m/Y H:i') . '] ' . $this->sendNotes),

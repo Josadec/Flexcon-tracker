@@ -25,21 +25,22 @@ class MaterialsRoleSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission]);
         }
 
-        // Create Materials role
-        $materialsRole = Role::firstOrCreate(['name' => 'Materials']);
+        // Create Materiales role (rol canónico en español)
+        $materialsRole = Role::firstOrCreate(['name' => 'Materiales']);
 
-        // Assign all permissions to Materials role
-        $materialsRole->syncPermissions($permissions);
+        // Assign all permissions to Materiales role. Usamos givePermissionTo (no sync)
+        // para no borrar los permisos 'materiales.*' que asigna AreaUsersSeeder.
+        $materialsRole->givePermissionTo($permissions);
 
-        $this->command->info('Materials role and permissions created successfully.');
+        $this->command->info('Materiales role and permissions created successfully.');
 
-        // Assign materials permissions to Admin role
-        $adminRole = Role::where('name', 'Admin')->first();
+        // Assign materials permissions to admin role (el rol admin es minúsculas)
+        $adminRole = Role::where('name', 'admin')->first();
         if ($adminRole) {
             $adminRole->givePermissionTo($permissions);
-            $this->command->info('Materials permissions assigned to Admin role.');
+            $this->command->info('Materials permissions assigned to admin role.');
         } else {
-            $this->command->warn('Admin role not found. Materials permissions not assigned to Admin.');
+            $this->command->warn('admin role not found. Materials permissions not assigned to admin.');
         }
 
         // Create Quality role permissions if they don't exist
@@ -54,12 +55,12 @@ class MaterialsRoleSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission]);
         }
 
-        // Create Quality role
-        $qualityRole = Role::firstOrCreate(['name' => 'Quality']);
+        // Create Calidad role (rol canónico en español)
+        $qualityRole = Role::firstOrCreate(['name' => 'Calidad']);
 
-        // Assign permissions to Quality role
-        $qualityRole->syncPermissions($qualityPermissions);
+        // Assign permissions to Calidad role sin borrar los 'calidad.*' de AreaUsersSeeder.
+        $qualityRole->givePermissionTo($qualityPermissions);
 
-        $this->command->info('Quality role and permissions created successfully.');
+        $this->command->info('Calidad role and permissions created successfully.');
     }
 }

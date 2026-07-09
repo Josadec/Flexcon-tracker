@@ -217,17 +217,17 @@
 
                         {{-- Pesadas de Produccion --}}
                         <div>
-                            <h4 class="text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-2 flex items-center gap-2">
-                                <span class="w-3 h-3 rounded-full bg-indigo-500 border-2 border-indigo-300 dark:border-indigo-600 inline-block"></span>
+                            <h4 class="text-sm font-semibold text-teal-700 dark:text-teal-300 mb-2 flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-teal-500 border-2 border-teal-300 dark:border-teal-600 inline-block"></span>
                                 Pesadas de Producción ({{ count($productionWeighings) }})
                             </h4>
                             @if (count($productionWeighings) > 0)
                                 <div class="border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                                     <table class="w-full text-xs">
-                                        <thead class="bg-indigo-50 dark:bg-indigo-900/20 border-b border-gray-200 dark:border-gray-700">
+                                        <thead class="bg-teal-50 dark:bg-teal-900/20 border-b border-gray-200 dark:border-gray-700">
                                             <tr>
                                                 <th class="px-3 py-2 text-left text-gray-600 dark:text-gray-400">Fecha</th>
-                                                <th class="px-3 py-2 text-right text-indigo-600 dark:text-indigo-400">Pz Pesadas</th>
+                                                <th class="px-3 py-2 text-right text-teal-600 dark:text-teal-400">Pz Pesadas</th>
                                                 <th class="px-3 py-2 text-left text-gray-600 dark:text-gray-400">Por</th>
                                                 <th class="px-3 py-2 text-left text-gray-600 dark:text-gray-400">Comentarios</th>
                                             </tr>
@@ -236,16 +236,16 @@
                                             @foreach ($productionWeighings as $pw)
                                                 <tr>
                                                     <td class="px-3 py-2 text-gray-700 dark:text-gray-300">{{ $pw['weighed_at'] }}</td>
-                                                    <td class="px-3 py-2 text-right font-medium text-indigo-600 dark:text-indigo-400">{{ number_format($pw['good_pieces']) }}</td>
+                                                    <td class="px-3 py-2 text-right font-medium text-teal-600 dark:text-teal-400">{{ number_format($pw['good_pieces']) }}</td>
                                                     <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ $pw['weighed_by'] }}</td>
                                                     <td class="px-3 py-2 text-gray-500 dark:text-gray-400 max-w-xs truncate">{{ $pw['comments'] ?? '-' }}</td>
                                                 </tr>
                                             @endforeach
                                         </tbody>
-                                        <tfoot class="bg-indigo-50 dark:bg-indigo-900/20 font-semibold border-t border-gray-200 dark:border-gray-700">
+                                        <tfoot class="bg-teal-50 dark:bg-teal-900/20 font-semibold border-t border-gray-200 dark:border-gray-700">
                                             <tr>
                                                 <td class="px-3 py-2 text-gray-700 dark:text-gray-300">Total</td>
-                                                <td class="px-3 py-2 text-right text-indigo-600 dark:text-indigo-400">{{ number_format($prodGoodTotal) }}</td>
+                                                <td class="px-3 py-2 text-right text-teal-600 dark:text-teal-400">{{ number_format($prodGoodTotal) }}</td>
                                                 <td colspan="2"></td>
                                             </tr>
                                         </tfoot>

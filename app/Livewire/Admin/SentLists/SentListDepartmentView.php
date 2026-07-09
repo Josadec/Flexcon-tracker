@@ -45,23 +45,16 @@ class SentListDepartmentView extends Component
     protected function getUserDepartment(): string
     {
         $user = Auth::user();
-        
-        // Determinar el departamento basado en roles o permisos
-        // Por ahora, asumimos que el usuario tiene un role que coincide con el departamento
-        if ($user->hasRole('materials') || $user->hasRole('admin')) {
-            return SentList::DEPT_MATERIALS;
+
+        // Usa el mapeo canónico rol → departamento (fuente única de la verdad).
+        // Para admin (o si la lista ya avanzó) preferimos la etapa actual de la lista.
+        $departments = $user->sentListDepartments();
+
+        if (in_array($this->sentList->current_department, $departments, true)) {
+            return $this->sentList->current_department;
         }
-        if ($user->hasRole('production')) {
-            return SentList::DEPT_PRODUCTION;
-        }
-        if ($user->hasRole('inspection') || $user->hasRole('quality')) {
-            return SentList::DEPT_INSPECTION;
-        }
-        if ($user->hasRole('shipping')) {
-            return SentList::DEPT_SHIPPING;
-        }
-        
-        return SentList::DEPT_MATERIALS; // Default
+
+        return $departments[0] ?? SentList::DEPT_MATERIALS;
     }
 
     public function updateLotNumber(int $poId, string $lotNumber)

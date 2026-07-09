@@ -1,11 +1,12 @@
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Inspección</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Inspección de lotes de producción</p>
-        </div>
-    </div>
+    <x-area-header accent="teal" title="Inspección" subtitle="Inspección de lotes de producción">
+        <x-slot:icon>
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+            </svg>
+        </x-slot:icon>
+    </x-area-header>
 
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -57,12 +58,12 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Buscar</label>
                 <input wire:model.live.debounce.300ms="search" type="text"
                     placeholder="Buscar por número de lote o WO..."
-                    class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
             </div>
             <div class="sm:w-48">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Estado</label>
                 <select wire:model.live="filterInspectionStatus"
-                    class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
                     <option value="">Todos los estados</option>
                     @foreach($inspectionStatuses as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
@@ -72,7 +73,7 @@
             <div class="sm:w-40">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Por página</label>
                 <select wire:model.live="perPage"
-                    class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
                     <option value="10">10</option>
                     <option value="25">25</option>
                     <option value="50">50</option>
@@ -154,7 +155,7 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <a href="{{ route('admin.work-orders.show', $lot->workOrder) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">
+                                <a href="{{ route('admin.work-orders.show', $lot->workOrder) }}" class="text-teal-600 hover:text-teal-900 dark:text-teal-400 dark:hover:text-teal-300 font-medium">
                                     {{ $lot->workOrder->purchaseOrder->wo ?? 'N/A' }}
                                 </a>
                             </td>
@@ -167,7 +168,7 @@
                                 @if($lot->crimpLots->isNotEmpty())
                                     <div class="flex flex-wrap gap-1">
                                         @foreach($lot->crimpLots as $cl)
-                                            <span class="px-1.5 py-0.5 text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded font-mono">{{ $cl->crimp_lot_number }}</span>
+                                            <span class="px-1.5 py-0.5 text-xs bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded font-mono">{{ $cl->crimp_lot_number }}</span>
                                         @endforeach
                                     </div>
                                 @else
@@ -193,7 +194,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div class="flex items-center gap-3">
-                                    <a href="{{ route('admin.lots.show', $lot) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                    <a href="{{ route('admin.lots.show', $lot) }}" class="text-teal-600 hover:text-teal-900 dark:text-teal-400 dark:hover:text-teal-300">
                                         Ver
                                     </a>
                                     @if($lot->canBeInspected() && $lot->inspection_status === 'pending')
@@ -298,7 +299,7 @@
                                             Comentarios (opcional)
                                         </label>
                                         <textarea wire:model="inspectionComments" rows="3"
-                                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
                                             placeholder="Ingrese observaciones de la inspección..."></textarea>
                                         @error('inspectionComments')
                                             <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
