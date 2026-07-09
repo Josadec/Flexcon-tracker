@@ -47,13 +47,13 @@ maestra (usuarios, máquinas, turnos, piezas, precios, etc.).
 Abre PowerShell y ubícate en la raíz del proyecto:
 
 ```powershell
-cd d:\xampp\htdocs\Laravel\Flexcon-tracker
+cd c:\xampp\htdocs\Laravel\Flexcon-tracker
 ```
 
 ### Paso 1 — Respaldo (obligatorio)
 
 ```powershell
-& "d:\xampp\mysql\bin\mysqldump.exe" -u root "flexcon_db" > backup_antes_de_reset.sql
+& "c:\xampp\mysql\bin\mysqldump.exe" -u root "flexcon_db" > backup_antes_de_reset.sql
 ```
 
 Verifica que el archivo `backup_antes_de_reset.sql` se haya creado y **no esté vacío**
