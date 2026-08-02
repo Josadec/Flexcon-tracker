@@ -1,145 +1,82 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <a href="{{ route('admin.areas.index') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-            </a>
-            <div>
-                <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $area->name }}</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Detalles del área y equipos asociados</p>
-            </div>
-        </div>
-        <div class="flex gap-3">
-            <a href="{{ route('admin.areas.edit', $area) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium rounded-md">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                Editar
-            </a>
-            <a href="{{ route('admin.areas.index') }}" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
-                Volver
-            </a>
-        </div>
-    </div>
+<x-ui.page eyebrow="Configuración" :title="$area->name"
+    subtitle="Detalle del área y equipos asignados."
+    back="{{ route('admin.areas.index') }}" backLabel="Volver a áreas">
 
-    <!-- Information Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg">
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-base font-semibold text-gray-900 dark:text-white">Información del Área</h3>
-        </div>
-        <div class="p-4 space-y-3">
-            <div>
-                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Nombre</dt>
-                <dd class="text-sm text-gray-900 dark:text-white">{{ $area->name }}</dd>
-            </div>
-            <div>
-                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Departamento</dt>
-                <dd class="text-sm text-gray-900 dark:text-white">{{ $area->department->name }}</dd>
-            </div>
-            <div>
-                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Supervisor</dt>
-                <dd class="text-sm text-gray-900 dark:text-white">{{ $area->supervisor_name }}</dd>
-            </div>
-            <div>
-                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Descripción</dt>
-                <dd class="text-sm text-gray-900 dark:text-white">{{ $area->description ?? 'Sin descripción' }}</dd>
-            </div>
-            @if($area->comments)
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Comentarios</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">{{ $area->comments }}</dd>
-                </div>
+    <x-slot:actions>
+        <x-ui.btn variant="primary" href="{{ route('admin.areas.edit', $area) }}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            Editar
+        </x-ui.btn>
+    </x-slot:actions>
+
+    {{-- Equipo asignado: lo primero que se consulta al abrir un área. --}}
+    <x-ui.section title="Equipo asignado" hint="Conteo por tipo de estación, activo contra total.">
+        <x-ui.stats cols="3">
+            <x-ui.stat label="Máquinas" :value="$stats['total_machines']"
+                :help="'Activas: '.$stats['active_machines']" />
+            <x-ui.stat label="Mesas" :value="$stats['total_tables']"
+                :help="'Activas: '.$stats['active_tables']" />
+            <x-ui.stat label="Semi-automáticos" :value="$stats['total_semi_automatic']"
+                :help="'Activos: '.$stats['active_semi_automatic']" />
+            <x-ui.stat label="Máquinas activas" :value="$stats['active_machines']" tone="good" />
+            <x-ui.stat label="Mesas activas" :value="$stats['active_tables']" tone="good" />
+            <x-ui.stat label="Semi-autom. activos" :value="$stats['active_semi_automatic']" tone="good" />
+        </x-ui.stats>
+    </x-ui.section>
+
+    {{-- Ficha del área --}}
+    <x-ui.section title="Información del área">
+        <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+            <x-ui.kv label="Nombre" :value="$area->name" />
+            <x-ui.kv label="Departamento" :value="$area->department->name" />
+            <x-ui.kv label="Supervisor" :value="$area->supervisor_name" />
+            <x-ui.kv label="Descripción" :value="$area->description ?: 'Sin descripción'" />
+            @if ($area->comments)
+                <x-ui.kv label="Comentarios" :value="$area->comments" />
             @endif
-        </div>
-    </div>
+        </dl>
+    </x-ui.section>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Máquinas</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['total_machines'] }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Máquinas Activas</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['active_machines'] }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Mesas</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['total_tables'] }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Mesas Activas</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['active_tables'] }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Semi-Automáticos</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['total_semi_automatic'] }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Semi-Automáticos Activos</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['active_semi_automatic'] }}</div>
-        </div>
-    </div>
+    {{-- Equipos --}}
+    @php $equipment = $area->getAllEquipment(); @endphp
+    <x-ui.table title="Equipos en esta área"
+        :hint="$equipment->count().' '.Str::plural('equipo', $equipment->count()).' registrado'.($equipment->count() === 1 ? '' : 's')">
+        <x-slot:head>
+            <tr>
+                <x-ui.th>Tipo</x-ui.th>
+                <x-ui.th>Nombre</x-ui.th>
+                <x-ui.th align="right">Estado</x-ui.th>
+            </tr>
+        </x-slot:head>
 
-    <!-- Equipment Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg">
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-base font-semibold text-gray-900 dark:text-white">Equipos en esta área</h3>
-        </div>
-        @if($area->getAllEquipment()->count() > 0)
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-900/50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Tipo</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Nombre</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        @foreach($area->getAllEquipment() as $equipment)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                        @switch($equipment->equipment_type)
-                                            @case('machine')
-                                                Máquina
-                                                @break
-                                            @case('table')
-                                                Mesa
-                                                @break
-                                            @case('semi_automatic')
-                                                Semi-Automático
-                                                @break
-                                        @endswitch
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900 dark:text-white">{{ $equipment->name }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    @if(isset($equipment->active) && $equipment->active)
-                                        <span class="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                            Activo
-                                        </span>
-                                    @else
-                                        <span class="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
-                                            Inactivo
-                                        </span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @else
-            <div class="p-6 text-center">
-                <p class="text-sm text-gray-500 dark:text-gray-400">No hay equipos asociados a esta área</p>
-            </div>
-        @endif
-    </div>
-</div>
+        @forelse ($equipment as $item)
+            <tr wire:key="equip-{{ $item->equipment_type }}-{{ $item->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="px-4 py-3">
+                    <x-ui.badge tone="neutral">
+                        @switch($item->equipment_type)
+                            @case('machine') Máquina @break
+                            @case('table') Mesa @break
+                            @case('semi_automatic') Semi-automático @break
+                            @default {{ $item->equipment_type }}
+                        @endswitch
+                    </x-ui.badge>
+                </td>
+                <td class="px-4 py-3 font-semibold text-slate-900 dark:text-white">{{ $item->name }}</td>
+                <td class="px-4 py-3 text-right">
+                    @if (isset($item->active) && $item->active)
+                        <x-ui.badge tone="good" dot>Activo</x-ui.badge>
+                    @else
+                        <x-ui.badge tone="neutral" dot>Inactivo</x-ui.badge>
+                    @endif
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="3">
+                    <x-ui.empty title="No hay equipos en esta área"
+                        hint="Las máquinas, mesas y semi-automáticos se dan de alta desde su propio catálogo y se asignan a un área." />
+                </td>
+            </tr>
+        @endforelse
+    </x-ui.table>
+</x-ui.page>
