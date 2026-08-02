@@ -1,424 +1,114 @@
-<div class="space-y-6">
-    <div class="flex items-center gap-4">
-        <a href="{{ route('admin.standards.index') }}" class="inline-flex items-center justify-center w-10 h-10 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-md transition-colors" title="Volver">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-        </a>
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Editar estándar</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Modificar información del estándar de la parte {{ $standard->part?->number ?? 'N/A' }}</p>
-        </div>
-    </div>
+{{--
+    NOTA: este archivo tenía marcadores de conflicto de Git sin resolver
+    (<<<<<<< HEAD / ======= / >>>>>>> sha) que se imprimían como texto en la
+    página. Los lados en conflicto sólo diferían en la forma de evaluar
+    @selected(); se conservó la variante defensiva (casts explícitos y ?? para
+    claves ausentes), que es la que no truena cuando el arreglo viene incompleto.
+--}}
+<x-ui.page eyebrow="Producción" title="Editar estándar"
+    :subtitle="'Parte '.($standard->part?->number ?? 'N/A').' · los cambios afectan el cálculo de avance en piso.'"
+    back="{{ route('admin.standards.index') }}" backLabel="Volver a estándares">
 
-    <div class="flex items-center gap-2">
-        @if($standard->active)
-            <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300">Activo</span>
+    <x-slot:actions>
+        @if ($standard->active)
+            <x-ui.badge tone="good" dot>Activo</x-ui.badge>
         @else
-            <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Inactivo</span>
+            <x-ui.badge tone="neutral" dot>Inactivo</x-ui.badge>
         @endif
-    </div>
+        <x-ui.btn variant="secondary" href="{{ route('admin.standards.show', $standard) }}">Ver detalle</x-ui.btn>
+    </x-slot:actions>
 
+    <form wire:submit="updateStandard" class="space-y-5">
+        <x-ui.section title="Parte" hint="Cada parte tiene un solo estándar, con una o varias configuraciones.">
+            <x-ui.field label="Parte" required :error="$errors->first('part_id')">
+                <select wire:model="part_id" class="w-full" required>
+                    <option value="">Seleccione una parte</option>
+                    @foreach ($parts as $part)
+                        <option value="{{ $part->id }}" @selected((int) $part_id === (int) $part->id)>
+                            {{ $part->number }} - {{ Str::limit($part->description, 40) }}
+                        </option>
+                    @endforeach
+                </select>
+            </x-ui.field>
+        </x-ui.section>
 
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-200 dark:divide-gray-700">
-        <form wire:submit="updateStandard" class="p-6 space-y-6">
-                    <!-- Part -->
-                    <div>
-                        <label for="part_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Parte <span class="text-red-500">*</span>
-                        </label>
-                        <select wire:model="part_id" id="part_id"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                            required>
-                            <option value="">Seleccione una parte</option>
-                            @foreach($parts as $part)
-<<<<<<< HEAD
-<<<<<<< HEAD
-                                <option value="{{ $part->id }}" @selected($part->id == $part_id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
-=======
-                                <option value="{{ $part->id }}" @selected((int) $part_id === (int) $part->id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
->>>>>>> 9a90a8cf0fd5edd882eabbeda6f72082b6f3503a
-=======
-<<<<<<< HEAD
-                                <option value="{{ $part->id }}" @selected($part->id == $part_id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
-=======
-                                <option value="{{ $part->id }}" @selected((int) $part_id === (int) $part->id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
->>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
-=======
-                                <option value="{{ $part->id }}" @selected((int) $part_id === (int) $part->id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
-=======
-                                <option value="{{ $part->id }}" @selected($part->id == $part_id)>{{ $part->number }} - {{ Str::limit($part->description, 40) }}</option>
->>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
->>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
->>>>>>> ea31140db75d77f583fcf138f9a4d8b93dccf27a
+        @if ($useNewConfigSystem)
+            @include('livewire.admin.standards.partials.configurations')
+        @else
+            {{-- Esquema anterior: un solo UPH para toda la parte. --}}
+            <x-ui.section title="Configuración anterior"
+                hint="Este estándar todavía usa el esquema previo, con un solo ritmo para toda la parte.">
+
+                <x-ui.note tone="warn" class="mb-4" title="Esquema en desuso">
+                    El esquema nuevo permite un ritmo distinto por tipo de estación y por cantidad de personal.
+                </x-ui.note>
+
+                <x-ui.field label="Unidades por hora" required
+                    hint="Piezas buenas esperadas en una hora."
+                    :error="$errors->first('units_per_hour')">
+                    <input wire:model="units_per_hour" type="number" min="1" placeholder="Ej: 50"
+                        class="w-full text-right font-bold tabular-nums" required>
+                </x-ui.field>
+
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <x-ui.field label="Mesa de trabajo" optional :error="$errors->first('work_table_id')">
+                        <select wire:model="work_table_id" class="w-full">
+                            <option value="">Seleccione una mesa</option>
+                            @foreach ($workTables as $table)
+                                <option value="{{ $table->id }}" @selected((int) $work_table_id === (int) $table->id)>{{ $table->number }}</option>
                             @endforeach
                         </select>
-                        @error('part_id')
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
+                    </x-ui.field>
 
-                    @if($useNewConfigSystem)
-                        <!-- Configurations Section (New System) -->
-                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                            <div class="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">Configuraciones de Produccion</h3>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                                        Defina las diferentes configuraciones de productividad segun tipo de estacion y personal
-                                    </p>
-                                </div>
-                                <button type="button" wire:click="addConfiguration"
-                                    class="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
-                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                    </svg>
-                                    Agregar Configuracion
-                                </button>
-                            </div>
+                    <x-ui.field label="Mesa semi-automática" optional :error="$errors->first('semi_auto_work_table_id')">
+                        <select wire:model="semi_auto_work_table_id" class="w-full">
+                            <option value="">Seleccione una mesa</option>
+                            @foreach ($semiAutoWorkTables as $semiAuto)
+                                <option value="{{ $semiAuto->id }}" @selected((int) $semi_auto_work_table_id === (int) $semiAuto->id)>{{ $semiAuto->number }}</option>
+                            @endforeach
+                        </select>
+                    </x-ui.field>
 
-                            @error('configurations')
-                                <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg dark:bg-red-900/30 dark:border-red-600 dark:text-red-400">
-                                    {{ $message }}
-                                </div>
-                            @enderror
+                    <x-ui.field label="Máquina" optional :error="$errors->first('machine_id')">
+                        <select wire:model="machine_id" class="w-full">
+                            <option value="">Seleccione una máquina</option>
+                            @foreach ($machines as $machine)
+                                <option value="{{ $machine->id }}" @selected((int) $machine_id === (int) $machine->id)>{{ $machine->name }}</option>
+                            @endforeach
+                        </select>
+                    </x-ui.field>
+                </div>
 
-                            <!-- Configurations List -->
-                            <div class="space-y-4">
-                                @foreach($configurations as $index => $config)
-                                    <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700 relative">
-                                        <!-- Configuration Header -->
-                                        <div class="flex items-center justify-between mb-4">
-                                            <div class="flex items-center space-x-3">
-                                                <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm font-semibold rounded-full">
-                                                    {{ $index + 1 }}
-                                                </span>
-                                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                    Configuracion #{{ $index + 1 }}
-                                                    @if(!empty($config['id']))
-                                                        <span class="text-xs text-gray-400">(ID: {{ $config['id'] }})</span>
-                                                    @else
-                                                        <span class="text-xs text-green-600 dark:text-green-400">(Nueva)</span>
-                                                    @endif
-                                                </span>
-                                                @if($config['is_default'])
-                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                                        Predeterminada
-                                                    </span>
-                                                @endif
-                                            </div>
-                                            <div class="flex items-center space-x-2">
-                                                @if(!$config['is_default'])
-                                                    <button type="button" wire:click="setDefaultConfiguration({{ $index }})"
-                                                        class="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 text-sm"
-                                                        title="Establecer como predeterminada">
-                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
-                                                        </svg>
-                                                    </button>
-                                                @endif
-                                                @if(count($configurations) > 1)
-                                                    <button type="button" wire:click="removeConfiguration({{ $index }})"
-                                                        class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                                                        title="Eliminar configuracion">
-                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                        </svg>
-                                                    </button>
-                                                @endif
-                                            </div>
-                                        </div>
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <x-ui.field label="Personas (config. 1)" optional :error="$errors->first('persons_1')">
+                        <input wire:model="persons_1" type="number" min="1" class="w-full text-right tabular-nums">
+                    </x-ui.field>
+                    <x-ui.field label="Personas (config. 2)" optional :error="$errors->first('persons_2')">
+                        <input wire:model="persons_2" type="number" min="1" class="w-full text-right tabular-nums">
+                    </x-ui.field>
+                    <x-ui.field label="Personas (config. 3)" optional :error="$errors->first('persons_3')">
+                        <input wire:model="persons_3" type="number" min="1" class="w-full text-right tabular-nums">
+                    </x-ui.field>
+                </div>
+            </x-ui.section>
+        @endif
 
-                                        <!-- Configuration Fields -->
-                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                            <!-- Workstation Type -->
-                                            <div>
-                                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Tipo de Estacion <span class="text-red-500">*</span>
-                                                </label>
-                                                <select wire:model.live="configurations.{{ $index }}.workstation_type"
-                                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
-                                                    @foreach($workstationTypes as $value => $label)
-<<<<<<< HEAD
-<<<<<<< HEAD
-                                                        <option value="{{ $value }}" @selected($value == $config['workstation_type'])>{{ $label }}</option>
-=======
-                                                        <option value="{{ $value }}" @selected(($config['workstation_type'] ?? null) == $value)>{{ $label }}</option>
->>>>>>> 9a90a8cf0fd5edd882eabbeda6f72082b6f3503a
-=======
-<<<<<<< HEAD
-                                                        <option value="{{ $value }}" @selected($value == $config['workstation_type'])>{{ $label }}</option>
-=======
-                                                        <option value="{{ $value }}" @selected(($config['workstation_type'] ?? null) == $value)>{{ $label }}</option>
->>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
-=======
-                                                        <option value="{{ $value }}" @selected(($config['workstation_type'] ?? null) == $value)>{{ $label }}</option>
-=======
-                                                        <option value="{{ $value }}" @selected($value == $config['workstation_type'])>{{ $label }}</option>
->>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
->>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
->>>>>>> ea31140db75d77f583fcf138f9a4d8b93dccf27a
-                                                    @endforeach
-                                                </select>
-                                                @error("configurations.{$index}.workstation_type")
-                                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                                @enderror
-                                            </div>
+        <x-ui.section title="Estado y notas">
+            <x-ui.check label="Estándar activo" hint="Los inactivos no se usan para calcular tiempos ni avances.">
+                <input wire:model="active" type="checkbox">
+            </x-ui.check>
 
-                                            <!-- Workstation (Dynamic based on type) -->
-                                            <div>
-                                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Estacion Especifica
-                                                </label>
-                                                <select wire:model="configurations.{{ $index }}.workstation_id"
-                                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
-                                                    <option value="" @selected(empty($config['workstation_id']))>Sin asignar</option>
-                                                    @php
-                                                        $workstations = $this->getWorkstationsForType($config['workstation_type']);
-                                                    @endphp
-                                                    @foreach($workstations as $ws)
-<<<<<<< HEAD
-<<<<<<< HEAD
-                                                        <option value="{{ $ws['id'] }}" @selected((string)$ws['id'] == (string)$config['workstation_id'])>{{ $ws['name'] }}</option>
-=======
-                                                        <option value="{{ $ws['id'] }}" @selected((int) ($config['workstation_id'] ?? 0) === (int) $ws['id'])>{{ $ws['name'] }}</option>
->>>>>>> 9a90a8cf0fd5edd882eabbeda6f72082b6f3503a
-=======
-<<<<<<< HEAD
-                                                        <option value="{{ $ws['id'] }}" @selected((string)$ws['id'] == (string)$config['workstation_id'])>{{ $ws['name'] }}</option>
-=======
-                                                        <option value="{{ $ws['id'] }}" @selected((int) ($config['workstation_id'] ?? 0) === (int) $ws['id'])>{{ $ws['name'] }}</option>
->>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
-=======
-                                                        <option value="{{ $ws['id'] }}" @selected((int) ($config['workstation_id'] ?? 0) === (int) $ws['id'])>{{ $ws['name'] }}</option>
-=======
-                                                        <option value="{{ $ws['id'] }}" @selected((string)$ws['id'] == (string)$config['workstation_id'])>{{ $ws['name'] }}</option>
->>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
->>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
->>>>>>> ea31140db75d77f583fcf138f9a4d8b93dccf27a
-                                                    @endforeach
-                                                </select>
-                                                @error("configurations.{$index}.workstation_id")
-                                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                                @enderror
-                                            </div>
+            <x-ui.field label="Descripción" optional class="mt-4"
+                hint="Contexto del estándar: condiciones, supuestos, quién lo midió."
+                :error="$errors->first('description')">
+                <textarea wire:model="description" rows="3" class="w-full"
+                    placeholder="Descripción detallada del estándar..."></textarea>
+            </x-ui.field>
+        </x-ui.section>
 
-                                            <!-- Persons Required -->
-                                            <div>
-                                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Personas Requeridas <span class="text-red-500">*</span>
-                                                </label>
-                                                <select wire:model="configurations.{{ $index }}.persons_required"
-                                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
-                                                    @foreach($personsOptions as $value => $label)
-                                                        <option value="{{ $value }}" @selected((int) ($config['persons_required'] ?? 0) === (int) $value)>{{ $label }}</option>
-                                                    @endforeach
-                                                </select>
-                                                @error("configurations.{$index}.persons_required")
-                                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                                @enderror
-                                            </div>
-
-                                            <!-- Units Per Hour -->
-                                            <div>
-                                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Unidades/Hora <span class="text-red-500">*</span>
-                                                </label>
-                                                <input type="number" wire:model="configurations.{{ $index }}.units_per_hour"
-                                                    min="1" placeholder="Ej: 50"
-                                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm" />
-                                                @error("configurations.{$index}.units_per_hour")
-                                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                                @enderror
-                                            </div>
-                                        </div>
-
-                                        <!-- Notes -->
-                                        <div class="mt-4">
-                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                Notas (opcional)
-                                            </label>
-                                            <input type="text" wire:model="configurations.{{ $index }}.notes"
-                                                placeholder="Observaciones adicionales..."
-                                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm" />
-                                            @error("configurations.{$index}.notes")
-                                                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-
-                            @if(count($configurations) === 0)
-                                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    <p class="mt-2">No hay configuraciones. Haga clic en "Agregar Configuracion" para comenzar.</p>
-                                </div>
-                            @endif
-                        </div>
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
->>>>>>> ea31140db75d77f583fcf138f9a4d8b93dccf27a
-                    @else
-                        <!-- Legacy System Fields -->
-                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Configuracion Legacy</h3>
-
-                            <!-- Units Per Hour -->
-                            <div class="mb-6">
-                                <label for="units_per_hour" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Unidades por Hora <span class="text-red-500">*</span>
-                                </label>
-                                <input wire:model="units_per_hour" id="units_per_hour" type="number" min="1"
-                                    placeholder="Ej: 50"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-                                    required />
-                                @error('units_per_hour')
-                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            <!-- Work Stations -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                                <div>
-                                    <label for="work_table_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Mesa de Trabajo
-                                    </label>
-                                    <select wire:model="work_table_id" id="work_table_id"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                                        <option value="">Seleccione una mesa</option>
-                                        @foreach($workTables as $table)
-                                            <option value="{{ $table->id }}" @selected((int) $work_table_id === (int) $table->id)>{{ $table->number }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('work_table_id')
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label for="semi_auto_work_table_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Mesa Semi-Automatica
-                                    </label>
-                                    <select wire:model="semi_auto_work_table_id" id="semi_auto_work_table_id"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                                        <option value="">Seleccione una mesa semi-auto</option>
-                                        @foreach($semiAutoWorkTables as $semiAuto)
-                                            <option value="{{ $semiAuto->id }}" @selected((int) $semi_auto_work_table_id === (int) $semiAuto->id)>{{ $semiAuto->number }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('semi_auto_work_table_id')
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label for="machine_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Maquina
-                                    </label>
-                                    <select wire:model="machine_id" id="machine_id"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                                        <option value="">Seleccione una maquina</option>
-                                        @foreach($machines as $machine)
-                                            <option value="{{ $machine->id }}" @selected((int) $machine_id === (int) $machine->id)>{{ $machine->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('machine_id')
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            <!-- Persons 1, 2, 3 -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div>
-                                    <label for="persons_1" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Personas 1
-                                    </label>
-                                    <input wire:model="persons_1" id="persons_1" type="number" min="1"
-                                        placeholder="0"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" />
-                                    @error('persons_1')
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label for="persons_2" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Personas 2
-                                    </label>
-                                    <input wire:model="persons_2" id="persons_2" type="number" min="1"
-                                        placeholder="0"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" />
-                                    @error('persons_2')
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label for="persons_3" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Personas 3
-                                    </label>
-                                    <input wire:model="persons_3" id="persons_3" type="number" min="1"
-                                        placeholder="0"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" />
-                                    @error('persons_3')
-                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
-<<<<<<< HEAD
->>>>>>> 9a90a8cf0fd5edd882eabbeda6f72082b6f3503a
-=======
-<<<<<<< HEAD
->>>>>>> 7be6bf7cc8efc794afc57ae7c525e9ee7646ba61
-=======
-=======
->>>>>>> 65a8f9811cba62e532f3986d66d7df10a06aee79
->>>>>>> 05dea1551e84970797d09ae4fcf2ad9279862741
->>>>>>> ea31140db75d77f583fcf138f9a4d8b93dccf27a
-                    @endif
-
-                    <!-- Active Status -->
-                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                        <div class="flex items-center">
-                            <label class="flex items-center">
-                                <input wire:model="active" type="checkbox" id="active"
-                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Estandar activo</span>
-                            </label>
-                            @error('active')
-                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <!-- Description -->
-                    <div>
-                        <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Descripcion
-                        </label>
-                        <textarea wire:model="description" id="description" rows="3"
-                            placeholder="Descripcion detallada del estandar..."
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 resize-none"></textarea>
-                        @error('description')
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Buttons -->
-                    <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <a href="{{ route('admin.standards.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-md transition-colors">Cancelar</a>
-                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer">Actualizar estándar</button>
-            </div>
-        </form>
-    </div>
-</div>
+        <div class="flex flex-col-reverse gap-2 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-700">
+            <x-ui.btn variant="secondary" href="{{ route('admin.standards.index') }}">Cancelar</x-ui.btn>
+            <x-ui.btn variant="primary" type="submit">Guardar cambios</x-ui.btn>
+        </div>
+    </form>
+</x-ui.page>

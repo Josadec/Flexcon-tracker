@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\SentLists;
 
+use App\Livewire\Concerns\GuardsSentListDepartment;
 use App\Models\CrimpLot;
 use App\Models\Lot;
 use App\Models\SentList;
@@ -11,7 +12,14 @@ use Livewire\Component;
 
 class SentListMaterialsView extends Component
 {
+    use GuardsSentListDepartment;
+
     public SentList $sentList;
+
+    protected function guardedDepartment(): string
+    {
+        return SentList::DEPT_MATERIALS;
+    }
 
     // Lot (viajero) modal
     public bool $showLotModal = false;
@@ -44,7 +52,7 @@ class SentListMaterialsView extends Component
     public function openLotModal(int $workOrderId): void
     {
         $this->selectedWorkOrderId = $workOrderId;
-        $wo = WorkOrder::with('lots')->findOrFail($workOrderId);
+        $wo = WorkOrder::with('lots')->whereIn('id', $this->sentListWorkOrderIds())->findOrFail($workOrderId);
 
         $this->lots = $wo->lots->map(fn($l) => [
             'id'       => $l->id,
@@ -66,8 +74,10 @@ class SentListMaterialsView extends Component
 
     public function removeLotRow(int $index): void
     {
+        $this->ensureCanEditDepartment();
+
         if (!empty($this->lots[$index]['id'])) {
-            Lot::find($this->lots[$index]['id'])?->delete();
+            Lot::whereIn('id', $this->sentListLotIds())->find($this->lots[$index]['id'])?->delete();
         }
 
         unset($this->lots[$index]);
@@ -76,6 +86,8 @@ class SentListMaterialsView extends Component
 
     public function saveLots(): void
     {
+        $this->ensureCanEditDepartment();
+
         $this->validate([
             'lots.*.number'   => 'required|string|max:100',
             'lots.*.quantity' => 'required|integer|min:1',
@@ -85,7 +97,7 @@ class SentListMaterialsView extends Component
             'lots.*.quantity.min'      => 'La cantidad debe ser mayor a 0.',
         ]);
 
-        $wo    = WorkOrder::with('purchaseOrder.part')->findOrFail($this->selectedWorkOrderId);
+        $wo    = WorkOrder::with('purchaseOrder.part')->whereIn('id', $this->sentListWorkOrderIds())->findOrFail($this->selectedWorkOrderId);
         $total = collect($this->lots)->sum('quantity');
 
         if ($total > $wo->original_quantity) {
@@ -98,9 +110,11 @@ class SentListMaterialsView extends Component
             $wo->update(['sent_list_id' => $this->sentList->id]);
         }
 
+        $ownLotIds = $this->sentListLotIds();
+
         foreach ($this->lots as $row) {
             if (!empty($row['id'])) {
-                Lot::find($row['id'])?->update([
+                Lot::whereIn('id', $ownLotIds)->find($row['id'])?->update([
                     'lot_number' => $row['number'],
                     'quantity'   => $row['quantity'],
                 ]);
@@ -134,7 +148,7 @@ class SentListMaterialsView extends Component
 
     public function openCrimpLotModal(int $lotId): void
     {
-        $lot = Lot::with(['crimpLots', 'workOrder.purchaseOrder'])->findOrFail($lotId);
+        $lot = Lot::with(['crimpLots', 'workOrder.purchaseOrder'])->whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
 
         $this->crimpLotViajeroId    = $lot->id;
         $this->crimpLotViajeroLabel = trim(($lot->workOrder->purchaseOrder->wo ?? $lot->workOrder->wo_number ?? '')
@@ -168,8 +182,10 @@ class SentListMaterialsView extends Component
 
     public function removeCrimpLotRow(int $index): void
     {
+        $this->ensureCanEditDepartment();
+
         if (!empty($this->crimpLots[$index]['id'])) {
-            CrimpLot::find($this->crimpLots[$index]['id'])?->delete();
+            CrimpLot::whereIn('lot_id', $this->sentListLotIds())->find($this->crimpLots[$index]['id'])?->delete();
         }
 
         unset($this->crimpLots[$index]);
@@ -178,6 +194,8 @@ class SentListMaterialsView extends Component
 
     public function saveCrimpLots(): void
     {
+        $this->ensureCanEditDepartment();
+
         // Lote de fabricante OPCIONAL; sin tope de cantidad vs viajero (decisiones B.1).
         $this->validate([
             'crimpLots.*.crimp_lot_number' => 'required|string|max:100',
@@ -190,7 +208,8 @@ class SentListMaterialsView extends Component
             'crimpLots.*.quantity.min'              => 'La cantidad debe ser mayor a 0.',
         ]);
 
-        $lot = Lot::findOrFail($this->crimpLotViajeroId);
+        $ownLotIds = $this->sentListLotIds();
+        $lot = Lot::whereIn('id', $ownLotIds)->findOrFail($this->crimpLotViajeroId);
 
         foreach ($this->crimpLots as $row) {
             $payload = [
@@ -201,7 +220,7 @@ class SentListMaterialsView extends Component
             ];
 
             if (!empty($row['id'])) {
-                CrimpLot::find($row['id'])?->update($payload);
+                CrimpLot::whereIn('lot_id', $ownLotIds)->find($row['id'])?->update($payload);
             } else {
                 CrimpLot::create(['lot_id' => $lot->id] + $payload);
             }
@@ -260,6 +279,8 @@ class SentListMaterialsView extends Component
 
     public function sendToInspection(): void
     {
+        $this->ensureCanEditDepartment();
+
         $this->sentList->unresolvedRejections->each(fn($r) => $r->update(['resolved_at' => now()]));
 
         if (!empty($this->sendNotes)) {
@@ -299,7 +320,7 @@ class SentListMaterialsView extends Component
 
     public function openMaterialModal(int $lotId): void
     {
-        $lot = Lot::findOrFail($lotId);
+        $lot = Lot::whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
         $this->materialLotId  = $lotId;
         $this->materialStatus = $lot->material_status ?? 'pending';
         $this->showMaterialModal = true;
@@ -307,7 +328,9 @@ class SentListMaterialsView extends Component
 
     public function saveMaterial(): void
     {
-        Lot::findOrFail($this->materialLotId)->update(['material_status' => $this->materialStatus]);
+        $this->ensureCanEditDepartment();
+
+        Lot::whereIn('id', $this->sentListLotIds())->findOrFail($this->materialLotId)->update(['material_status' => $this->materialStatus]);
         $this->showMaterialModal = false;
         $this->materialLotId     = null;
         $this->sentList->refresh();

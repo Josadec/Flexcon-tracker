@@ -90,7 +90,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     @if ($part && $part->is_crimp)
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
                                             {{ $crimpLotsCount }}
                                         </span>
                                     @else
@@ -189,11 +189,11 @@
 
                                     {{-- Lotes de CRIMP (solo lectura — se gestionan en la Lista de envío / Materiales) --}}
                                     @if ($part && $part->is_crimp)
-                                    <div class="pl-4 border-l-2 border-purple-300 dark:border-purple-600">
+                                    <div class="pl-4 border-l-2 border-cyan-300 dark:border-cyan-600">
                                         @php $woCrimpLots = $workOrder->lots->flatMap->crimpLots; @endphp
                                         <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                                             Lotes de CRIMP de esta WO:
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 ml-1">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 ml-1">
                                                 {{ $woCrimpLots->count() }}
                                             </span>
                                         </div>

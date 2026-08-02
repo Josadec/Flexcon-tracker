@@ -1,235 +1,197 @@
-<div class="space-y-6">
-    <div class="flex items-center justify-between flex-wrap gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Partes</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Catálogo de partes/productos</p>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-            <button wire:click="downloadTemplate"
-                class="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
-                title="Descargar plantilla CSV">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                Plantilla
-            </button>
-            <button wire:click="openImportModal"
-                class="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 8l-4-4m0 0L8 8m4-4v12"/>
-                </svg>
-                Importar CSV
-            </button>
-            <button wire:click="exportCsv"
-                class="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M8 12l4 4m0 0l4-4m-4 4V4"/>
-                </svg>
-                Exportar CSV
-            </button>
-            <a href="{{ route('admin.parts.create') }}"
-               class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Nueva parte
-            </a>
-        </div>
-    </div>
+<x-ui.page eyebrow="Catálogo" title="Partes"
+    subtitle="Catálogo de partes y productos. Desde aquí se dan de alta y se consultan sus precios.">
 
-    {{-- Modal Import CSV --}}
-    @if($showImportModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" wire:click.self="closeImportModal">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Importar Partes desde CSV</h3>
-                    <button wire:click="closeImportModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <div class="p-4 overflow-y-auto space-y-4">
-                    <div class="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-800 dark:text-blue-200">
-                        <p class="font-medium">Formato requerido:</p>
-                        <p class="mt-1">Columnas obligatorias: <code class="font-mono text-xs">number, item_number</code></p>
-                        <p class="mt-1">Opcionales: <code class="font-mono text-xs">description, unit_of_measure, label_spec, is_crimp, active, notes</code></p>
-                        <p class="mt-1"><strong>number</strong> e <strong>item_number</strong> deben ser únicos. <code>is_crimp</code> y <code>active</code> usan <code>1</code> o <code>0</code>. Descarga la plantilla si tienes dudas.</p>
-                    </div>
+    <x-slot:actions>
+        <x-ui.btn variant="secondary" wire:click="downloadTemplate" title="Descargar una plantilla CSV de ejemplo">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Plantilla
+        </x-ui.btn>
+        <x-ui.btn variant="secondary" wire:click="openImportModal">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Importar CSV
+        </x-ui.btn>
+        <x-ui.btn variant="secondary" wire:click="exportCsv">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M8 12l4 4m0 0l4-4m-4 4V4"/></svg>
+            Exportar CSV
+        </x-ui.btn>
+        <x-ui.btn variant="primary" href="{{ route('admin.parts.create') }}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Nueva parte
+        </x-ui.btn>
+    </x-slot:actions>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Archivo CSV</label>
-                        <input type="file" wire:model="importFile" accept=".csv,text/csv" class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-                        @error('importFile') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                        <div wire:loading wire:target="importFile" class="mt-2 text-xs text-gray-500">Subiendo archivo...</div>
-                    </div>
+    {{-- Resumen --}}
+    <x-ui.stats cols="3">
+        <x-ui.stat label="Total de partes" :value="$totalParts" />
+        <x-ui.stat label="Activas" :value="$activeParts" tone="good" />
+        <x-ui.stat label="Con precio" :value="$withPrices" tone="info"
+            help="Partes que ya tienen al menos un precio capturado." />
+    </x-ui.stats>
 
-                    @if(!empty($importResults))
-                        <div class="rounded-md border p-3 text-sm
-                            {{ ($importResults['failed'] ?? 0) > 0 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200' }}">
-                            <p class="font-medium">Resultado:</p>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                                <div><span class="font-semibold">{{ $importResults['created'] ?? 0 }}</span> creadas</div>
-                                <div><span class="font-semibold">{{ $importResults['updated'] ?? 0 }}</span> actualizadas</div>
-                                <div><span class="font-semibold">{{ $importResults['skipped'] ?? 0 }}</span> sin cambios</div>
-                                <div><span class="font-semibold">{{ $importResults['failed'] ?? 0 }}</span> fallaron</div>
-                            </div>
-                            @if(!empty($importResults['errors']))
-                                <details class="mt-2">
-                                    <summary class="cursor-pointer text-xs font-medium">Ver errores ({{ count($importResults['errors']) }})</summary>
-                                    <ul class="mt-2 list-disc list-inside text-xs space-y-0.5 max-h-40 overflow-y-auto">
-                                        @foreach($importResults['errors'] as $err)
-                                            <li>{{ $err }}</li>
-                                        @endforeach
-                                    </ul>
-                                </details>
-                            @endif
-                        </div>
-                    @endif
-                </div>
-                <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                    <button wire:click="closeImportModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
-                        Cerrar
-                    </button>
-                    <button wire:click="importCsv" wire:loading.attr="disabled" wire:target="importCsv,importFile" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50">
-                        <span wire:loading.remove wire:target="importCsv">Procesar</span>
-                        <span wire:loading wire:target="importCsv">Procesando...</span>
-                    </button>
-                </div>
-            </div>
-        </div>
+    @if (session('error'))
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
     @endif
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $totalParts }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Activas</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $activeParts }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Con precio</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $withPrices }}</div>
-        </div>
-    </div>
-
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Buscar</label>
+    {{-- Filtros --}}
+    <x-ui.section title="Buscar" hint="Filtra por número de parte, número de ítem o descripción.">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_9rem]">
+            <x-ui.field label="Texto a buscar">
                 <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                    </div>
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Número, ítem o descripción..."
-                        class="block w-full pl-10 pr-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </span>
+                    <input type="text" wire:model.live.debounce.300ms="search"
+                        placeholder="Número, ítem o descripción..." class="w-full pl-10">
                 </div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Estado</label>
-                <select wire:model.live="filterActive" class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                    <option value="all">Todos</option>
+            </x-ui.field>
+
+            <x-ui.field label="Estado">
+                <select wire:model.live="filterActive" class="w-full">
+                    <option value="all">Todas</option>
                     <option value="active">Activas</option>
                     <option value="inactive">Inactivas</option>
                 </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Por página</label>
-                <select wire:model.live="perPage" class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                </select>
-            </div>
-        </div>
-        @if(session('error'))
-            <div class="mt-4 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
-            </div>
-        @endif
-        @if($search || $filterActive !== 'all')
-            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Resultados filtrados</span>
-                <button wire:click="$set('search', ''); $set('filterActive', 'all')" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 font-medium">Limpiar filtros</button>
-            </div>
-        @endif
-    </div>
+            </x-ui.field>
 
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('number')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Nº parte
-                                @if($sortField === 'number')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('item_number')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Nº ítem
-                                @if($sortField === 'item_number')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Descripción</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Unidad</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('active')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Estado
-                                @if($sortField === 'active')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse($parts as $part)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ $part->number }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $part->item_number }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">{{ $part->description ? Str::limit($part->description, 50) : '—' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $part->unit_of_measure ?? '—' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                @if($part->active)
-                                    <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300">Activa</span>
-                                @else
-                                    <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Inactiva</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('admin.parts.show', $part) }}" class="inline-flex items-center justify-center w-8 h-8 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border-2 border-transparent hover:border-gray-300 rounded-md transition-colors" title="Ver">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                    </a>
-                                    <a href="{{ route('admin.parts.edit', $part) }}" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-2 border-transparent hover:border-blue-300 rounded-md transition-colors" title="Editar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                    </a>
-                                    <button wire:click="deletePart({{ $part->id }})" wire:confirm="¿Estás seguro de eliminar esta parte?" class="inline-flex items-center justify-center w-8 h-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-2 border-transparent hover:border-red-300 rounded-md transition-colors" title="Eliminar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-16 text-center text-sm text-gray-500 dark:text-gray-400">No se encontraron partes</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <x-ui.field label="Por página">
+                <select wire:model.live="perPage" class="w-full">
+                    @foreach ([5, 10, 25, 50] as $n)
+                        <option value="{{ $n }}">{{ $n }}</option>
+                    @endforeach
+                </select>
+            </x-ui.field>
         </div>
-        @if($parts->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">{{ $parts->links() }}</div>
+
+        @if ($search || $filterActive !== 'all')
+            <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Mostrando resultados filtrados.</span>
+                <x-ui.btn variant="ghost" size="sm" wire:click="$set('search', ''); $set('filterActive', 'all')">
+                    Limpiar filtros
+                </x-ui.btn>
+            </div>
         @endif
-    </div>
-</div>
+    </x-ui.section>
+
+    {{-- Listado --}}
+    <x-ui.table>
+        <x-slot:head>
+            <tr>
+                <x-ui.th sort="number" :field="$sortField" :direction="$sortDirection">Nº parte</x-ui.th>
+                <x-ui.th sort="item_number" :field="$sortField" :direction="$sortDirection">Nº ítem</x-ui.th>
+                <x-ui.th>Descripción</x-ui.th>
+                <x-ui.th>Unidad</x-ui.th>
+                <x-ui.th sort="active" :field="$sortField" :direction="$sortDirection">Estado</x-ui.th>
+                <x-ui.th align="right">Acciones</x-ui.th>
+            </tr>
+        </x-slot:head>
+
+        @forelse ($parts as $part)
+            <tr wire:key="part-{{ $part->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="whitespace-nowrap px-4 py-3 font-semibold text-slate-900 dark:text-white">
+                    {{ $part->number }}
+                    @if ($part->is_crimp)
+                        <x-ui.badge tone="accent" class="ml-1.5">CRIMP</x-ui.badge>
+                    @endif
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">{{ $part->item_number }}</td>
+                <td class="max-w-xs truncate px-4 py-3 text-slate-600 dark:text-slate-300"
+                    title="{{ $part->description }}">{{ $part->description ?: '—' }}</td>
+                <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">{{ $part->unit_of_measure ?: '—' }}</td>
+                <td class="px-4 py-3">
+                    @if ($part->active)
+                        <x-ui.badge tone="good" dot>Activa</x-ui.badge>
+                    @else
+                        <x-ui.badge tone="neutral" dot>Inactiva</x-ui.badge>
+                    @endif
+                </td>
+                <td class="px-4 py-3">
+                    <x-ui.row-actions label="la parte {{ $part->number }}"
+                        :show="route('admin.parts.show', $part)"
+                        :edit="route('admin.parts.edit', $part)"
+                        delete="deletePart({{ $part->id }})"
+                        deleteConfirm="¿Eliminar la parte «{{ $part->number }}»? Esta acción no se puede deshacer." />
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="6">
+                    <x-ui.empty icon="search" title="No se encontraron partes"
+                        hint="Ajusta la búsqueda o el filtro de estado, o da de alta una parte nueva.">
+                        <x-slot:action>
+                            <x-ui.btn variant="primary" href="{{ route('admin.parts.create') }}">Nueva parte</x-ui.btn>
+                        </x-slot:action>
+                    </x-ui.empty>
+                </td>
+            </tr>
+        @endforelse
+
+        @if ($parts->hasPages())
+            <x-slot:foot>{{ $parts->links() }}</x-slot:foot>
+        @endif
+    </x-ui.table>
+
+    {{-- Importación por CSV --}}
+    @if ($showImportModal)
+        <x-ui-modal wire:key="modal-import-parts" title="Importar partes desde CSV"
+            subtitle="Da de alta o actualiza muchas partes de una sola vez."
+            close="closeImportModal" maxWidth="3xl">
+
+            <x-ui.section title="1. Prepara el archivo" hint="Si no estás seguro del formato, descarga la plantilla desde el listado.">
+                <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+                    <x-ui.kv label="Columnas obligatorias" value="number, item_number" />
+                    <x-ui.kv label="Columnas opcionales" value="description, unit_of_measure, label_spec, is_crimp, active, notes" />
+                    <x-ui.kv label="Valores de sí/no" value="is_crimp y active usan 1 o 0" />
+                </dl>
+                <x-ui.note tone="info" class="mt-4">
+                    <strong>number</strong> e <strong>item_number</strong> deben ser únicos. Si el número ya existe,
+                    la parte se <strong>actualiza</strong> en lugar de duplicarse.
+                </x-ui.note>
+            </x-ui.section>
+
+            <x-ui.section title="2. Sube el archivo">
+                <x-ui.field label="Archivo CSV" required :error="$errors->first('importFile')">
+                    <input type="file" wire:model="importFile" accept=".csv,text/csv"
+                        class="block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-sky-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-sky-700 hover:file:bg-sky-100 dark:text-slate-300 dark:file:bg-sky-900/40 dark:file:text-sky-300">
+                </x-ui.field>
+                <p wire:loading wire:target="importFile" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Subiendo archivo...</p>
+            </x-ui.section>
+
+            @if (!empty($importResults))
+                <x-ui.section title="3. Resultado de la importación">
+                    <x-ui.stats cols="4">
+                        <x-ui.stat label="Creadas" :value="$importResults['created'] ?? 0" tone="good" />
+                        <x-ui.stat label="Actualizadas" :value="$importResults['updated'] ?? 0" tone="info" />
+                        <x-ui.stat label="Sin cambios" :value="$importResults['skipped'] ?? 0" />
+                        <x-ui.stat label="Fallaron" :value="$importResults['failed'] ?? 0"
+                            :tone="($importResults['failed'] ?? 0) > 0 ? 'bad' : 'neutral'" />
+                    </x-ui.stats>
+
+                    @if (!empty($importResults['errors']))
+                        <details class="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/30">
+                            <summary class="cursor-pointer text-sm font-semibold text-amber-900 dark:text-amber-200">
+                                Ver los {{ count($importResults['errors']) }} renglones que fallaron
+                            </summary>
+                            <ul class="mt-3 max-h-48 list-inside list-disc space-y-1 overflow-y-auto text-xs text-amber-800 dark:text-amber-200">
+                                @foreach ($importResults['errors'] as $err)
+                                    <li>{{ $err }}</li>
+                                @endforeach
+                            </ul>
+                        </details>
+                    @endif
+                </x-ui.section>
+            @endif
+
+            <x-slot:note>
+                Las partes que ya existan se actualizan; ninguna se elimina. Revisa el resultado antes de cerrar.
+            </x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeImportModal">Cerrar</x-ui.btn>
+                <x-ui.btn variant="primary" wire:click="importCsv"
+                    wire:loading.attr="disabled" wire:target="importCsv,importFile">
+                    <span wire:loading.remove wire:target="importCsv">Procesar archivo</span>
+                    <span wire:loading wire:target="importCsv">Procesando...</span>
+                </x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
+    @endif
+</x-ui.page>

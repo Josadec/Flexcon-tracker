@@ -3,7 +3,6 @@
 namespace App\Livewire\Admin\Quality;
 
 use App\Models\Lot;
-use App\Models\Kit;
 use App\Models\QualityWeighing;
 use App\Models\WorkOrder;
 use App\Models\PurchaseOrder;
@@ -24,7 +23,9 @@ class QualityAreaDashboard extends Component
             ->count();
 
         // ── Inspection metrics ──
-        $pendingInspection = Lot::whereHas('kits', fn($q) => $q->where('status', Kit::STATUS_RELEASED))
+        // El gate del flujo vigente es la liberación a nivel viajero/lote
+        // (material_status = 'released'), no el estado de Kit (ver Lot::canBeInspected).
+        $pendingInspection = Lot::where('material_status', 'released')
             ->where('inspection_status', Lot::INSPECTION_PENDING)
             ->count();
         $approvedInspection = Lot::where('inspection_status', Lot::INSPECTION_APPROVED)->count();

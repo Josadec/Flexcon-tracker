@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\SentLists;
 
+use App\Livewire\Concerns\GuardsSentListDepartment;
 use App\Models\Lot;
 use App\Models\SentList;
 use Illuminate\Support\Facades\Auth;
@@ -9,7 +10,14 @@ use Livewire\Component;
 
 class SentListInspectionView extends Component
 {
+    use GuardsSentListDepartment;
+
     public SentList $sentList;
+
+    protected function guardedDepartment(): string
+    {
+        return SentList::DEPT_INSPECTION;
+    }
 
     // Rejection modal
     public bool $showRejectModal = false;
@@ -31,7 +39,9 @@ class SentListInspectionView extends Component
 
     public function approveLot(int $lotId): void
     {
-        $lot = Lot::findOrFail($lotId);
+        $this->ensureCanEditDepartment();
+
+        $lot = Lot::whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
         $lot->update([
             'inspection_status'        => 'approved',
             'inspection_completed_at'  => now(),
@@ -51,6 +61,8 @@ class SentListInspectionView extends Component
 
     public function rejectLot(): void
     {
+        $this->ensureCanEditDepartment();
+
         $this->validate([
             'rejectReason' => 'required|string|min:5',
         ], [
@@ -58,7 +70,7 @@ class SentListInspectionView extends Component
             'rejectReason.min'      => 'El motivo debe tener al menos 5 caracteres.',
         ]);
 
-        $lot = Lot::findOrFail($this->rejectLotId);
+        $lot = Lot::whereIn('id', $this->sentListLotIds())->findOrFail($this->rejectLotId);
         $lot->update([
             'inspection_status'   => 'rejected',
             'inspection_comments' => $this->rejectReason,
@@ -86,6 +98,8 @@ class SentListInspectionView extends Component
 
     public function returnToMaterials(): void
     {
+        $this->ensureCanEditDepartment();
+
         $this->validate([
             'returnReason' => 'required|string|min:5',
         ], [
@@ -122,6 +136,8 @@ class SentListInspectionView extends Component
 
     public function sendToProduction(): void
     {
+        $this->ensureCanEditDepartment();
+
         if (!empty($this->approveNotes)) {
             $this->sentList->update([
                 'notes' => trim(($this->sentList->notes ?? '') . "\n[Inspección " . now()->format('d/m/Y H:i') . '] ' . $this->approveNotes),

@@ -1,11 +1,12 @@
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Área de Materiales</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestión de lotes, lotes de CRIMP y work orders para producción</p>
-        </div>
-    </div>
+    <x-area-header accent="amber" title="Materiales" subtitle="Lotes, lotes de CRIMP y work orders para producción">
+        <x-slot:icon>
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
+            </svg>
+        </x-slot:icon>
+    </x-area-header>
 
     {{-- ===== Acciones de Materiales (CRIMP) ===== --}}
     <section class="space-y-4">
@@ -168,7 +169,7 @@
                             <span class="text-sm text-gray-500 dark:text-gray-400">{{ $pendingLots }} lotes pendientes</span>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-purple-400 border-2 border-purple-300 dark:border-purple-600"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 border-2 border-cyan-300 dark:border-cyan-600"></span>
                             <span class="text-sm text-gray-500 dark:text-gray-400">{{ $totalCrimpLots }} lotes de CRIMP</span>
                         </div>
                     </div>
@@ -183,7 +184,7 @@
     <!-- Summary -->
     <section>
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
             Resumen General
@@ -205,14 +206,14 @@
                 <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($totalCrimpLots) }}</div>
             </div>
             <!-- Piezas CRIMP -->
-            <div class="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-700 rounded-lg p-4 text-center">
-                <div class="text-xs text-purple-600 dark:text-purple-400 mb-1">Piezas en CRIMP</div>
-                <div class="text-2xl font-semibold text-purple-700 dark:text-purple-300">{{ number_format($crimpLotsQty) }}</div>
+            <div class="bg-white dark:bg-gray-800 border-2 border-cyan-200 dark:border-cyan-700 rounded-lg p-4 text-center">
+                <div class="text-xs text-cyan-600 dark:text-cyan-400 mb-1">Piezas en CRIMP</div>
+                <div class="text-2xl font-semibold text-cyan-700 dark:text-cyan-300">{{ number_format($crimpLotsQty) }}</div>
             </div>
             <!-- Viajeros con CRIMP -->
-            <div class="bg-white dark:bg-gray-800 border-2 border-indigo-200 dark:border-indigo-700 rounded-lg p-4 text-center">
-                <div class="text-xs text-indigo-600 dark:text-indigo-400 mb-1">Viajeros con CRIMP</div>
-                <div class="text-2xl font-semibold text-indigo-700 dark:text-indigo-300">{{ number_format($viajerosConCrimp) }}</div>
+            <div class="bg-white dark:bg-gray-800 border-2 border-sky-200 dark:border-sky-700 rounded-lg p-4 text-center">
+                <div class="text-xs text-sky-600 dark:text-sky-400 mb-1">Viajeros con CRIMP</div>
+                <div class="text-2xl font-semibold text-sky-700 dark:text-sky-300">{{ number_format($viajerosConCrimp) }}</div>
             </div>
         </div>
     </section>

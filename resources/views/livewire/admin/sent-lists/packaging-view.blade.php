@@ -1,5 +1,15 @@
 <div class="space-y-6">
 
+    {{-- Aviso de solo lectura: el backend rechaza toda edición fuera de etapa/rol --}}
+    @unless ($this->canEditDepartment())
+        <div class="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-amber-800 dark:text-amber-300">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-sm font-medium">Modo solo lectura: esta lista no está en la etapa de tu departamento o ya fue cerrada. No puedes modificar sus datos.</span>
+        </div>
+    @endunless
+
     {{-- Flash Messages --}}
     @if (session()->has('message'))
         <div class="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg text-green-800 dark:text-green-300">
@@ -594,25 +604,21 @@
                 </div>
             </div>
 
+            <x-slot:note>Paso 7 de 8. Después de la entrega sigue regresar los sobrantes a Materiales.</x-slot:note>
             <x-slot:footer>
-                <span class="text-xs text-gray-500 dark:text-gray-400">Paso 7 · luego Paso 8 (regresar sobrantes)</span>
-                <div class="flex items-center gap-2">
-                    <button wire:click="closeViajeroModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">Cerrar</button>
-                    @if ($vjReceived)
-                        <button wire:click="revertViajeroReceived({{ $viajeroModalLotId }})"
-                            wire:confirm="¿Revertir la entrega? El viajero quedará como NO recibido."
-                            class="px-4 py-2 text-sm font-semibold text-yellow-700 dark:text-yellow-300 bg-white dark:bg-gray-800 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 inline-flex items-center gap-1.5">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                            Revertir entrega
-                        </button>
-                    @else
-                        <button wire:click="markViajeroReceived({{ $viajeroModalLotId }})"
-                            class="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg inline-flex items-center gap-1.5">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            Marcar viajero como recibido
-                        </button>
-                    @endif
-                </div>
+                <x-ui.btn variant="secondary" wire:click="closeViajeroModal">Cerrar</x-ui.btn>
+                @if ($vjReceived)
+                    <x-ui.btn variant="secondary" wire:click="revertViajeroReceived({{ $viajeroModalLotId }})"
+                        wire:confirm="¿Revertir la entrega? El viajero quedará como NO recibido.">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Revertir entrega
+                    </x-ui.btn>
+                @else
+                    <x-ui.btn variant="success" wire:click="markViajeroReceived({{ $viajeroModalLotId }})">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        Marcar viajero como recibido
+                    </x-ui.btn>
+                @endif
             </x-slot:footer>
         </x-ui-modal>
     @endif
@@ -1439,12 +1445,13 @@
                                 Reabrir Lote
                             </button>
                         @endif
+            <x-slot:note>
+                @if ($decIsCrimp)
+                    Elijas la opción que elijas, el viajero continúa al <strong>Paso 7</strong> (entrega) y luego al <strong>Paso 8</strong> (sobrantes).
+                @endif
+            </x-slot:note>
             <x-slot:footer>
-                <span class="text-xs text-gray-500 dark:text-gray-400">@if($decIsCrimp)Todos los caminos continúan al Paso 7 (entrega) → Paso 8 (sobrantes)@endif</span>
-                <button wire:click="closeDecisionModal"
-                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-                    Cerrar
-                </button>
+                <x-ui.btn variant="secondary" wire:click="closeDecisionModal">Cerrar</x-ui.btn>
             </x-slot:footer>
         </x-ui-modal>
     @endif

@@ -120,12 +120,12 @@ class InspectionList extends Component
             ->when($this->filterInspectionStatus, function ($q) {
                 return $q->where('inspection_status', $this->filterInspectionStatus);
             })
-            // Show lots that have at least one kit with status 'released' OR have already been inspected
+            // Flujo vigente: la inspección se habilita cuando Materiales libera el
+            // viajero/lote (material_status = 'released'), no por estado de Kit
+            // (ver Lot::canBeInspected). Se incluyen los ya inspeccionados (historial).
             ->where(function ($q) {
-                $q->whereHas('kits', function ($kitQuery) {
-                    $kitQuery->where('status', Kit::STATUS_RELEASED);
-                })
-                ->orWhereNotNull('inspection_completed_at');
+                $q->where('material_status', 'released')
+                    ->orWhereNotNull('inspection_completed_at');
             })
             ->orderBy($this->sortField, $this->sortDirection);
 
@@ -133,7 +133,7 @@ class InspectionList extends Component
 
         // Statistics
         $stats = [
-            'pending' => Lot::whereHas('kits', fn($q) => $q->where('status', Kit::STATUS_RELEASED))
+            'pending' => Lot::where('material_status', 'released')
                 ->where('inspection_status', Lot::INSPECTION_PENDING)
                 ->count(),
             'approved' => Lot::where('inspection_status', Lot::INSPECTION_APPROVED)->count(),

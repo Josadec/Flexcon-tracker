@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -25,7 +26,9 @@ class PackagingZeroValidationTest extends TestCase
 
     public function test_packaging_rejects_zero_packed_pieces(): void
     {
+        Role::firstOrCreate(['name' => 'Empaques', 'guard_name' => 'web']);
         $user = User::factory()->create();
+        $user->assignRole('Empaques');
         $this->actingAs($user);
 
         $part = Part::factory()->create(['is_crimp' => false]);
@@ -34,6 +37,7 @@ class PackagingZeroValidationTest extends TestCase
         $sentList = SentList::create([
             'po_id'                 => $po->id,
             'status'                => SentList::STATUS_PENDING,
+            'current_department'    => SentList::DEPT_SHIPPING,
             'shift_ids'             => [],
             'num_persons'           => 1,
             'start_date'            => now()->toDateString(),

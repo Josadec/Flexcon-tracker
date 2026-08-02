@@ -1,11 +1,12 @@
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Área de Empaques</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Control y seguimiento de empaque de lotes</p>
-        </div>
-    </div>
+    <x-area-header accent="emerald" title="Empaques" subtitle="Control y seguimiento del empaque de lotes y viajeros">
+        <x-slot:icon>
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+            </svg>
+        </x-slot:icon>
+    </x-area-header>
 
     {{-- ===== Empaque CRIMP (viajeros) ===== --}}
     <section class="space-y-4">
@@ -19,9 +20,9 @@
 
         {{-- KPIs --}}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-indigo-200 dark:border-indigo-800 p-5 shadow-sm">
-                <div class="text-xs font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">Por empacar</div>
-                <div class="mt-1 text-3xl font-bold text-indigo-700 dark:text-indigo-300">{{ number_format($crimpPorEmpacar) }}</div>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-emerald-200 dark:border-emerald-800 p-5 shadow-sm">
+                <div class="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Por empacar</div>
+                <div class="mt-1 text-3xl font-bold text-emerald-700 dark:text-emerald-300">{{ number_format($crimpPorEmpacar) }}</div>
                 <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Material liberado · listo para Paso 5</div>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-2xl border border-green-200 dark:border-green-800 p-5 shadow-sm">
@@ -53,7 +54,7 @@
                         @php
                             $vj = $row['lot']; $wo = $vj->workOrder;
                             $badge = match ($row['kind']) {
-                                'pack'     => 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300',
+                                'pack'     => 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
                                 'viajero'  => 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
                                 'material' => 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300',
                                 default    => 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
@@ -89,7 +90,7 @@
     @include('livewire.admin.sent-lists.partials.pending-lists-panel', [
         'pendingSentLists' => $pendingSentLists,
         'deptLabel'        => 'Empaques',
-        'deptColor'        => 'green',
+        'deptColor'        => 'emerald',
     ])
 
     <!-- Area Progress Donuts -->
@@ -98,7 +99,7 @@
     <!-- Resumen de Empaques -->
     <section>
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
             Resumen de Empaques
@@ -137,14 +138,14 @@
             </div>
 
             <!-- Pendiente Decisión -->
-            <div class="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-700 rounded-lg p-5">
+            <div class="bg-white dark:bg-gray-800 border-2 border-amber-200 dark:border-amber-700 rounded-lg p-5">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs text-purple-600 dark:text-purple-400 mb-1">Pend. Decisión</p>
-                        <p class="text-2xl font-semibold text-purple-700 dark:text-purple-300">{{ number_format($lotsPendingDecision) }}</p>
+                        <p class="text-xs text-amber-600 dark:text-amber-400 mb-1">Pend. Decisión</p>
+                        <p class="text-2xl font-semibold text-amber-700 dark:text-amber-300">{{ number_format($lotsPendingDecision) }}</p>
                     </div>
-                    <div class="w-12 h-12 rounded-lg bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-700 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-700 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
                     </div>
@@ -183,9 +184,9 @@
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Registros</p>
                 <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($totalRecords) }}</p>
             </div>
-            <div class="bg-white dark:bg-gray-800 border-2 border-indigo-200 dark:border-indigo-700 rounded-lg p-5">
-                <p class="text-xs text-indigo-600 dark:text-indigo-400 mb-1">Piezas Empacadas</p>
-                <p class="text-2xl font-semibold text-indigo-700 dark:text-indigo-300">{{ number_format($totalPackedPieces) }}</p>
+            <div class="bg-white dark:bg-gray-800 border-2 border-emerald-200 dark:border-emerald-700 rounded-lg p-5">
+                <p class="text-xs text-emerald-600 dark:text-emerald-400 mb-1">Piezas Empacadas</p>
+                <p class="text-2xl font-semibold text-emerald-700 dark:text-emerald-300">{{ number_format($totalPackedPieces) }}</p>
             </div>
             <div class="bg-white dark:bg-gray-800 border-2 border-orange-200 dark:border-orange-700 rounded-lg p-5">
                 <p class="text-xs text-orange-600 dark:text-orange-400 mb-1">Piezas Sobrantes</p>
@@ -222,7 +223,7 @@
                             @foreach ($lotsInProgress as $lot)
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                                     <td class="px-6 py-4">
-                                        <div class="font-medium text-indigo-600 dark:text-indigo-400">{{ $lot->lot_number }}</div>
+                                        <div class="font-medium text-emerald-600 dark:text-emerald-400">{{ $lot->lot_number }}</div>
                                         @if($lot->returned_to_packaging_at)
                                             <div class="mt-1">
                                                 <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700">
@@ -258,7 +259,7 @@
                                         @if ($lot->closure_decision)
                                             @php
                                                 $decLabel = match ($lot->closure_decision) {
-                                                    'complete_lot' => ['Completar', 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 border-2 border-indigo-200 dark:border-indigo-700'],
+                                                    'complete_lot' => ['Completar', 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border-2 border-emerald-200 dark:border-emerald-700'],
                                                     'new_lot' => ['Nuevo Lote', 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-2 border-green-200 dark:border-green-700'],
                                                     'close_as_is' => ['Cerrado', 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border-2 border-orange-200 dark:border-orange-700'],
                                                     default => [$lot->closure_decision, 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-600'],
@@ -311,7 +312,7 @@
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             @foreach ($recentRecords as $record)
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                    <td class="px-6 py-4 font-medium text-indigo-600 dark:text-indigo-400">{{ $record->lot->lot_number ?? 'N/A' }}</td>
+                                    <td class="px-6 py-4 font-medium text-emerald-600 dark:text-emerald-400">{{ $record->lot->lot_number ?? 'N/A' }}</td>
                                     <td class="px-6 py-4 text-gray-700 dark:text-gray-300">{{ $record->lot->workOrder->purchaseOrder->part->number ?? 'N/A' }}</td>
                                     <td class="px-6 py-4 text-right text-green-600 dark:text-green-400 font-medium">{{ number_format($record->packed_pieces) }}</td>
                                     <td class="px-6 py-4 text-right text-orange-600 dark:text-orange-400 font-medium">{{ number_format($record->effective_surplus) }}</td>

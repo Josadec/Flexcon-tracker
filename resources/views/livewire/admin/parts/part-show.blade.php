@@ -1,208 +1,297 @@
-<div class="space-y-6">
-    <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <a href="{{ route('admin.parts.index') }}" class="inline-flex items-center justify-center w-10 h-10 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-md transition-colors" title="Volver">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            </a>
-            <div>
-                <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $part->number }}</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Detalle de la parte</p>
+<x-ui.page :title="$part->number"
+    :subtitle="$part->description ?: 'Detalle de la parte y sus precios por tipo de estación.'"
+    back="{{ route('admin.parts.index') }}" backLabel="Volver a partes">
+
+    <x-slot:actions>
+        @if (Route::has('admin.parts.edit'))
+            <x-ui.btn variant="primary" href="{{ route('admin.parts.edit', $part) }}">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Editar parte
+            </x-ui.btn>
+        @endif
+    </x-slot:actions>
+
+    @if (session('message'))
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
+    @endif
+    @if (session('error'))
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
+    @endif
+
+    {{-- Ficha --}}
+    <x-ui.section title="Información de la parte">
+        <x-slot:aside>
+            <div class="flex items-center gap-2">
+                @if ($part->is_crimp)
+                    <x-ui.badge tone="accent">CRIMP</x-ui.badge>
+                @endif
+                @if ($part->active)
+                    <x-ui.badge tone="good" dot>Activa</x-ui.badge>
+                @else
+                    <x-ui.badge tone="neutral" dot>Inactiva</x-ui.badge>
+                @endif
             </div>
-        </div>
-        <div class="flex items-center gap-2">
-            @if (Route::has('admin.parts.edit'))
-                <a href="{{ route('admin.parts.edit', $part) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors">Editar</a>
-            @endif
-            <a href="{{ route('admin.parts.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-md transition-colors">Volver</a>
-        </div>
-    </div>
+        </x-slot:aside>
 
-    <!-- Información Principal -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div class="p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información de la parte</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Número de parte</p>
-                    <p class="text-lg text-gray-900 dark:text-white">{{ $part->number }}</p>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Número de ítem</p>
-                    <p class="text-lg text-gray-900 dark:text-white">{{ $part->item_number }}</p>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Unidad de medida</p>
-                    <p class="text-lg text-gray-900 dark:text-white">{{ $part->unit_of_measure ?? '—' }}</p>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Estado</p>
-                    @if ($part->active)
-                        <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300">Activa</span>
-                    @else
-                        <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Inactiva</span>
-                    @endif
-                </div>
-                <div class="md:col-span-2">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Descripción</p>
-                    <p class="text-gray-900 dark:text-white">{{ $part->description ?? '—' }}</p>
-                </div>
-                <div class="md:col-span-2">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Label Spec</p>
-                    <p class="text-gray-900 dark:text-white">{{ $part->label_spec ?? '—' }}</p>
-                </div>
-                <div class="md:col-span-2">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Notas</p>
-                    <p class="text-gray-900 dark:text-white">{{ $part->notes ?? '—' }}</p>
-                </div>
+        <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+            <x-ui.kv label="Número de parte" :value="$part->number" />
+            <x-ui.kv label="Número de ítem" :value="$part->item_number" />
+            <x-ui.kv label="Unidad de medida" :value="$part->unit_of_measure ?: '—'" />
+            <x-ui.kv label="Label Spec" :value="$part->label_spec ?: '—'" />
+            <x-ui.kv label="Descripción" :value="$part->description ?: '—'" />
+            <x-ui.kv label="Notas" :value="$part->notes ?: '—'" />
+            <x-ui.kv label="Creada" :value="$part->created_at?->format('d/m/Y H:i') ?? '—'" />
+            <x-ui.kv label="Última actualización" :value="$part->updated_at?->format('d/m/Y H:i') ?? '—'" />
+        </dl>
+    </x-ui.section>
+
+    {{-- Precios: una pestaña por tipo de estación --}}
+    @php $firstType = array_key_first($pricesByType); @endphp
+    <x-ui.section title="Precios por tipo de estación"
+        hint="El precio se cobra según el tipo de estación donde se produce la parte.">
+
+        <div x-data="{ tab: '{{ $firstType }}' }">
+            {{-- Pestañas --}}
+            <div class="border-b border-slate-200 dark:border-slate-700">
+                <nav class="-mb-px flex flex-wrap gap-x-6" aria-label="Tipo de estación">
+                    @foreach ($pricesByType as $type => $data)
+                        <button type="button" x-on:click="tab = '{{ $type }}'"
+                            x-bind:class="tab === '{{ $type }}'
+                                ? 'border-sky-600 text-sky-700 dark:text-sky-300'
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'"
+                            class="inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-sm font-semibold transition-colors">
+                            {{ $data['label'] }}
+                            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                {{ count($data['prices']) }}
+                            </span>
+                        </button>
+                    @endforeach
+                </nav>
             </div>
-        </div>
-    </div>
 
-    <!-- Precios por tipo de estación -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Precios por Tipo de Estación de Trabajo</h2>
-                </div>
-
-                <!-- Tabs para cada tipo de estación -->
-                <div x-data="{ activeTab: 'machine' }" class="space-y-4">
-                    <!-- Tab Headers -->
-                    <div class="border-b border-gray-200 dark:border-gray-700">
-                        <nav class="-mb-px flex space-x-8">
-                            @foreach($pricesByType as $type => $data)
-                                <button 
-                                    @click="activeTab = '{{ $type }}'"
-                                    :class="activeTab === '{{ $type }}' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
-                                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200">
-                                    {{ $data['label'] }}
-                                    @if(count($data['prices']) > 0)
-                                        <span class="ml-2 py-0.5 px-2 rounded-full text-xs" 
-                                              :class="activeTab === '{{ $type }}' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'">
-                                            {{ count($data['prices']) }}
-                                        </span>
-                                    @endif
-                                </button>
-                            @endforeach
-                        </nav>
+            {{-- Contenido de cada pestaña --}}
+            @foreach ($pricesByType as $type => $data)
+                <div x-show="tab === '{{ $type }}'" x-cloak class="pt-4">
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Precios para estaciones tipo <strong class="text-slate-700 dark:text-slate-200">{{ $data['label'] }}</strong>.
+                        </p>
+                        <x-ui.btn variant="secondary" size="sm" wire:click="openPriceModal('{{ $type }}')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            Agregar precio
+                        </x-ui.btn>
                     </div>
 
-                    <!-- Tab Content -->
-                    @foreach($pricesByType as $type => $data)
-                        <div x-show="activeTab === '{{ $type }}'" x-cloak class="space-y-4">
-                            <div class="flex justify-between items-center">
-                                <p class="text-sm text-gray-600 dark:text-gray-400">
-                                    Precios para estaciones tipo: <span class="font-semibold">{{ $data['label'] }}</span>
-                                </p>
-                                @if (Route::has('admin.prices.create'))
-                                    <a href="{{ route('admin.prices.create', ['part_id' => $part->id, 'workstation_type' => $type]) }}"
-                                        class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                        </svg>
-                                        Agregar Precio
-                                    </a>
-                                @endif
-                            </div>
+                    @if (count($data['prices']) > 0)
+                        {{-- Anchos fijos en las columnas cortas: sin esto la primera
+                             columna se estiraba y dejaba un hueco enorme a la izquierda. --}}
+                        <x-ui.table>
+                            <x-slot:head>
+                                <tr>
+                                    <x-ui.th class="w-40">Precio muestra</x-ui.th>
+                                    <x-ui.th>Niveles de precio</x-ui.th>
+                                    <x-ui.th class="w-36">Fecha efectiva</x-ui.th>
+                                    <x-ui.th class="w-28">Estado</x-ui.th>
+                                    <x-ui.th class="w-28" align="right">Acciones</x-ui.th>
+                                </tr>
+                            </x-slot:head>
 
-                            @if(count($data['prices']) > 0)
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                        <thead class="bg-gray-50 dark:bg-gray-800">
-                                            <tr>
-                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Precio Muestra</th>
-                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Niveles de precio</th>
-                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Fecha Efectiva</th>
-                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Estado</th>
-                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
-                                            @foreach($data['prices'] as $price)
-                                                <tr>
-                                                    <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white align-top">${{ number_format($price->sample_price, 4) }}</td>
-                                                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 align-top">
-                                                        @php $tiers = $price->tiers->sortBy('min_quantity'); @endphp
-                                                        @if($tiers->isEmpty())
-                                                            <span class="text-gray-400">Sin tiers</span>
-                                                        @else
-                                                            <div class="space-y-1">
-                                                                @foreach($tiers as $tier)
-                                                                    <div class="text-xs">
-                                                                        <span class="text-gray-700 dark:text-gray-300">
-                                                                            {{ number_format(0 + $tier->min_quantity, 0) }} -
-                                                                            {{ $tier->max_quantity !== null ? number_format(0 + $tier->max_quantity, 0) : '∞' }}
-                                                                        </span>
-                                                                        <span class="ml-2 font-medium text-gray-900 dark:text-white">${{ number_format($tier->tier_price, 4) }}</span>
-                                                                    </div>
-                                                                @endforeach
-                                                            </div>
-                                                        @endif
-                                                    </td>
-                                                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 align-top">{{ $price->effective_date?->format('n/j/Y') ?? '—' }}</td>
-                                                    <td class="px-4 py-3 align-top">
-                                                        @if ($price->active)
-                                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Activo</span>
-                                                        @else
-                                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Inactivo</span>
-                                                        @endif
-                                                    </td>
-                                                    <td class="px-4 py-3 align-top">
-                                                        @if (Route::has('admin.prices.edit'))
-                                                            <a href="{{ route('admin.prices.edit', $price) }}" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-2 border-transparent hover:border-blue-300 rounded-md transition-colors" title="Editar">
-                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                                            </a>
-                                                        @endif
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            @else
-                                <div class="text-center py-8 bg-gray-50 dark:bg-gray-900 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                        No hay precios para estaciones tipo <span class="font-semibold">{{ $data['label'] }}</span>
-                                    </p>
-                                    @if (Route::has('admin.prices.create'))
-                                        <a href="{{ route('admin.prices.create', ['part_id' => $part->id, 'workstation_type' => $type]) }}"
-                                            class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
-                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                            </svg>
-                                            Crear Primer Precio
-                                        </a>
-                                    @endif
-                                </div>
-                            @endif
-                        </div>
+                            @foreach ($data['prices'] as $price)
+                                <tr wire:key="price-{{ $price->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                                    <td class="whitespace-nowrap px-4 py-3 text-base font-bold tabular-nums text-slate-900 dark:text-white">
+                                        ${{ number_format($price->sample_price, 4) }}
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        @php $tiers = $price->tiers->sortBy('min_quantity'); @endphp
+                                        @if ($tiers->isEmpty())
+                                            <span class="text-xs text-slate-400">Sin niveles — siempre se cobra el precio muestra</span>
+                                        @else
+                                            <ul class="space-y-0.5">
+                                                @foreach ($tiers as $tier)
+                                                    <li class="flex items-baseline gap-2 text-xs">
+                                                        <span class="tabular-nums text-slate-600 dark:text-slate-300">
+                                                            {{ number_format(0 + $tier->min_quantity, 0) }} –
+                                                            {{ $tier->max_quantity !== null ? number_format(0 + $tier->max_quantity, 0) : '∞' }}
+                                                        </span>
+                                                        <span class="font-bold tabular-nums text-slate-900 dark:text-white">${{ number_format($tier->tier_price, 4) }}</span>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+                                    </td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
+                                        {{ $price->effective_date?->format('d/m/Y') ?? '—' }}
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        @if ($price->active)
+                                            <x-ui.badge tone="good" dot>Activo</x-ui.badge>
+                                        @else
+                                            <x-ui.badge tone="neutral" dot>Inactivo</x-ui.badge>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <x-ui.row-actions label="este precio"
+                                            delete="deletePrice({{ $price->id }})"
+                                            deleteConfirm="¿Eliminar este precio de {{ $data['label'] }}? Esta acción no se puede deshacer.">
+                                            <x-ui.icon-btn tone="primary" label="Editar este precio"
+                                                wire:click="openEditPriceModal({{ $price->id }})">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            </x-ui.icon-btn>
+                                        </x-ui.row-actions>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </x-ui.table>
+                    @else
+                        <x-ui.empty icon="doc"
+                            title="Sin precios para {{ $data['label'] }}"
+                            hint="Mientras no haya precio, esta parte no se puede cotizar en estaciones de este tipo.">
+                            <x-slot:action>
+                                <x-ui.btn variant="primary" wire:click="openPriceModal('{{ $type }}')">
+                                    Crear el primer precio
+                                </x-ui.btn>
+                            </x-slot:action>
+                        </x-ui.empty>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </x-ui.section>
+
+    {{-- Alta y edición de precios, sin salir de la parte --}}
+    @if ($showPriceModal)
+        <x-ui-modal wire:key="modal-price-{{ $editingPriceId ?? 'new' }}"
+            :title="$editingPriceId ? 'Editar precio' : 'Agregar precio'"
+            subtitle="El precio aplica a esta parte, en el tipo de estación y desde la fecha que elijas."
+            close="closePriceModal" maxWidth="4xl">
+
+            <x-slot:context>
+                <x-ui-modal.ctx label="Parte" :value="$part->number" />
+                <x-ui-modal.ctx label="Descripción" :value="$part->description ?: '—'" />
+                <x-ui-modal.ctx label="Unidad" :value="$part->unit_of_measure ?: '—'" />
+                <x-ui-modal.ctx label="Precios registrados"
+                    :value="collect($pricesByType)->sum(fn ($d) => count($d['prices'])).' en total'" />
+            </x-slot:context>
+
+            <x-ui.section step="1" title="Tipo de estación"
+                hint="El mismo producto puede costar distinto según dónde se produce.">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    @foreach ($workstationTypes as $value => $label)
+                        <x-ui.choice wire:key="ws-{{ $value }}"
+                            tone="info" :title="$label"
+                            :desc="count($pricesByType[$value]['prices'] ?? []).' '.Str::plural('precio', count($pricesByType[$value]['prices'] ?? [])).' ya registrado'.(count($pricesByType[$value]['prices'] ?? []) === 1 ? '' : 's')"
+                            :selected="$priceWorkstationType === $value"
+                            wire:click="$set('priceWorkstationType', '{{ $value }}')" />
                     @endforeach
                 </div>
-            </div>
-        </div>
+                @error('priceWorkstationType')
+                    <x-ui.note tone="danger" class="mt-3">{{ $message }}</x-ui.note>
+                @enderror
+            </x-ui.section>
 
-    <!-- Metadatos -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Creado</p>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $part->created_at?->format('d/m/Y H:i') ?? '—' }}</p>
+            <x-ui.section step="2" title="Precio base y vigencia">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ui.field label="Precio de muestra" required
+                        hint="Precio base, con hasta 4 decimales."
+                        :error="$errors->first('priceSample')">
+                        <div class="relative">
+                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 font-semibold text-slate-400">$</span>
+                            <input wire:model="priceSample" type="number" step="0.0001" min="0"
+                                class="w-full pl-7 text-right font-bold tabular-nums" required>
+                        </div>
+                    </x-ui.field>
+
+                    <x-ui.field label="Fecha efectiva" required
+                        hint="Desde cuándo aplica este precio."
+                        :error="$errors->first('priceEffectiveDate')">
+                        <input wire:model="priceEffectiveDate" type="date" class="w-full" required>
+                    </x-ui.field>
                 </div>
-            </div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                <div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Última actualización</p>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $part->updated_at?->format('d/m/Y H:i') ?? '—' }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+            </x-ui.section>
+
+            <x-ui.section step="3" title="Niveles de precio por volumen"
+                hint="Opcional. Deja la cantidad máxima vacía para «sin límite».">
+                <x-slot:aside>
+                    <x-ui.btn variant="success" size="sm" wire:click="addPriceTier">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Agregar nivel
+                    </x-ui.btn>
+                </x-slot:aside>
+
+                @if (empty($priceTiers))
+                    <x-ui.empty icon="doc" title="Sin niveles de volumen"
+                        hint="Si no agregas ninguno, siempre se cobra el precio de muestra." />
+                @else
+                    <div class="space-y-3">
+                        @foreach ($priceTiers as $i => $tier)
+                            <div wire:key="ptier-{{ $i }}"
+                                class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
+                                <div class="flex items-start gap-3">
+                                    <span class="mt-6 flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white dark:bg-slate-200 dark:text-slate-900">
+                                        {{ $i + 1 }}
+                                    </span>
+
+                                    <div class="grid min-w-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
+                                        <x-ui.field label="Cantidad mínima" required
+                                            :error="$errors->first('priceTiers.'.$i.'.min_quantity')">
+                                            <input wire:model="priceTiers.{{ $i }}.min_quantity" type="number"
+                                                step="0.0001" min="0" placeholder="0"
+                                                class="w-full text-right tabular-nums">
+                                        </x-ui.field>
+
+                                        <x-ui.field label="Cantidad máxima" optional
+                                            hint="Vacío = sin límite."
+                                            :error="$errors->first('priceTiers.'.$i.'.max_quantity')">
+                                            <input wire:model="priceTiers.{{ $i }}.max_quantity" type="number"
+                                                step="0.0001" min="0" placeholder="Sin límite"
+                                                class="w-full text-right tabular-nums">
+                                        </x-ui.field>
+
+                                        <x-ui.field label="Precio del nivel" required
+                                            :error="$errors->first('priceTiers.'.$i.'.tier_price')">
+                                            <div class="relative">
+                                                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 font-semibold text-slate-400">$</span>
+                                                <input wire:model="priceTiers.{{ $i }}.tier_price" type="number"
+                                                    step="0.0001" min="0" placeholder="0.0000"
+                                                    class="w-full pl-7 text-right font-bold tabular-nums">
+                                            </div>
+                                        </x-ui.field>
+                                    </div>
+
+                                    <div class="pt-6">
+                                        <x-ui.icon-btn tone="danger" label="Eliminar el nivel {{ $i + 1 }}"
+                                            wire:click="removePriceTier({{ $i }})">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </x-ui.icon-btn>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </x-ui.section>
+
+            <x-ui.section step="4" title="Estado y notas">
+                <x-ui.check label="Precio activo" hint="Los precios inactivos no se usan al cotizar órdenes nuevas.">
+                    <input wire:model="priceActive" type="checkbox">
+                </x-ui.check>
+
+                <x-ui.field label="Comentarios" optional class="mt-4"
+                    hint="Contexto del precio: negociación, vigencia especial, etc."
+                    :error="$errors->first('priceComments')">
+                    <textarea wire:model="priceComments" rows="2" class="w-full"></textarea>
+                </x-ui.field>
+            </x-ui.section>
+
+            <x-slot:note>
+                Al guardar, el precio aparece en la pestaña de su tipo de estación sin salir de esta parte.
+            </x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closePriceModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="primary" wire:click="savePrice" wire:loading.attr="disabled" wire:target="savePrice">
+                    {{ $editingPriceId ? 'Guardar cambios' : 'Crear precio' }}
+                </x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
+    @endif
+</x-ui.page>

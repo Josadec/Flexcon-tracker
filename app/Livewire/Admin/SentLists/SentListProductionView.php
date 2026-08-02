@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\SentLists;
 
+use App\Livewire\Concerns\GuardsSentListDepartment;
 use App\Models\SentList;
 use App\Models\Weighing;
 use Illuminate\Support\Facades\Auth;
@@ -9,7 +10,14 @@ use Livewire\Component;
 
 class SentListProductionView extends Component
 {
+    use GuardsSentListDepartment;
+
     public SentList $sentList;
+
+    protected function guardedDepartment(): string
+    {
+        return SentList::DEPT_PRODUCTION;
+    }
 
     // Add weighing modal
     public bool $showWeighingModal = false;
@@ -41,7 +49,7 @@ class SentListProductionView extends Component
 
     public function editWeighing(int $weighingId): void
     {
-        $w = Weighing::with('lot')->find($weighingId);
+        $w = Weighing::with('lot')->whereIn('lot_id', $this->sentListLotIds())->find($weighingId);
         if (!$w) return;
 
         $this->weighingLotId       = $w->lot_id;
@@ -54,6 +62,11 @@ class SentListProductionView extends Component
 
     public function saveWeighing(): void
     {
+        $this->ensureCanEditDepartment();
+
+        // Anti-IDOR: el lote debe pertenecer a esta lista.
+        abort_unless($this->sentListLotIds()->contains($this->weighingLotId), 403);
+
         $this->validate([
             'weighingQuantity' => 'required|integer|min:1',
             'weighingAt'       => 'required|date',
@@ -77,7 +90,7 @@ class SentListProductionView extends Component
         ];
 
         if ($this->editingWeighingId) {
-            $w = Weighing::find($this->editingWeighingId);
+            $w = Weighing::whereIn('lot_id', $this->sentListLotIds())->find($this->editingWeighingId);
             if ($w) {
                 // Pesadas existentes conservan su kit_id (historial); no se reasigna.
                 $w->update($data);
@@ -118,7 +131,9 @@ class SentListProductionView extends Component
 
     public function deleteWeighing(int $weighingId): void
     {
-        Weighing::findOrFail($weighingId)->delete();
+        $this->ensureCanEditDepartment();
+
+        Weighing::whereIn('lot_id', $this->sentListLotIds())->findOrFail($weighingId)->delete();
         $this->sentList->refresh();
         session()->flash('message', 'Pesada eliminada.');
     }
@@ -137,6 +152,8 @@ class SentListProductionView extends Component
 
     public function sendToQuality(): void
     {
+        $this->ensureCanEditDepartment();
+
         if (!empty($this->sendNotes)) {
             $this->sentList->update([
                 'notes' => trim(($this->sentList->notes ?? '') . "\n[Producción " . now()->format('d/m/Y H:i') . '] ' . $this->sendNotes),
@@ -150,7 +167,9 @@ class SentListProductionView extends Component
 
     public function markLotComplete(int $lotId): void
     {
-        $lot = \App\Models\Lot::findOrFail($lotId);
+        $this->ensureCanEditDepartment();
+
+        $lot = \App\Models\Lot::whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
         $lot->update(['status' => \App\Models\Lot::STATUS_COMPLETED]);
         $this->sentList->refresh();
         session()->flash('message', "Lote {$lot->lot_number} marcado como completado.");
@@ -158,7 +177,9 @@ class SentListProductionView extends Component
 
     public function reopenLot(int $lotId): void
     {
-        $lot = \App\Models\Lot::findOrFail($lotId);
+        $this->ensureCanEditDepartment();
+
+        $lot = \App\Models\Lot::whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
         $lot->update(['status' => \App\Models\Lot::STATUS_IN_PROGRESS]);
         $this->sentList->refresh();
         session()->flash('message', "Lote {$lot->lot_number} reabierto para correcciones.");

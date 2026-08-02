@@ -36,6 +36,7 @@ class CrimpPackagingNotifyTest extends TestCase
         $sentList = SentList::create([
             'po_id'                 => $po->id,
             'status'                => SentList::STATUS_PENDING,
+            'current_department'    => SentList::DEPT_SHIPPING,
             'shift_ids'             => [],
             'num_persons'           => 1,
             'start_date'            => now()->toDateString(),
@@ -75,7 +76,9 @@ class CrimpPackagingNotifyTest extends TestCase
         $materiales = User::factory()->create(['email' => 'materiales@flexcon.test']);
         $materiales->assignRole('Materiales');
 
+        // La empacadora que confirma debe pertenecer al departamento de Empaque.
         $packer = User::factory()->create(['email' => 'packer@flexcon.test']);
+        $packer->assignRole('Empaques');
         $this->actingAs($packer);
 
         [$sentList, $viajero] = $this->makeViajeroWithPackaging($packer);
