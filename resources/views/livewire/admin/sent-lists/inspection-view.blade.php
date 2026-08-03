@@ -1,316 +1,258 @@
-<div class="space-y-6">
+{{--
+    VISTA DE INSPECCIÓN DENTRO DE UNA LISTA PRELIMINAR
 
-    {{-- Aviso de solo lectura: el backend rechaza toda edición fuera de etapa/rol --}}
+    Se monta como pestaña del detalle de la lista, así que NO lleva
+    <x-ui.page>: la cabecera la pone la pantalla contenedora.
+
+    Calidad aprueba o rechaza cada lote ANTES de que Producción lo trabaje.
+--}}
+<div class="space-y-5">
+
     @unless ($this->canEditDepartment())
-        <div class="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-amber-800 dark:text-amber-300">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span class="text-sm font-medium">Modo solo lectura: esta lista no está en la etapa de tu departamento o ya fue cerrada. No puedes modificar sus datos.</span>
-        </div>
+        <x-ui.note tone="warn" title="Modo sólo lectura">
+            Esta lista no está en la etapa de tu departamento o ya fue cerrada. Puedes consultarla, pero no modificarla.
+        </x-ui.note>
     @endunless
 
-    {{-- Flash Messages --}}
     @if (session()->has('message'))
-        <div class="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg text-green-800 dark:text-green-300">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            <span class="text-sm font-medium">{{ session('message') }}</span>
-        </div>
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
     @endif
-
     @if (session()->has('error'))
-        <div class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-800 dark:text-red-300">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span class="text-sm font-medium">{{ session('error') }}</span>
-        </div>
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
     @endif
 
-    {{-- Summary Banner --}}
     @php
-        $allLots = $workOrders->flatMap->lots;
-        $totalLots = $allLots->count();
+        $allLots       = $workOrders->flatMap->lots;
+        $totalLots     = $allLots->count();
         $approvedCount = $allLots->where('inspection_status', 'approved')->count();
         $rejectedCount = $allLots->where('inspection_status', 'rejected')->count();
         $pendingCount  = $allLots->where('inspection_status', 'pending')->count();
+        $pct           = $totalLots > 0 ? round(($approvedCount / $totalLots) * 100) : 0;
     @endphp
-    <div class="grid grid-cols-3 gap-4">
-        <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center border border-gray-200 dark:border-gray-600">
-            <div class="text-2xl font-bold text-gray-700 dark:text-gray-200">{{ $pendingCount }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Pendientes</div>
-        </div>
-        <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-center border border-green-200 dark:border-green-700">
-            <div class="text-2xl font-bold text-green-700 dark:text-green-300">{{ $approvedCount }}</div>
-            <div class="text-xs text-green-600 dark:text-green-400 mt-1">Aprobados</div>
-        </div>
-        <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-center border border-red-200 dark:border-red-700">
-            <div class="text-2xl font-bold text-red-700 dark:text-red-300">{{ $rejectedCount }}</div>
-            <div class="text-xs text-red-600 dark:text-red-400 mt-1">Rechazados</div>
-        </div>
-    </div>
 
-    {{-- Work Orders with Lots --}}
-    <div class="space-y-4">
-        @forelse ($workOrders as $wo)
-            @php $isCrimp = $wo->purchaseOrder->part->is_crimp ?? false; @endphp
-            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                {{-- WO Header --}}
-                <div class="flex items-center gap-4 px-5 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                    <a href="{{ route('admin.sent-lists.display.wo', $wo->id) }}"
-                        wire:navigate
-                        class="font-mono font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
-                        title="Ver este WO en la Lista de envío">{{ $wo->purchaseOrder->wo ?? $wo->wo_number }}</a>
-                    <span class="text-gray-700 dark:text-gray-300 font-medium">{{ $wo->purchaseOrder->part->number ?? '-' }}</span>
-                    <span class="text-gray-500 dark:text-gray-400 text-sm truncate flex-1">{{ $wo->purchaseOrder->part->description ?? '' }}</span>
+    {{-- Avance de la inspección --}}
+    <x-ui.section title="Avance de la inspección"
+        :hint="$approvedCount.' de '.$totalLots.' '.Str::plural('lote', $totalLots).' aprobados. Producción no puede empezar hasta que todos pasen.'">
+        <x-ui.stats cols="3">
+            <x-ui.stat label="Pendientes" :value="$pendingCount" :tone="$pendingCount > 0 ? 'warn' : 'good'" />
+            <x-ui.stat label="Aprobados" :value="$approvedCount" tone="good" />
+            <x-ui.stat label="Rechazados" :value="$rejectedCount" :tone="$rejectedCount > 0 ? 'bad' : 'neutral'" />
+        </x-ui.stats>
+
+        <div class="mt-4">
+            <div class="mb-1.5 flex items-baseline justify-between text-xs">
+                <span class="font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Aprobado</span>
+                <span class="font-bold tabular-nums text-slate-700 dark:text-slate-200">{{ $pct }}%</span>
+            </div>
+            <div class="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+                <div class="h-full rounded-full transition-all {{ $pct >= 100 ? 'bg-green-500' : 'bg-sky-500' }}" style="width: {{ $pct }}%"></div>
+            </div>
+        </div>
+    </x-ui.section>
+
+    {{-- Un bloque por Work Order --}}
+    @forelse ($workOrders as $wo)
+        @php $isCrimp = $wo->purchaseOrder->part->is_crimp ?? false; @endphp
+
+        <x-ui.section wire:key="wo-{{ $wo->id }}"
+            :title="($wo->purchaseOrder->wo ?? $wo->wo_number).' · '.($wo->purchaseOrder->part->number ?? '—')"
+            :hint="$wo->purchaseOrder->part->description ?? null">
+
+            <x-slot:aside>
+                <div class="flex items-center gap-2">
                     @if ($isCrimp)
-                        <span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded">CRIMP</span>
+                        <x-ui.badge tone="accent">CRIMP</x-ui.badge>
                     @endif
+                    <x-ui.btn variant="secondary" size="sm" href="{{ route('admin.sent-lists.display.wo', $wo->id) }}">
+                        Ver en el tablero
+                    </x-ui.btn>
                 </div>
+            </x-slot:aside>
 
-                {{-- Lots Table --}}
-                @if ($wo->lots->isNotEmpty())
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50/50 dark:bg-gray-900/30">
-                            <tr>
-                                <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Lote</th>
-                                <th class="px-5 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Cantidad</th>
-                                @if ($isCrimp)
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Lotes de CRIMP</th>
+            @if ($wo->lots->isEmpty())
+                <x-ui.empty icon="box" title="Este WO no tiene lotes asignados"
+                    hint="Los lotes se crean desde el tablero de piso." />
+            @else
+                <x-ui.table>
+                    <x-slot:head>
+                        <tr>
+                            <x-ui.th class="w-48">{{ $isCrimp ? 'Viajero' : 'Lote' }}</x-ui.th>
+                            <x-ui.th class="w-28" align="right">Cantidad</x-ui.th>
+                            @if ($isCrimp)
+                                <x-ui.th>Lotes de CRIMP</x-ui.th>
+                            @endif
+                            <x-ui.th class="w-32">Inspección</x-ui.th>
+                            <x-ui.th class="w-56" align="right">Acciones</x-ui.th>
+                        </tr>
+                    </x-slot:head>
+
+                    @foreach ($wo->lots as $lot)
+                        <tr wire:key="lot-{{ $lot->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                            <td class="px-4 py-3">
+                                <span class="block font-semibold text-slate-900 dark:text-white">{{ $lot->lot_number }}</span>
+                                @if ($lot->inspection_comments && $lot->inspection_status === 'rejected')
+                                    <span class="mt-0.5 block text-xs leading-4 text-red-700 dark:text-red-400">
+                                        {{ Str::limit($lot->inspection_comments, 80) }}
+                                    </span>
                                 @endif
-                                <th class="px-5 py-2.5 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Estado Inspección</th>
-                                <th class="px-5 py-2.5 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                            @foreach ($wo->lots as $lot)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                    <td class="px-5 py-3 font-mono font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $lot->lot_number }}
-                                        @if ($lot->inspection_comments && $lot->inspection_status === 'rejected')
-                                            <div class="text-xs text-red-600 dark:text-red-400 mt-0.5 font-sans font-normal">{{ Str::limit($lot->inspection_comments, 60) }}</div>
-                                        @endif
-                                    </td>
-                                    <td class="px-5 py-3 text-right text-gray-700 dark:text-gray-300">
-                                        {{ number_format($lot->quantity) }}
-                                    </td>
-                                    @if ($isCrimp)
-                                        <td class="px-5 py-3">
-                                            @if ($lot->crimpLots->isNotEmpty())
-                                                <div class="flex flex-wrap gap-1">
-                                                    @foreach ($lot->crimpLots as $cl)
-                                                        <span class="px-1.5 py-0.5 text-xs bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded font-mono">{{ $cl->crimp_lot_number }}</span>
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                <span class="text-xs text-gray-400 dark:text-gray-500 italic">Sin lotes de CRIMP</span>
-                                            @endif
-                                        </td>
-                                    @endif
-                                    <td class="px-5 py-3 text-center">
-                                        @if ($lot->inspection_status === 'approved')
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                                                Aprobado
-                                            </span>
-                                        @elseif ($lot->inspection_status === 'rejected')
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                                                Rechazado
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                                                Pendiente
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td class="px-5 py-3">
-                                        <div class="flex items-center justify-center gap-2">
-                                            <button wire:click="approveLot({{ $lot->id }})"
-                                                @if ($lot->inspection_status === 'approved') disabled @endif
-                                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors
-                                                    {{ $lot->inspection_status === 'approved'
-                                                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                                                        : 'bg-green-600 hover:bg-green-700 text-white' }}">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                                                </svg>
-                                                Aprobar
-                                            </button>
-                                            <button wire:click="openRejectModal({{ $lot->id }})"
-                                                @if ($lot->inspection_status === 'rejected') disabled @endif
-                                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors
-                                                    {{ $lot->inspection_status === 'rejected'
-                                                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                                                        : 'bg-red-600 hover:bg-red-700 text-white' }}">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
-                                                </svg>
-                                                Rechazar
-                                            </button>
+                            </td>
+
+                            <td class="px-4 py-3 text-right tabular-nums text-slate-700 dark:text-slate-200">
+                                {{ number_format($lot->quantity) }}
+                            </td>
+
+                            @if ($isCrimp)
+                                <td class="px-4 py-3">
+                                    @if ($lot->crimpLots->isEmpty())
+                                        <span class="text-xs text-slate-400">Sin lotes de CRIMP capturados</span>
+                                    @else
+                                        <div class="flex flex-wrap gap-1">
+                                            @foreach ($lot->crimpLots as $cl)
+                                                <x-ui.badge tone="accent">{{ $cl->crimp_lot_number }}</x-ui.badge>
+                                            @endforeach
                                         </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @else
-                    <div class="px-5 py-6 text-center text-sm text-gray-400 dark:text-gray-500 italic">Este WO no tiene lotes asignados.</div>
-                @endif
-            </div>
-        @empty
-            <div class="text-center py-10 text-gray-400 dark:text-gray-500">No hay Work Orders en esta lista.</div>
-        @endforelse
-    </div>
+                                    @endif
+                                </td>
+                            @endif
 
-    {{-- Footer Actions --}}
-    <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-        <div>
-            <button wire:click="openReturnModal"
-                class="inline-flex items-center gap-2 px-5 py-2.5 {{ $hasRejected ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-500 hover:bg-gray-600' }} text-white font-semibold rounded-lg shadow transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
-                </svg>
-                Regresar a Materiales
-            </button>
-        </div>
-        <button wire:click="openApproveModal"
-            @if (!$allApproved) disabled @endif
-            class="inline-flex items-center gap-2 px-5 py-2.5 font-semibold rounded-lg shadow transition-colors
-                {{ $allApproved
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' }}">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            Aprobar y Enviar a Producción
-            @if (!$allApproved)
-                <span class="text-xs font-normal">(faltan lotes)</span>
+                            <td class="px-4 py-3">
+                                @if ($lot->inspection_status === 'approved')
+                                    <x-ui.badge tone="good" dot>Aprobado</x-ui.badge>
+                                @elseif ($lot->inspection_status === 'rejected')
+                                    <x-ui.badge tone="bad" dot>Rechazado</x-ui.badge>
+                                @else
+                                    <x-ui.badge tone="warn" dot>Pendiente</x-ui.badge>
+                                @endif
+                            </td>
+
+                            <td class="px-4 py-3">
+                                <div class="flex items-center justify-end gap-2">
+                                    <x-ui.btn variant="success" size="sm"
+                                        wire:click="approveLot({{ $lot->id }})"
+                                        :disabled="$lot->inspection_status === 'approved'"
+                                        :title="$lot->inspection_status === 'approved' ? 'Este lote ya está aprobado' : null">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                        Aprobar
+                                    </x-ui.btn>
+
+                                    <x-ui.btn variant="danger" size="sm"
+                                        wire:click="openRejectModal({{ $lot->id }})"
+                                        :disabled="$lot->inspection_status === 'rejected'"
+                                        :title="$lot->inspection_status === 'rejected' ? 'Este lote ya está rechazado' : null">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        Rechazar
+                                    </x-ui.btn>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                </x-ui.table>
             @endif
-        </button>
-    </div>
+        </x-ui.section>
+    @empty
+        <x-ui.section>
+            <x-ui.empty title="No hay Work Orders en esta lista"
+                hint="Las órdenes se agregan a la lista desde el wizard de capacidad." />
+        </x-ui.section>
+    @endforelse
 
-    {{-- ===== REJECT LOT MODAL ===== --}}
+    {{-- Cierre de la etapa --}}
+    <x-ui.section title="Cerrar la inspección"
+        hint="La lista pasa a Producción sólo cuando todos los lotes están aprobados.">
+        @unless ($allApproved)
+            <x-ui.note tone="muted" class="mb-4">
+                Faltan lotes por aprobar. El botón de envío se habilita cuando todos pasen la inspección.
+            </x-ui.note>
+        @endunless
+
+        <div class="flex flex-col gap-2 sm:flex-row sm:justify-between">
+            <x-ui.btn :variant="$hasRejected ? 'danger' : 'secondary'" wire:click="openReturnModal">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/></svg>
+                Regresar a Materiales
+            </x-ui.btn>
+
+            <x-ui.btn variant="success" wire:click="openApproveModal" :disabled="! $allApproved"
+                :title="$allApproved ? null : 'Faltan lotes por aprobar'">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Aprobar y enviar a Producción
+            </x-ui.btn>
+        </div>
+    </x-ui.section>
+
+    {{-- Rechazo de un lote --}}
     @if ($showRejectModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeRejectModal"></div>
-            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
-                <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Rechazar Lote</h3>
-                    <button wire:click="closeRejectModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="px-6 py-4 space-y-4">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Indique el motivo del rechazo. Esta información quedará registrada en el historial.</p>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Motivo del rechazo <span class="text-red-500">*</span></label>
-                        <textarea wire:model="rejectReason" rows="4" placeholder="Describa el problema encontrado (mínimo 5 caracteres)..."
-                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"></textarea>
-                        @error('rejectReason')
-                            <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeRejectModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        Cancelar
-                    </button>
-                    <button wire:click="rejectLot"
-                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
-                        Confirmar Rechazo
-                    </button>
-                </div>
-            </div>
-        </div>
+        <x-ui-modal wire:key="modal-reject" title="Rechazar lote"
+            subtitle="El motivo queda en el historial y el lote no avanza hasta corregirse."
+            close="closeRejectModal" maxWidth="2xl">
+
+            <x-ui.section title="Motivo del rechazo" hint="Sé específico: es lo que va a leer Materiales para corregir.">
+                <x-ui.field label="Motivo" required
+                    hint="Mínimo 5 caracteres."
+                    :error="$errors->first('rejectReason')">
+                    <textarea wire:model="rejectReason" rows="4" class="w-full"
+                        placeholder="Describe el problema encontrado..."></textarea>
+                </x-ui.field>
+            </x-ui.section>
+
+            <x-slot:note>El lote quedará marcado como rechazado y no podrá pasar a Producción.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeRejectModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="danger" wire:click="rejectLot"
+                    wire:loading.attr="disabled" wire:target="rejectLot">Confirmar rechazo</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
     @endif
 
-    {{-- ===== RETURN TO MATERIALS MODAL ===== --}}
+    {{-- Retorno a Materiales --}}
     @if ($showReturnModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeReturnModal"></div>
-            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
-                <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Regresar a Materiales</h3>
-                    <button wire:click="closeReturnModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="px-6 py-4 space-y-4">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                        La lista regresará al departamento de <strong class="text-gray-900 dark:text-white">Materiales</strong> para corrección. Se registrará el motivo en el historial.
-                    </p>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Motivo del retorno <span class="text-red-500">*</span></label>
-                        <textarea wire:model="returnReason" rows="4" placeholder="Indique qué debe corregir Materiales (mínimo 5 caracteres)..."
-                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"></textarea>
-                        @error('returnReason')
-                            <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeReturnModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        Cancelar
-                    </button>
-                    <button wire:click="returnToMaterials"
-                        class="px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors">
-                        Confirmar Retorno
-                    </button>
-                </div>
-            </div>
-        </div>
+        <x-ui-modal wire:key="modal-return" title="Regresar la lista a Materiales"
+            subtitle="La lista sale de Inspección y vuelve al departamento anterior."
+            close="closeReturnModal" maxWidth="2xl">
+
+            <x-ui.section title="Motivo del retorno" hint="Explica qué debe corregir Materiales antes de devolverla.">
+                <x-ui.field label="Motivo" required
+                    hint="Mínimo 5 caracteres."
+                    :error="$errors->first('returnReason')">
+                    <textarea wire:model="returnReason" rows="4" class="w-full"
+                        placeholder="Indica qué debe corregir Materiales..."></textarea>
+                </x-ui.field>
+            </x-ui.section>
+
+            <x-slot:note>Queda registrado en el historial de la lista con tu usuario y la fecha.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeReturnModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="warning" wire:click="returnToMaterials"
+                    wire:loading.attr="disabled" wire:target="returnToMaterials">Confirmar retorno</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
     @endif
 
-    {{-- ===== APPROVE AND SEND MODAL ===== --}}
+    {{-- Aprobar y enviar a Producción --}}
     @if ($showApproveModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeApproveModal"></div>
-            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
-                <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Aprobar y Enviar a Producción</h3>
-                    <button wire:click="closeApproveModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="px-6 py-4 space-y-4">
-                    <div class="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <svg class="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <div>
-                            <p class="text-sm font-medium text-green-800 dark:text-green-300">Todos los lotes aprobados</p>
-                            <p class="text-xs text-green-700 dark:text-green-400 mt-0.5">{{ $approvedCount }} de {{ $totalLots }} lotes han sido inspeccionados y aprobados.</p>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notas de aprobación (opcional)</label>
-                        <textarea wire:model="approveNotes" rows="3" placeholder="Observaciones para Producción..."
-                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"></textarea>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeApproveModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        Cancelar
-                    </button>
-                    <button wire:click="sendToProduction"
-                        class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                        Enviar a Producción
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
+        <x-ui-modal wire:key="modal-approve" title="Aprobar y enviar a Producción"
+            subtitle="La lista pasa a la siguiente etapa del flujo."
+            close="closeApproveModal" maxWidth="2xl">
 
+            <x-ui.section title="Resultado de la inspección">
+                <x-ui.note tone="success" title="Todos los lotes aprobados">
+                    {{ $approvedCount }} de {{ $totalLots }} {{ Str::plural('lote', $totalLots) }} pasaron la inspección.
+                </x-ui.note>
+            </x-ui.section>
+
+            <x-ui.section title="Notas para Producción">
+                <x-ui.field label="Notas de aprobación" optional
+                    hint="Cualquier detalle que Producción deba saber antes de empezar.">
+                    <textarea wire:model="approveNotes" rows="3" class="w-full"
+                        placeholder="Observaciones para Producción..."></textarea>
+                </x-ui.field>
+            </x-ui.section>
+
+            <x-slot:note>Al enviar, la lista cambia de departamento y Producción puede empezar a pesar.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeApproveModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="success" wire:click="sendToProduction"
+                    wire:loading.attr="disabled" wire:target="sendToProduction">Enviar a Producción</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
+    @endif
 </div>

@@ -1,359 +1,342 @@
-<div class="space-y-6">
+{{--
+    TABLERO DE CONTROL
 
-    {{-- ── Encabezado ───────────────────────────────────────────────── --}}
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Panel de Administración</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ now()->format('l, d \d\e F \d\e Y') }}</p>
-        </div>
-        <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
-                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                Sistema Activo
-            </span>
-        </div>
-    </div>
+    Orden de lectura, de arriba abajo:
+      1. ¿Hay algo urgente?          → alertas (entregas vencidas, POs por aprobar)
+      2. ¿Cómo va la operación?      → cifras del ciclo de producción
+      3. ¿Quién tiene que mover qué? → pendientes por área, con liga a su pantalla
+      4. ¿Dónde está el trabajo?     → flujo de 8 pasos y listas por departamento
+      5. Contexto y atajos           → actividad reciente y catálogo
 
-    {{-- ── KPIs principales ─────────────────────────────────────────── --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {{-- Work Orders --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-            <div class="flex items-center justify-between mb-3">
-                <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                </div>
-                <a href="{{ route('admin.work-orders.index') }}" class="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">Ver →</a>
-            </div>
-            <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ number_format($totalWO) }}</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Work Orders</div>
-        </div>
+    Los conteos de pendientes salen del mismo cálculo que la Lista de envío,
+    así que los dos tableros nunca se contradicen.
+--}}
+<x-ui.page eyebrow="Control de producción" title="Tablero"
+    :subtitle="ucfirst(now()->translatedFormat('l, d \d\e F \d\e Y')).' · el resumen de hoy en piso.'">
 
-        {{-- Purchase Orders --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-            <div class="flex items-center justify-between mb-3">
-                <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                </div>
-                <a href="{{ route('admin.purchase-orders.index') }}" class="text-xs text-purple-500 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300">Ver →</a>
-            </div>
-            <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ number_format($totalPO) }}</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Purchase Orders</div>
-        </div>
+    <x-slot:actions>
+        <x-ui.btn variant="secondary" href="{{ route('admin.sent-lists.index') }}">Listas de envío</x-ui.btn>
+        <x-ui.btn variant="primary" href="{{ route('admin.sent-lists.display') }}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+            Abrir tablero de piso
+        </x-ui.btn>
+    </x-slot:actions>
 
-        {{-- Partes --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-            <div class="flex items-center justify-between mb-3">
-                <div class="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                    </svg>
-                </div>
-                <a href="{{ route('admin.parts.index') }}" class="text-xs text-teal-500 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300">Ver →</a>
-            </div>
-            <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ number_format($totalParts) }}</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Partes Registradas</div>
-        </div>
+    {{-- ══ 1. Lo que requiere atención ══════════════════════════════════ --}}
+    @if ($overdueCount > 0 || $poPending > 0 || $poCorrection > 0)
+        <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            @if ($overdueCount > 0)
+                <a href="{{ route('admin.work-orders.index') }}" wire:navigate
+                    class="group flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 px-4 py-3 transition-colors hover:border-red-400 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/40 dark:hover:bg-red-950/70">
+                    <svg class="mt-0.5 size-5 shrink-0 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                    <span class="min-w-0">
+                        <span class="block text-sm font-bold text-red-900 dark:text-red-100">
+                            {{ $overdueCount }} {{ Str::plural('orden', $overdueCount) }} con entrega vencida
+                        </span>
+                        <span class="mt-0.5 block text-xs leading-4 text-red-700 dark:text-red-300">
+                            Pasó la fecha programada y todavía no se envían.
+                        </span>
+                    </span>
+                </a>
+            @endif
 
-        {{-- Usuarios --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-            <div class="flex items-center justify-between mb-3">
-                <div class="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
-                </div>
-                <a href="{{ route('admin.users.index') }}" class="text-xs text-orange-500 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300">Ver →</a>
-            </div>
-            <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ number_format($totalUsers) }}</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Usuarios del Sistema</div>
-        </div>
-    </div>
+            @if ($poPending > 0)
+                <a href="{{ route('admin.purchase-orders.index') }}" wire:navigate
+                    class="group flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 transition-colors hover:border-amber-400 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:hover:bg-amber-950/70">
+                    <svg class="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span class="min-w-0">
+                        <span class="block text-sm font-bold text-amber-900 dark:text-amber-100">
+                            {{ $poPending }} {{ Str::plural('orden', $poPending) }} de compra por aprobar
+                        </span>
+                        <span class="mt-0.5 block text-xs leading-4 text-amber-700 dark:text-amber-300">
+                            Hasta aprobarlas no se genera su Work Order.
+                        </span>
+                    </span>
+                </a>
+            @endif
 
-    {{-- ── Pipeline de Listas Preliminares ─────────────────────────── --}}
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-            <div>
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">Pipeline – Listas Preliminares</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Distribución por departamento activo</p>
-            </div>
-            <a href="{{ route('admin.sent-lists.index') }}"
-                class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
-                Ver todas →
-            </a>
+            @if ($poCorrection > 0)
+                <a href="{{ route('admin.purchase-orders.index') }}" wire:navigate
+                    class="group flex items-start gap-3 rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 transition-colors hover:border-orange-400 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/40 dark:hover:bg-orange-950/70">
+                    <svg class="mt-0.5 size-5 shrink-0 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    <span class="min-w-0">
+                        <span class="block text-sm font-bold text-orange-900 dark:text-orange-100">
+                            {{ $poCorrection }} {{ Str::plural('orden', $poCorrection) }} en corrección
+                        </span>
+                        <span class="mt-0.5 block text-xs leading-4 text-orange-700 dark:text-orange-300">
+                            Compras tiene que atender una observación.
+                        </span>
+                    </span>
+                </a>
+            @endif
         </div>
-        <div class="grid grid-cols-5 divide-x divide-gray-200 dark:divide-gray-700">
-            @php
-                $pipelineColors = [
-                    'blue'   => ['bg' => 'bg-blue-500',   'light' => 'bg-blue-50 dark:bg-blue-900/20',   'text' => 'text-blue-700 dark:text-blue-300',   'dot' => 'bg-blue-500'],
-                    'yellow' => ['bg' => 'bg-yellow-500', 'light' => 'bg-yellow-50 dark:bg-yellow-900/20', 'text' => 'text-yellow-700 dark:text-yellow-300', 'dot' => 'bg-yellow-500'],
-                    'indigo' => ['bg' => 'bg-indigo-500', 'light' => 'bg-indigo-50 dark:bg-indigo-900/20', 'text' => 'text-indigo-700 dark:text-indigo-300', 'dot' => 'bg-indigo-500'],
-                    'green'  => ['bg' => 'bg-green-500',  'light' => 'bg-green-50 dark:bg-green-900/20',  'text' => 'text-green-700 dark:text-green-300',  'dot' => 'bg-green-500'],
-                    'orange' => ['bg' => 'bg-orange-500', 'light' => 'bg-orange-50 dark:bg-orange-900/20', 'text' => 'text-orange-700 dark:text-orange-300', 'dot' => 'bg-orange-500'],
-                ];
-            @endphp
-            @foreach ($pipeline as $dept => $info)
-                @php $c = $pipelineColors[$info['color']]; @endphp
-                <div class="flex flex-col items-center py-5 px-3 {{ $info['count'] > 0 ? $c['light'] : '' }}">
-                    <div class="w-10 h-10 rounded-full {{ $info['count'] > 0 ? $c['bg'] : 'bg-gray-200 dark:bg-gray-700' }} flex items-center justify-center mb-2">
-                        <span class="text-lg font-bold {{ $info['count'] > 0 ? 'text-white' : 'text-gray-400 dark:text-gray-500' }}">{{ $info['count'] }}</span>
-                    </div>
-                    <div class="text-xs font-medium {{ $info['count'] > 0 ? $c['text'] : 'text-gray-500 dark:text-gray-400' }} text-center">
-                        {{ $info['label'] }}
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
+    @else
+        <x-ui.note tone="success" title="Nada urgente en este momento">
+            No hay entregas vencidas ni órdenes de compra esperando aprobación.
+        </x-ui.note>
+    @endif
 
-    {{-- ── Fila: Lotes + Kits ──────────────────────────────────────── --}}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    {{-- ══ 2. Cómo va la operación ══════════════════════════════════════ --}}
+    <x-ui.section title="Estado de la operación"
+        hint="Lotes y viajeros vivos en el sistema, y el trabajo que traen encima.">
+        <x-ui.stats cols="4">
+            <x-ui.stat label="Lotes en el sistema" :value="number_format($lotsTotal)"
+                help="Cada lote o viajero recorre las 8 etapas del flujo." />
+            <x-ui.stat label="Ciclos terminados" :value="number_format($lotsDone)" tone="good"
+                help="Empacados y con sus sobrantes ya recibidos por Materiales." />
+            <x-ui.stat label="Acciones pendientes" :value="number_format($totalPending)"
+                :tone="$totalPending > 0 ? 'warn' : 'good'"
+                help="Suma de todo lo que alguna área tiene que registrar." />
+            <x-ui.stat label="Piezas por pesar" :value="number_format($piecesPending)"
+                :tone="$piecesPending > 0 ? 'info' : 'good'"
+                help="Piezas que Producción todavía no registra." />
+        </x-ui.stats>
+    </x-ui.section>
 
-        {{-- Lotes por estado --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-                <div>
-                    <h2 class="text-base font-semibold text-gray-900 dark:text-white">Lotes</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ number_format($totalLots) }} total</p>
-                </div>
-                <a href="{{ route('admin.lots.index') }}" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Ver todos →</a>
-            </div>
-            <div class="p-5 space-y-3">
-                @php
-                    $lotStatuses = [
-                        'pending'     => ['Pendiente',   'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300', 'bg-yellow-500'],
-                        'in_progress' => ['En Proceso',  'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',         'bg-blue-500'],
-                        'completed'   => ['Completado',  'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',      'bg-green-500'],
-                        'cancelled'   => ['Cancelado',   'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',             'bg-red-500'],
-                    ];
-                @endphp
-                @foreach ($lotStatuses as $key => [$label, $badge, $bar])
-                    @php
-                        $count = (int) ($lotsByStatus[$key] ?? 0);
-                        $pct   = $totalLots > 0 ? round(($count / $totalLots) * 100) : 0;
-                    @endphp
-                    <div class="flex items-center gap-3">
-                        <span class="w-24 text-xs font-medium text-gray-600 dark:text-gray-400 shrink-0">{{ $label }}</span>
-                        <div class="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div class="{{ $bar }} h-full rounded-full transition-all" style="width: {{ $pct }}%"></div>
+    {{-- ══ 3. Quién tiene que mover qué ═════════════════════════════════ --}}
+    @php
+        // Las fases, su verbo, su área y su ruta viven en PendingActions:
+        // así la tabla no se puede desfasar del cálculo.
+        $pendingRows = \App\Support\PendingActions::PHASES;
+
+        $areaTones = [
+            'Materiales' => ['dot' => 'bg-sky-500',     'num' => 'text-sky-700 dark:text-sky-300'],
+            'Calidad'    => ['dot' => 'bg-teal-500',    'num' => 'text-teal-700 dark:text-teal-300'],
+            'Producción' => ['dot' => 'bg-indigo-500',  'num' => 'text-indigo-700 dark:text-indigo-300'],
+            'Empaque'    => ['dot' => 'bg-orange-500',  'num' => 'text-orange-700 dark:text-orange-300'],
+        ];
+    @endphp
+
+    <x-ui.section title="Trabajo pendiente por área"
+        hint="Cada renglón es una acción que alguien tiene que registrar para que el lote avance.">
+        <x-slot:aside>
+            <x-ui.btn variant="secondary" size="sm" href="{{ route('admin.sent-lists.display') }}">
+                Ver en el tablero de piso
+            </x-ui.btn>
+        </x-slot:aside>
+
+        @if ($totalPending === 0)
+            <x-ui.note tone="success" title="Todo al día">
+                Ningún lote está esperando que un área registre algo.
+            </x-ui.note>
+        @else
+            {{-- Carga por área --}}
+            <div class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                @foreach ($byArea as $area => $count)
+                    @php $pct = $totalPending > 0 ? round(($count / $totalPending) * 100) : 0; @endphp
+                    <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
+                        <div class="flex items-center gap-2">
+                            <span class="size-2.5 shrink-0 rounded-full {{ $areaTones[$area]['dot'] }}" aria-hidden="true"></span>
+                            <span class="truncate text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ $area }}</span>
                         </div>
-                        <span class="w-8 text-xs font-semibold text-gray-700 dark:text-gray-300 text-right">{{ $count }}</span>
-                        <span class="w-8 text-xs text-gray-400 dark:text-gray-500 text-right">{{ $pct }}%</span>
+                        <div class="mt-1.5 flex items-baseline gap-2">
+                            <span class="text-2xl font-bold tabular-nums {{ $areaTones[$area]['num'] }}">{{ $count }}</span>
+                            <span class="text-xs text-slate-400 dark:text-slate-500">{{ $pct }}% del total</span>
+                        </div>
+                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+                            <div class="h-full rounded-full {{ $areaTones[$area]['dot'] }}" style="width: {{ $pct }}%"></div>
+                        </div>
                     </div>
                 @endforeach
             </div>
-        </div>
 
-        {{-- Lotes de CRIMP --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-                <div>
-                    <h2 class="text-base font-semibold text-gray-900 dark:text-white">Lotes de CRIMP</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ number_format($totalCrimpLots) }} en {{ number_format($viajerosConCrimp) }} {{ Str::plural('viajero', $viajerosConCrimp) }}</p>
-                </div>
-            </div>
-            <div class="p-5">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="rounded-lg bg-purple-50 dark:bg-purple-900/20 p-4 text-center">
-                        <div class="text-2xl font-bold text-purple-700 dark:text-purple-300">{{ number_format($totalCrimpLots) }}</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Lotes de CRIMP</div>
-                    </div>
-                    <div class="rounded-lg bg-indigo-50 dark:bg-indigo-900/20 p-4 text-center">
-                        <div class="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{{ number_format($crimpLotsQty) }}</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Piezas en CRIMP</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            {{-- Detalle accionable --}}
+            <x-ui.table>
+                <x-slot:head>
+                    <tr>
+                        <x-ui.th class="w-20" align="right">Lotes</x-ui.th>
+                        <x-ui.th>Acción pendiente</x-ui.th>
+                        <x-ui.th class="w-40">Responsable</x-ui.th>
+                        <x-ui.th class="w-32" align="right">Ir</x-ui.th>
+                    </tr>
+                </x-slot:head>
 
-    {{-- ── Work Orders recientes ────────────────────────────────────── --}}
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-            <div>
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">Work Orders Recientes</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Últimos 8 registros</p>
-            </div>
-            <a href="{{ route('admin.work-orders.index') }}" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Ver todos →</a>
-        </div>
-        @if ($recentWorkOrders->isNotEmpty())
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 dark:bg-gray-900/30">
-                        <tr>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">WO</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Parte</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Descripción</th>
-                            <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Cantidad</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                        @foreach ($recentWorkOrders as $wo)
-                            @php
-                                $statusColor = match(optional($wo->status)->name ?? '') {
-                                    'Abierto'    => 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
-                                    'En Proceso' => 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300',
-                                    'Completado' => 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
-                                    'Cancelado'  => 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
-                                    default      => 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
-                                };
-                            @endphp
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                <td class="px-5 py-3 font-mono font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                @foreach ($pendingRows as $key => $meta)
+                    @continue(($pending[$key] ?? 0) === 0)
+                    @php $area = $meta['actor']; @endphp
+                    <tr wire:key="pend-{{ $key }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 text-right text-lg font-bold tabular-nums {{ $areaTones[$area]['num'] }}">
+                            {{ $pending[$key] }}
+                        </td>
+                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ $meta['action'] }}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                <span class="size-2 shrink-0 rounded-full {{ $areaTones[$area]['dot'] }}" aria-hidden="true"></span>
+                                {{ $area }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            @if ($meta['route'] && Route::has($meta['route']))
+                                <x-ui.btn variant="secondary" size="sm" href="{{ route($meta['route']) }}">Abrir</x-ui.btn>
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+            </x-ui.table>
+        @endif
+    </x-ui.section>
+
+    {{-- ══ 4. Dónde está el trabajo ═════════════════════════════════════ --}}
+    <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
+
+        {{-- Listas de envío por departamento --}}
+        <x-ui.section title="Listas de envío en curso"
+            hint="En qué departamento está parada cada lista pendiente.">
+            <x-slot:aside>
+                <x-ui.btn variant="ghost" size="sm" href="{{ route('admin.sent-lists.index') }}">Ver todas</x-ui.btn>
+            </x-slot:aside>
+
+            @php $pipelineTotal = collect($pipeline)->sum('count'); @endphp
+
+            @if ($pipelineTotal === 0)
+                <x-ui.empty icon="doc" title="Sin listas pendientes"
+                    hint="Todas las listas de envío están confirmadas o cerradas." />
+            @else
+                <ul class="space-y-2">
+                    @foreach ($pipeline as $dept => $info)
+                        @php
+                            $pct = $pipelineTotal > 0 ? round(($info['count'] / $pipelineTotal) * 100) : 0;
+                            $bar = ['sky' => 'bg-sky-500', 'emerald' => 'bg-emerald-500', 'indigo' => 'bg-indigo-500', 'teal' => 'bg-teal-500', 'orange' => 'bg-orange-500'][$info['tone']];
+                        @endphp
+                        <li class="flex items-center gap-3">
+                            <span class="w-24 shrink-0 text-xs font-semibold text-slate-600 dark:text-slate-300">{{ $info['label'] }}</span>
+                            <span class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+                                <span class="block h-full rounded-full {{ $info['count'] > 0 ? $bar : '' }}" style="width: {{ $pct }}%"></span>
+                            </span>
+                            <span class="w-8 shrink-0 text-right text-sm font-bold tabular-nums text-slate-900 dark:text-white">{{ $info['count'] }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </x-ui.section>
+
+        {{-- Entregas --}}
+        <x-ui.section title="Entregas" hint="Órdenes programadas que ya se pasaron de fecha o están por vencer.">
+            <x-ui.stats cols="2" class="mb-4">
+                <x-ui.stat label="Vencidas" :value="$overdueCount" :tone="$overdueCount > 0 ? 'bad' : 'good'" />
+                <x-ui.stat label="Vencen en 7 días" :value="$dueSoonCount" :tone="$dueSoonCount > 0 ? 'warn' : 'good'" />
+            </x-ui.stats>
+
+            @if ($overdueWOs->isEmpty())
+                <x-ui.note tone="success">Ninguna orden programada está vencida.</x-ui.note>
+            @else
+                <ul class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+                    @foreach ($overdueWOs as $wo)
+                        @php $daysLate = (int) now()->startOfDay()->diffInDays($wo->scheduled_send_date, false) * -1; @endphp
+                        <li class="flex items-center justify-between gap-3 px-4 py-2.5">
+                            <span class="min-w-0">
+                                <span class="block truncate text-sm font-semibold text-slate-900 dark:text-white">
                                     {{ $wo->purchaseOrder->wo ?? $wo->wo_number }}
-                                </td>
-                                <td class="px-5 py-3 font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap">
-                                    {{ $wo->purchaseOrder->part->number ?? '-' }}
-                                    @if ($wo->purchaseOrder->part->is_crimp ?? false)
-                                        <span class="ml-1 px-1 py-0.5 text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded">CRIMP</span>
-                                    @endif
-                                </td>
-                                <td class="px-5 py-3 text-gray-500 dark:text-gray-400 max-w-xs truncate">
-                                    {{ $wo->purchaseOrder->part->description ?? '-' }}
-                                </td>
-                                <td class="px-5 py-3 text-right font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                                    {{ number_format($wo->purchaseOrder->quantity ?? 0) }}
-                                </td>
-                                <td class="px-5 py-3">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $statusColor }}">
-                                        {{ optional($wo->status)->name ?? 'Sin estado' }}
-                                    </span>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @else
-            <div class="px-5 py-10 text-center text-sm text-gray-400 dark:text-gray-500 italic">
-                No hay Work Orders registrados.
-            </div>
-        @endif
+                                    <span class="font-normal text-slate-500 dark:text-slate-400">· {{ $wo->purchaseOrder->part->number ?? '—' }}</span>
+                                </span>
+                                <span class="block text-xs text-slate-400 dark:text-slate-500">
+                                    Programada {{ $wo->scheduled_send_date->format('d/m/Y') }}
+                                </span>
+                            </span>
+                            <x-ui.badge tone="bad">{{ $daysLate }} {{ Str::plural('día', $daysLate) }}</x-ui.badge>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </x-ui.section>
     </div>
 
-    {{-- ── Listas Preliminares recientes ──────────────────────────── --}}
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-            <div>
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">Listas Preliminares Recientes</h2>
-            </div>
-            <a href="{{ route('admin.sent-lists.index') }}" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Ver todas →</a>
-        </div>
-        @if ($sentLists->isNotEmpty())
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 dark:bg-gray-900/30">
-                        <tr>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">#</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">WO(s)</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Departamento</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Estado</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Fecha</th>
-                            <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                        @foreach ($sentLists as $sl)
-                            @php
-                                $wos = $sl->getEffectiveWorkOrders();
+    {{-- ══ 5. Actividad reciente ════════════════════════════════════════ --}}
+    <x-ui.table title="Últimas órdenes abiertas" hint="Las 6 Work Orders más recientes.">
+        <x-slot:aside>
+            <x-ui.btn variant="ghost" size="sm" href="{{ route('admin.work-orders.index') }}">Ver todas</x-ui.btn>
+        </x-slot:aside>
 
-                                $deptLabel = match($sl->current_department) {
-                                    'materiales' => ['Materiales',  'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'],
-                                    'inspeccion' => ['Inspección',  'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'],
-                                    'produccion' => ['Producción',  'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'],
-                                    'calidad'    => ['Calidad',     'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'],
-                                    'envios'     => ['Empaque',     'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'],
-                                    default      => [$sl->current_department, 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'],
-                                };
+        <x-slot:head>
+            <tr>
+                <x-ui.th class="w-32">WO</x-ui.th>
+                <x-ui.th class="w-40">Parte</x-ui.th>
+                <x-ui.th>Descripción</x-ui.th>
+                <x-ui.th class="w-28" align="right">Cantidad</x-ui.th>
+                <x-ui.th class="w-32">Estado</x-ui.th>
+            </tr>
+        </x-slot:head>
 
-                                $statusLabel = match($sl->status) {
-                                    'pending'   => ['Pendiente',   'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'],
-                                    'confirmed' => ['Confirmada',  'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'],
-                                    'canceled'  => ['Cancelada',   'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'],
-                                    default     => [$sl->status,   'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'],
-                                };
-                            @endphp
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                <td class="px-5 py-3 font-mono font-semibold text-gray-800 dark:text-gray-200">
-                                    #{{ $sl->id }}
-                                </td>
-                                <td class="px-5 py-3 text-gray-700 dark:text-gray-300">
-                                    @foreach ($wos->take(2) as $wo)
-                                        <span class="inline-block font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded mr-1">
-                                            {{ $wo->purchaseOrder->wo ?? $wo->wo_number }}
-                                        </span>
-                                    @endforeach
-                                    @if ($wos->count() > 2)
-                                        <span class="text-xs text-gray-400">+{{ $wos->count() - 2 }}</span>
-                                    @endif
-                                </td>
-                                <td class="px-5 py-3">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $deptLabel[1] }}">
-                                        {{ $deptLabel[0] }}
-                                    </span>
-                                </td>
-                                <td class="px-5 py-3">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $statusLabel[1] }}">
-                                        {{ $statusLabel[0] }}
-                                    </span>
-                                </td>
-                                <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                                    {{ $sl->created_at->format('d/m/Y') }}
-                                </td>
-                                <td class="px-5 py-3 text-center">
-                                    <a href="{{ route('admin.sent-lists.show', $sl->id) }}"
-                                        class="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
-                                        Ver
-                                    </a>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @else
-            <div class="px-5 py-10 text-center text-sm text-gray-400 dark:text-gray-500 italic">
-                No hay listas preliminares registradas.
-            </div>
-        @endif
-    </div>
-
-    {{-- ── Accesos rápidos ─────────────────────────────────────────── --}}
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Accesos Rápidos</h2>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        @forelse ($recentWorkOrders as $wo)
             @php
-                $shortcuts = [
-                    ['route' => 'admin.production.index',  'label' => 'Producción',  'color' => 'indigo', 'icon' => 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z'],
-                    ['route' => 'admin.materials.index',   'label' => 'Materiales',  'color' => 'blue',   'icon' => 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4'],
-                    ['route' => 'admin.quality.index',     'label' => 'Calidad',     'color' => 'green',  'icon' => 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'],
-                    ['route' => 'admin.packaging.index',   'label' => 'Empaque',     'color' => 'orange', 'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
-                    ['route' => 'admin.sent-lists.display','label' => 'Lista Envío', 'color' => 'teal',   'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'],
-                    ['route' => 'admin.capacity.wizard',   'label' => 'Capacidad',   'color' => 'purple', 'icon' => 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z'],
-                ];
-                $shortcutColors = [
-                    'indigo' => 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 border-indigo-200 dark:border-indigo-700',
-                    'blue'   => 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border-blue-200 dark:border-blue-700',
-                    'green'  => 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40 border-green-200 dark:border-green-700',
-                    'orange' => 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 border-orange-200 dark:border-orange-700',
-                    'teal'   => 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/40 border-teal-200 dark:border-teal-700',
-                    'purple' => 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border-purple-200 dark:border-purple-700',
-                ];
+                $statusTone = match (optional($wo->status)->name ?? '') {
+                    'Abierto'    => 'info',
+                    'En Proceso' => 'warn',
+                    'Completado' => 'good',
+                    'Cancelado'  => 'bad',
+                    default      => 'neutral',
+                };
             @endphp
-            @foreach ($shortcuts as $s)
-                <a href="{{ route($s['route']) }}" wire:navigate
-                    class="flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors {{ $shortcutColors[$s['color']] }}">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $s['icon'] }}"/>
+            <tr wire:key="recent-wo-{{ $wo->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="whitespace-nowrap px-4 py-3 font-semibold text-sky-700 dark:text-sky-300">
+                    {{ $wo->purchaseOrder->wo ?? $wo->wo_number }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 font-medium text-slate-900 dark:text-white">
+                    {{ $wo->purchaseOrder->part->number ?? '—' }}
+                    @if ($wo->purchaseOrder->part->is_crimp ?? false)
+                        <x-ui.badge tone="accent" class="ml-1">CRIMP</x-ui.badge>
+                    @endif
+                </td>
+                <td class="max-w-xs truncate px-4 py-3 text-slate-600 dark:text-slate-300">
+                    {{ $wo->purchaseOrder->part->description ?? '—' }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-900 dark:text-white">
+                    {{ number_format($wo->purchaseOrder->quantity ?? 0) }}
+                </td>
+                <td class="px-4 py-3">
+                    <x-ui.badge :tone="$statusTone" dot>{{ optional($wo->status)->name ?? 'Sin estado' }}</x-ui.badge>
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="5">
+                    <x-ui.empty title="No hay Work Orders todavía"
+                        hint="Se generan al aprobar una orden de compra.">
+                        <x-slot:action>
+                            <x-ui.btn variant="primary" href="{{ route('admin.purchase-orders.create') }}">Nueva orden de compra</x-ui.btn>
+                        </x-slot:action>
+                    </x-ui.empty>
+                </td>
+            </tr>
+        @endforelse
+    </x-ui.table>
+
+    {{-- ══ 6. Catálogo y accesos ════════════════════════════════════════ --}}
+    <x-ui.section title="Catálogo y accesos"
+        hint="Totales de referencia y las pantallas que más se usan.">
+
+        <x-ui.stats cols="5" class="mb-5">
+            <x-ui.stat label="Work Orders" :value="number_format($totalWO)" />
+            <x-ui.stat label="Órdenes de compra" :value="number_format($totalPO)" />
+            <x-ui.stat label="Partes" :value="number_format($totalParts)" />
+            <x-ui.stat label="Viajeros CRIMP" :value="number_format($crimpViajeros)" tone="accent" />
+            <x-ui.stat label="Lotes de CRIMP" :value="number_format($crimpLots)" tone="accent" />
+        </x-ui.stats>
+
+        @php
+            $shortcuts = [
+                ['admin.sent-lists.display', 'Lista de envío', 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'],
+                ['admin.materials.index',    'Materiales',     'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
+                ['admin.production.index',   'Producción',     'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3'],
+                ['admin.quality.index',      'Calidad',        'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'],
+                ['admin.packaging.index',    'Empaque',        'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
+                ['admin.parts.index',        'Partes',         'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'],
+                ['admin.prices.index',       'Precios',        'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
+                ['admin.standards.index',    'Estándares',     'M13 10V3L4 14h7v7l9-11h-7z'],
+            ];
+        @endphp
+
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+            @foreach ($shortcuts as [$route, $label, $icon])
+                @continue(! Route::has($route))
+                <a href="{{ route($route) }}" wire:navigate
+                    class="flex flex-col items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-4 text-center transition-colors hover:border-sky-500 hover:bg-sky-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-sky-600 dark:hover:bg-sky-950/40">
+                    <svg class="size-6 text-slate-400 transition-colors group-hover:text-sky-600 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $icon }}"/>
                     </svg>
-                    <span class="text-xs font-semibold text-center">{{ $s['label'] }}</span>
+                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">{{ $label }}</span>
                 </a>
             @endforeach
         </div>
-    </div>
-
-</div>
+    </x-ui.section>
+</x-ui.page>

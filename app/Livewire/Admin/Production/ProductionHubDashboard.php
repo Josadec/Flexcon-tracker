@@ -2,110 +2,88 @@
 
 namespace App\Livewire\Admin\Production;
 
-use Livewire\Component;
-use Livewire\Attributes\Layout;
-use App\Models\Weighing;
-use App\Models\QualityWeighing;
-use App\Models\Lot;
-use App\Models\Kit;
 use App\Models\SentList;
+use App\Models\Weighing;
+use App\Support\PendingActions;
 use Illuminate\Support\Facades\DB;
-use App\Traits\ComputesAreaStats;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 
 #[Layout('components.layouts.app')]
 class ProductionHubDashboard extends Component
 {
-    use ComputesAreaStats;
+    /**
+     * Tablero del área de Producción.
+     *
+     * Producción tiene un solo trabajo en el flujo: pesar las piezas de los
+     * lotes que Calidad ya aprobó en inspección. El tablero gira alrededor de
+     * eso y de la productividad del turno.
+     *
+     * Los pendientes salen de App\Support\PendingActions, la misma fuente que
+     * usan el tablero de administración y el de piso.
+     */
     public function render()
     {
-        // ── Weighing metrics ──
-        $totalWeighings = Weighing::count();
-        $totalPiecesWeighed = Weighing::sum('good_pieces');
+        $pending = PendingActions::make();
 
-        // ── Lots with weighings ──
-        $lotsWithWeighings = Lot::whereHas('weighings')->count();
-        $lotsFullyWeighed = Lot::whereHas('weighings')
-            ->whereRaw('(SELECT COALESCE(SUM(good_pieces),0) + COALESCE(SUM(bad_pieces),0) FROM weighings WHERE weighings.lot_id = lots.id AND weighings.deleted_at IS NULL) >= lots.quantity')
-            ->count();
-        $lotsPendingWeighing = $lotsWithWeighings - $lotsFullyWeighed;
-        $lotsWithoutWeighings = Lot::whereDoesntHave('weighings')
-            ->where('status', '!=', 'completed')
-            ->count();
+        $mine = $pending->forActor('Producción');
 
-        // ── Rejected by Quality (discarded) ──
-        $rejectedPieces = (int) QualityWeighing::sum('bad_pieces');
-        $rejectedLots = Lot::whereHas('qualityWeighings', function ($q) {
-            $q->where('bad_pieces', '>', 0);
-        })->count();
-
-        // ── Today's activity ──
+        // ── Productividad ────────────────────────────────────────────────
         $todayWeighings = Weighing::whereDate('weighed_at', today())->count();
-        $todayPiecesWeighed = Weighing::whereDate('weighed_at', today())->sum('good_pieces');
+        $todayPieces    = (int) Weighing::whereDate('weighed_at', today())->sum('good_pieces');
+        $weekPieces     = (int) Weighing::where('weighed_at', '>=', now()->startOfWeek())->sum('good_pieces');
+        $totalPieces    = (int) Weighing::sum('good_pieces');
 
-        // ── Recent weighings ──
-        $recentWeighings = Weighing::with(['lot.workOrder.purchaseOrder.part', 'kit', 'weighedBy'])
-            ->orderBy('weighed_at', 'desc')
-            ->limit(10)
-            ->get();
+        // Piezas por día de la última semana, para ver la tendencia del turno.
+        $dailySeries = collect(range(6, 0))->map(function ($daysAgo) {
+            $day = now()->subDays($daysAgo);
 
-        // ── Top operators (last 30 days) ──
-        $topOperators = Weighing::select('weighed_by', DB::raw('COUNT(*) as total_weighings'), DB::raw('SUM(good_pieces) as total_good'))
+            return [
+                'label'  => $day->translatedFormat('D'),
+                'date'   => $day->format('d/m'),
+                'pieces' => (int) Weighing::whereDate('weighed_at', $day)->sum('good_pieces'),
+            ];
+        });
+        $maxDaily = max(1, $dailySeries->max('pieces'));
+
+        // ── Quién está pesando (últimos 30 días) ─────────────────────────
+        $topOperators = Weighing::query()
+            ->select('weighed_by', DB::raw('COUNT(*) as total_weighings'), DB::raw('SUM(good_pieces) as total_good'))
             ->where('weighed_at', '>=', now()->subDays(30))
             ->whereNotNull('weighed_by')
             ->groupBy('weighed_by')
-            ->orderByDesc('total_weighings')
+            ->orderByDesc('total_good')
             ->limit(5)
             ->with('weighedBy')
             ->get();
 
-        $pendingSentLists = SentList::with(['workOrders.purchaseOrder.part', 'workOrders.lots.weighings'])
+        // ── Últimas pesadas ──────────────────────────────────────────────
+        $recentWeighings = Weighing::with(['lot.workOrder.purchaseOrder.part', 'weighedBy'])
+            ->orderByDesc('weighed_at')
+            ->limit(8)
+            ->get();
+
+        // ── Listas de envío paradas en Producción ────────────────────────
+        $sentListsHere = SentList::with(['workOrders.purchaseOrder.part'])
             ->where('current_department', SentList::DEPT_PRODUCTION)
             ->where('status', SentList::STATUS_PENDING)
-            ->orderBy('created_at', 'desc')
+            ->latest()
+            ->take(8)
             ->get();
-
-        // ── CRIMP: viajeros por pesar en Producción ──────────────────────
-        $crimpViajeros = Lot::query()
-            ->whereHas('workOrder.purchaseOrder.part', fn ($q) => $q->where('is_crimp', true))
-            ->where('status', '!=', Lot::STATUS_COMPLETED)
-            ->with(['workOrder.purchaseOrder.part', 'crimpLots', 'weighings'])
-            ->get();
-
-        $prodPorPesar = 0;
-        $prodPesados = 0;
-        $prodPendientes = collect();
-
-        foreach ($crimpViajeros as $vj) {
-            if (($vj->material_status ?? 'pending') !== 'released') {
-                continue; // aún esperando liberación de Materiales
-            }
-            $weighed = (int) $vj->weighings->sum('good_pieces') + (int) $vj->weighings->sum('bad_pieces');
-            if ($weighed < (int) $vj->quantity) {
-                $prodPorPesar++;
-                $prodPendientes->push(['lot' => $vj, 'action' => $weighed > 0 ? 'Continuar pesada' : 'Pesar producción', 'kind' => 'weigh']);
-            } else {
-                $prodPesados++;
-            }
-        }
 
         return view('livewire.admin.production.production-hub-dashboard', [
-            'prodPorPesar'   => $prodPorPesar,
-            'prodPesados'    => $prodPesados,
-            'prodPendientes' => $prodPendientes,
-            'areaStats' => $this->computeAreaStats(),
-            'pendingSentLists'   => $pendingSentLists,
-            'totalWeighings' => $totalWeighings,
-            'totalPiecesWeighed' => $totalPiecesWeighed,
-            'lotsWithWeighings' => $lotsWithWeighings,
-            'lotsFullyWeighed' => $lotsFullyWeighed,
-            'lotsPendingWeighing' => $lotsPendingWeighing,
-            'lotsWithoutWeighings' => $lotsWithoutWeighings,
-            'rejectedPieces' => $rejectedPieces,
-            'rejectedLots' => $rejectedLots,
-            'todayWeighings' => $todayWeighings,
-            'todayPiecesWeighed' => $todayPiecesWeighed,
+            'mine'            => $mine,
+            'totalPending'    => $mine->count(),
+            'piecesPending'   => $pending->piecesPendingProduction(),
+            'todayWeighings'  => $todayWeighings,
+            'todayPieces'     => $todayPieces,
+            'weekPieces'      => $weekPieces,
+            'totalPieces'     => $totalPieces,
+            'dailySeries'     => $dailySeries,
+            'maxDaily'        => $maxDaily,
+            'topOperators'    => $topOperators,
             'recentWeighings' => $recentWeighings,
-            'topOperators' => $topOperators,
+            'sentListsHere'   => $sentListsHere,
         ]);
     }
 }

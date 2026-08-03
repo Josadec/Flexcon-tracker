@@ -235,6 +235,40 @@ class SentListPackagingView extends Component
         session()->flash('message', "Entrega del viajero {$lot->lot_number} revertida (marcado como NO recibido).");
     }
 
+    /**
+     * Paso 8 · recepción del material sobrante, desde el renglón del lote.
+     *
+     * El botón «Recibí material» de la lista llamaba a este método desde hace
+     * tiempo, pero el método no existía: la pantalla tronaba con
+     * MethodNotFoundException. Hace lo mismo que confirmSurplusReceived(), que
+     * sólo funciona dentro del modal de decisión porque depende de
+     * $selectedLotForDecision; aquí el lote llega por id.
+     */
+    public function markSurplusReceived(int $lotId): void
+    {
+        $this->ensureCanEditDepartment();
+
+        // Acotado a los lotes de ESTA lista: un id ajeno no debe poder tocarse.
+        $lot = Lot::whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
+
+        if ($lot->isSurplusReceived()) {
+            session()->flash('error', "El sobrante del lote {$lot->lot_number} ya estaba recibido.");
+
+            return;
+        }
+
+        $lot->update([
+            'surplus_received'    => true,
+            'surplus_received_at' => now(),
+            'surplus_received_by' => Auth::id(),
+            'status'              => Lot::STATUS_COMPLETED,
+            'packaging_status'    => 'approved',
+        ]);
+
+        $this->sentList->refresh();
+        session()->flash('message', "Material sobrante del lote {$lot->lot_number} recibido. Lote completado.");
+    }
+
     // ── Close list modal ─────────────────────────────────────────────────
 
     public function openCloseModal(): void

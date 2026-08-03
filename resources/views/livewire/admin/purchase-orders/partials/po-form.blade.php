@@ -49,13 +49,29 @@
 </x-ui.section>
 
 <x-ui.section step="2" title="Fechas" hint="La fecha de entrega es la que se compromete con el cliente.">
+    {{--
+        wire:ignore es OBLIGATORIO en los campos de fecha.
+
+        Flatpickr (partials/head.blade.php) los convierte en type="hidden" y crea
+        un input visible aparte. Cuando otro campo .live de este formulario
+        dispara un commit, el morph de Livewire rehace el input y le borra el
+        valor, porque el HTML del servidor no serializa value=. Con wire:ignore
+        el morph no toca el nodo y la fecha se conserva.
+
+        wire:model sigue funcionando: wire:ignore sólo frena el re-render del
+        DOM, no los eventos del input.
+    --}}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <x-ui.field label="Fecha de PO" required :error="$errors->first('po_date')">
-            <input wire:model="po_date" type="date" class="w-full" required>
+            <div wire:ignore>
+                <input wire:model="po_date" type="date" class="w-full" required>
+            </div>
         </x-ui.field>
 
         <x-ui.field label="Fecha de entrega" required :error="$errors->first('due_date')">
-            <input wire:model="due_date" type="date" class="w-full" required>
+            <div wire:ignore>
+                <input wire:model="due_date" type="date" class="w-full" required>
+            </div>
         </x-ui.field>
     </div>
 </x-ui.section>
