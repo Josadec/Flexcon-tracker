@@ -79,6 +79,16 @@ class SentListProductionView extends Component
 
         $lot = \App\Models\Lot::findOrFail($this->weighingLotId);
 
+        // El flujo es secuencial: sin inspección aprobada no se puede pesar.
+        // Sólo se bloquea el alta; editar una pesada ya existente se permite
+        // para poder corregir registros históricos.
+        if (! $this->editingWeighingId && ! $lot->canBeProduced()) {
+            session()->flash('error', $lot->getProductionBlockedReason());
+            $this->closeWeighingModal();
+
+            return;
+        }
+
         $data = [
             'lot_id'      => $this->weighingLotId,
             'quantity'    => $lot->quantity,
@@ -133,7 +143,18 @@ class SentListProductionView extends Component
     {
         $this->ensureCanEditDepartment();
 
-        Weighing::whereIn('lot_id', $this->sentListLotIds())->findOrFail($weighingId)->delete();
+        $weighing = Weighing::whereIn('lot_id', $this->sentListLotIds())->findOrFail($weighingId);
+        $lot = $weighing->lot;
+
+        // No se puede borrar producción que Calidad ya verificó: eso deja al
+        // lote con más piezas verificadas que producidas.
+        if ($lot && ! $lot->canDeleteProductionWeighing($weighing)) {
+            session()->flash('error', $lot->getProductionWeighingDeleteBlockReason($weighing));
+
+            return;
+        }
+
+        $weighing->delete();
         $this->sentList->refresh();
         session()->flash('message', 'Pesada eliminada.');
     }

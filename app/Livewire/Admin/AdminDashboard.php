@@ -47,6 +47,16 @@ class AdminDashboard extends Component
         $poPending    = PurchaseOrder::pending()->count();
         $poCorrection = PurchaseOrder::pendingCorrection()->count();
 
+        // ── Salud de los datos ───────────────────────────────────────────
+        // Lotes donde Calidad reporta más piezas de las que Producción
+        // registró. Sus cifras de empaque y decisión salen de ahí, así que no
+        // son confiables. Se reporta aquí y no en el tablero de piso porque
+        // un operador no puede corregirlo.
+        $inconsistentLots = $lotsLive
+            ->filter(fn ($l) => ! $l->hasConsistentQualityData())
+            ->sortByDesc(fn ($l) => $l->getOrphanQualityPieces())
+            ->values();
+
         // ── Entregas: lo que ya se pasó de fecha ─────────────────────────
         $overdueWOs = WorkOrder::with(['purchaseOrder.part', 'status'])
             ->whereNotNull('scheduled_send_date')
@@ -100,6 +110,7 @@ class AdminDashboard extends Component
             'piecesCompleted'  => $piecesCompleted,
             'poPending'        => $poPending,
             'poCorrection'     => $poCorrection,
+            'inconsistentLots' => $inconsistentLots,
             'overdueWOs'       => $overdueWOs,
             'overdueCount'     => $overdueCount,
             'dueSoonCount'     => $dueSoonCount,

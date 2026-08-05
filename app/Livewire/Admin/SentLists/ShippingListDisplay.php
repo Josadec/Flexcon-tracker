@@ -1074,6 +1074,13 @@ class ShippingListDisplay extends Component
             return;
         }
 
+        // El flujo es secuencial: sin piezas aprobadas por Calidad no se
+        // puede registrar el Paso 5.
+        if (!$lot->canBePackaged()) {
+            session()->flash('error', $lot->getPackagingBlockedReason());
+            return;
+        }
+
         $this->confirmLotId      = $lotId;
         $this->confirmCrimpLotId = $lot->crimpLots->first()?->id;
         $this->confirmDone       = false;
@@ -1485,6 +1492,13 @@ class ShippingListDisplay extends Component
 
         if (!$lot) {
             session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        // El flujo es secuencial: sin piezas aprobadas por Calidad no hay
+        // nada que empacar.
+        if (!$lot->canBePackaged()) {
+            session()->flash('error', $lot->getPackagingBlockedReason());
             return;
         }
 
@@ -1914,6 +1928,13 @@ class ShippingListDisplay extends Component
 
         if (!$lot) {
             session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        // La decisión es posterior al empaque: si el lote ni siquiera puede
+        // empacarse, tampoco hay nada que decidir.
+        if (!$lot->canBePackaged()) {
+            session()->flash('error', $lot->getPackagingBlockedReason());
             return;
         }
 
@@ -2407,6 +2428,12 @@ class ShippingListDisplay extends Component
             return;
         }
 
+        // El flujo es secuencial: sin inspección aprobada, Producción no entra.
+        if (!$lot->canBeProduced()) {
+            session()->flash('error', $lot->getProductionBlockedReason());
+            return;
+        }
+
         $this->selectedLotForProduction = $lot;
         $this->prodQuantity = $lot->quantity;
 
@@ -2456,6 +2483,17 @@ class ShippingListDisplay extends Component
 
         if (!$this->selectedLotForProduction) {
             session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        // Se revalida contra la BD: la inspección pudo cambiar mientras el
+        // modal estaba abierto, y el guard de la UI no protege los datos.
+        $lot = $this->selectedLotForProduction->fresh();
+
+        if (!$lot || !$lot->canBeProduced()) {
+            session()->flash('error', $lot?->getProductionBlockedReason()
+                ?? 'Lote no encontrado.');
+            $this->closeProductionModal();
             return;
         }
 

@@ -180,16 +180,13 @@
                 </td>
 
                 <td class="px-4 py-3">
-                    @if ($sl->isPending())
-                        {{-- Pendiente: el estado se puede cambiar desde aquí. --}}
-                        <button type="button" wire:click="openStatusModal({{ $sl->id }})"
-                            class="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
-                            title="Cambiar el estado de la lista #{{ $sl->id }}">
-                            <x-ui.badge :tone="$statusTone" dot>{{ $sl->status_label }}</x-ui.badge>
-                        </button>
-                    @else
+                    {{-- El estado se puede cambiar en cualquier dirección, también
+                         para regresar una lista confirmada o cancelada a pendiente. --}}
+                    <button type="button" wire:click="openStatusModal({{ $sl->id }})"
+                        class="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+                        title="Cambiar el estado de la lista #{{ $sl->id }}">
                         <x-ui.badge :tone="$statusTone" dot>{{ $sl->status_label }}</x-ui.badge>
-                    @endif
+                    </button>
                 </td>
 
                 <td class="px-4 py-3">
@@ -256,18 +253,22 @@
                 <x-ui-modal.ctx label="Estado actual" :value="$modalList->status_label" />
             </x-slot:context>
 
-            <x-ui.section title="Nuevo estado" hint="Elige a dónde pasa la lista.">
+            @php $runningWOs = $modalList->getRunningWorkOrders(); @endphp
+
+            <x-ui.section title="Nuevo estado" hint="Puedes moverla en cualquier dirección, incluido regresarla a Pendiente.">
                 <div class="grid grid-cols-1 gap-3">
                     <x-ui.choice tone="warn" title="Pendiente"
-                        desc="Sigue en planeación. Es el único estado que permite editar o eliminar la lista."
+                        desc="Sigue en planeación. Es el único estado que permite editarla."
                         :selected="$newStatus === 'pending'"
                         wire:click="$set('newStatus', 'pending')" />
                     <x-ui.choice tone="good" title="Confirmada"
-                        desc="La lista queda cerrada y ya no se puede editar ni eliminar."
+                        desc="La lista queda cerrada. Puedes regresarla a Pendiente cuando quieras."
                         :selected="$newStatus === 'confirmed'"
                         wire:click="$set('newStatus', 'confirmed')" />
                     <x-ui.choice tone="bad" title="Cancelada"
-                        desc="La lista se descarta. Tampoco se podrá editar ni eliminar después."
+                        :desc="$runningWOs->isEmpty()
+                            ? 'La lista se descarta Y SE ELIMINA: ninguna de sus órdenes ha empezado.'
+                            : 'La lista se descarta pero NO se elimina: ya hay órdenes corriendo.'"
                         :selected="$newStatus === 'canceled'"
                         wire:click="$set('newStatus', 'canceled')" />
                 </div>
@@ -276,20 +277,44 @@
                     <x-ui.note tone="danger" class="mt-3">{{ $message }}</x-ui.note>
                 @enderror
 
-                @if ($newStatus !== 'pending' && $newStatus !== '')
-                    <x-ui.note tone="warn" class="mt-4" title="Este cambio no se puede revertir desde aquí">
-                        Al salir de «Pendiente», la lista deja de ser editable y ya no se podrá eliminar.
-                    </x-ui.note>
+                @if ($newStatus === 'canceled')
+                    @if ($runningWOs->isEmpty())
+                        <x-ui.note tone="danger" class="mt-4" title="Esta lista se va a ELIMINAR">
+                            Ninguna de sus órdenes tiene trabajo registrado, así que al cancelarla se borra.
+                            Las Work Orders y sus lotes <strong>no</strong> se borran.
+                            <strong>Esta acción no se puede deshacer.</strong>
+                        </x-ui.note>
+                    @else
+                        <x-ui.note tone="warn" class="mt-4"
+                            title="La lista se conserva: {{ $runningWOs->count() }} {{ Str::plural('orden', $runningWOs->count()) }} ya {{ $runningWOs->count() === 1 ? 'está' : 'están' }} corriendo">
+                            <span class="mb-2 block">Se marcará como cancelada, pero no se elimina porque ya hay trabajo registrado en:</span>
+                            <span class="flex flex-wrap gap-1.5">
+                                @foreach ($runningWOs->take(6) as $rwo)
+                                    <x-ui.badge tone="warn">{{ $rwo->purchaseOrder->wo ?? $rwo->wo_number }}</x-ui.badge>
+                                @endforeach
+                                @if ($runningWOs->count() > 6)
+                                    <x-ui.badge tone="neutral">+{{ $runningWOs->count() - 6 }} más</x-ui.badge>
+                                @endif
+                            </span>
+                        </x-ui.note>
+                    @endif
                 @endif
             </x-ui.section>
 
             <x-slot:note>
-                Sólo las listas pendientes pueden cambiar de estado desde esta pantalla.
+                Cancelar elimina la lista sólo si ninguna de sus órdenes empezó a trabajarse.
             </x-slot:note>
             <x-slot:footer>
                 <x-ui.btn variant="secondary" wire:click="closeStatusModal">Cancelar</x-ui.btn>
-                <x-ui.btn variant="primary" wire:click="saveStatus"
-                    wire:loading.attr="disabled" wire:target="saveStatus">Guardar estado</x-ui.btn>
+
+                @if ($newStatus === 'canceled' && $runningWOs->isEmpty())
+                    <x-ui.btn variant="danger" wire:click="saveStatus"
+                        wire:confirm="Se va a ELIMINAR la lista #{{ $modalList->id }}. Esta acción no se puede deshacer. ¿Continuar?"
+                        wire:loading.attr="disabled" wire:target="saveStatus">Cancelar y eliminar lista</x-ui.btn>
+                @else
+                    <x-ui.btn variant="primary" wire:click="saveStatus"
+                        wire:loading.attr="disabled" wire:target="saveStatus">Guardar estado</x-ui.btn>
+                @endif
             </x-slot:footer>
         </x-ui-modal>
     @endif

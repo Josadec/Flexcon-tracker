@@ -375,6 +375,65 @@ class SentList extends Model
     }
 
     /**
+     * Órdenes de compra de la lista que ya están corriendo en piso.
+     *
+     * "Corriendo" = alguna de sus áreas ya registró algo sobre el lote:
+     * material liberado o rechazado, inspección hecha, pesadas de producción o
+     * de calidad, o empaque. Basta una señal para considerarla en marcha.
+     *
+     * Se usa para decidir si una lista cancelada se puede borrar: si nadie ha
+     * tocado nada, la lista es papel y se puede tirar; si ya hay trabajo
+     * registrado, se conserva como evidencia de lo que se hizo.
+     *
+     * @return \Illuminate\Support\Collection<int, \App\Models\WorkOrder>
+     */
+    public function getRunningWorkOrders(): \Illuminate\Support\Collection
+    {
+        $workOrders = $this->getEffectiveWorkOrders();
+
+        if ($workOrders->isEmpty()) {
+            return collect();
+        }
+
+        // Se cargan de golpe las relaciones que definen "hubo actividad".
+        $workOrders->loadMissing([
+            'purchaseOrder',
+            'lots.weighings',
+            'lots.qualityWeighings',
+            'lots.packagingRecords',
+            'lots.packagingPieceWeighings',
+            'lots.packagingCrimpWeighings',
+        ]);
+
+        return $workOrders->filter(function ($wo) {
+            return $wo->lots->contains(function ($lot) {
+                return ($lot->material_status ?? 'pending') !== 'pending'
+                    || ($lot->inspection_status ?? 'pending') !== 'pending'
+                    || $lot->weighings->isNotEmpty()
+                    || $lot->qualityWeighings->isNotEmpty()
+                    || $lot->packagingRecords->isNotEmpty()
+                    || $lot->packagingPieceWeighings->isNotEmpty()
+                    || $lot->packagingCrimpWeighings->isNotEmpty();
+            });
+        })->values();
+    }
+
+    public function hasRunningWorkOrders(): bool
+    {
+        return $this->getRunningWorkOrders()->isNotEmpty();
+    }
+
+    /**
+     * ¿Al cancelar esta lista se debe borrar?
+     *
+     * Sí, salvo que alguna de sus órdenes ya esté corriendo en piso.
+     */
+    public function shouldDeleteOnCancel(): bool
+    {
+        return ! $this->hasRunningWorkOrders();
+    }
+
+    /**
      * Get capacity utilization percentage.
      */
     public function getCapacityUtilizationAttribute(): float
