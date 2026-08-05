@@ -114,6 +114,10 @@
                                             <x-ui.btn variant="secondary" size="sm" wire:click="reopenLot({{ $lot->id }})">
                                                 Reabrir lote
                                             </x-ui.btn>
+                                        @elseif (! $lot->canBeProduced())
+                                            {{-- El flujo es secuencial: sin inspección aprobada no se pesa. --}}
+                                            <x-ui.badge tone="neutral" dot
+                                                :title="$lot->getProductionBlockedReason()">Bloqueado</x-ui.badge>
                                         @else
                                             <x-ui.btn variant="primary" size="sm" wire:click="openWeighingModal({{ $lot->id }})">
                                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -135,7 +139,11 @@
 
                             {{-- Historial de pesadas --}}
                             <div class="p-4">
-                                @if ($lotWeighings->isEmpty())
+                                @if (! $lot->canBeProduced() && $lotWeighings->isEmpty())
+                                    <x-ui.note tone="muted" title="Todavía no se puede pesar">
+                                        {{ $lot->getProductionBlockedReason() }}
+                                    </x-ui.note>
+                                @elseif ($lotWeighings->isEmpty())
                                     <x-ui.empty icon="doc" title="Sin pesadas registradas"
                                         hint="Usa «Agregar pesada» para capturar las piezas producidas de este lote." />
                                 @else

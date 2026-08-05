@@ -76,6 +76,61 @@
         </x-ui.note>
     @endif
 
+    {{-- Salud de los datos: lotes cuyas cifras no cuadran entre sí --}}
+    @if ($inconsistentLots->isNotEmpty())
+        <x-ui.section title="Lotes con cifras que no cuadran"
+            hint="Calidad reporta más piezas de las que Producción registró. Sus números de empaque y decisión salen de ahí, así que no son confiables.">
+
+            <x-ui.note tone="info" class="mb-4" title="Qué significa">
+                Cada lote de abajo tiene pesadas de calidad <strong>sin pesadas de producción que las respalden</strong>.
+                Suele venir de datos cargados directo a la base o de pesadas de producción borradas.
+                Ya no puede volver a pasar: el sistema impide borrar producción que Calidad haya verificado.
+            </x-ui.note>
+
+            <x-ui.table>
+                <x-slot:head>
+                    <tr>
+                        <x-ui.th class="w-32">Lote</x-ui.th>
+                        <x-ui.th class="w-32">WO</x-ui.th>
+                        <x-ui.th class="w-32" align="right">Producción</x-ui.th>
+                        <x-ui.th class="w-32" align="right">Calidad</x-ui.th>
+                        <x-ui.th class="w-36" align="right">Sin respaldo</x-ui.th>
+                        <x-ui.th class="w-24" align="right">Ir</x-ui.th>
+                    </tr>
+                </x-slot:head>
+
+                @foreach ($inconsistentLots as $il)
+                    <tr wire:key="incons-{{ $il->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-semibold text-slate-900 dark:text-white">{{ $il->lot_number }}</td>
+                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300">
+                            {{ $il->workOrder?->purchaseOrder?->wo ?? $il->workOrder?->wo_number ?? '—' }}
+                        </td>
+                        <td class="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">
+                            {{ number_format($il->getProductionTotalWeighed()) }}
+                        </td>
+                        <td class="px-4 py-3 text-right tabular-nums text-slate-900 dark:text-white">
+                            {{ number_format($il->getQualityVerifiedPieces()) }}
+                        </td>
+                        <td class="px-4 py-3 text-right font-bold tabular-nums text-red-700 dark:text-red-400">
+                            {{ number_format($il->getOrphanQualityPieces()) }}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            @if ($il->workOrder)
+                                <x-ui.btn variant="secondary" size="sm"
+                                    href="{{ route('admin.sent-lists.display.wo', $il->workOrder->id) }}">Abrir</x-ui.btn>
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+            </x-ui.table>
+
+            <p class="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                Para cuadrarlos: registra en Producción las pesadas que faltan, o cierra el lote con
+                <strong>«Completar Lote»</strong>, que archiva el ciclo en el historial en vez de borrarlo.
+            </p>
+        </x-ui.section>
+    @endif
+
     {{-- ══ 2. Cómo va la operación ══════════════════════════════════════ --}}
     <x-ui.section title="Estado de la operación"
         hint="Lotes y viajeros vivos en el sistema, y el trabajo que traen encima.">

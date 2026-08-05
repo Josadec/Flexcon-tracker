@@ -199,6 +199,18 @@ class WeighingManagement extends Component
         if ($this->weighingToDelete) {
             $weighing = Weighing::find($this->weighingToDelete);
             if ($weighing) {
+                $lot = $weighing->lot;
+
+                // No se puede borrar producción que Calidad ya verificó: eso
+                // deja al lote con más piezas verificadas que producidas.
+                if ($lot && ! $lot->canDeleteProductionWeighing($weighing)) {
+                    session()->flash('error', $lot->getProductionWeighingDeleteBlockReason($weighing));
+                    $this->confirmingDeletion = false;
+                    $this->weighingToDelete = null;
+
+                    return;
+                }
+
                 $weighing->delete();
                 session()->flash('message', 'Pesada eliminada correctamente.');
             }

@@ -556,6 +556,172 @@ class Lot extends Model
     }
 
     /**
+     * ¿Producción puede pesar este lote?
+     *
+     * El flujo es secuencial: Material → Inspección → Producción. Pesar antes
+     * de que Calidad apruebe la inspección deja piezas producidas sobre un lote
+     * que quizá se rechace, así que la etapa está cerrada hasta entonces.
+     *
+     * Esta compuerta es el equivalente de canBeInspected() para la etapa
+     * siguiente; antes no existía y Producción podía adelantarse.
+     */
+    public function canBeProduced(): bool
+    {
+        return ($this->inspection_status ?? self::INSPECTION_PENDING) === self::INSPECTION_APPROVED;
+    }
+
+    /**
+     * Por qué Producción no puede pesar todavía (null si sí puede).
+     */
+    public function getProductionBlockedReason(): ?string
+    {
+        if ($this->canBeProduced()) {
+            return null;
+        }
+
+        $isCrimp = (bool) ($this->workOrder->purchaseOrder->part->is_crimp ?? false);
+        $unidad  = $isCrimp ? 'viajero' : 'lote';
+
+        // Si ni siquiera se liberó el material, ese es el bloqueo de fondo:
+        // se reporta ese, que es el que hay que resolver primero.
+        if (! $this->canBeInspected()) {
+            return $this->getInspectionBlockedReason();
+        }
+
+        return match ($this->inspection_status ?? self::INSPECTION_PENDING) {
+            self::INSPECTION_REJECTED => "La inspección de este {$unidad} fue rechazada. Calidad debe resolverla antes de producir.",
+            default                   => "Calidad todavía no inspecciona este {$unidad}. Producción no puede pesar hasta que se apruebe.",
+        };
+    }
+
+    /**
+     * ¿Calidad puede verificar piezas de este lote?
+     *
+     * Sólo se verifica lo que Producción ya registró. La compuerta es
+     * transitiva: si Producción ni siquiera podía trabajar, Calidad tampoco.
+     */
+    public function canBeQualityChecked(): bool
+    {
+        return $this->canBeProduced() && $this->hasProductionWeighings();
+    }
+
+    /**
+     * Piezas que Calidad ya revisó (aprobadas + rechazadas).
+     */
+    public function getQualityVerifiedPieces(): int
+    {
+        return $this->getQualityGoodPieces() + $this->getQualityBadPieces();
+    }
+
+    /**
+     * INVARIANTE del flujo: Calidad no puede haber verificado más piezas de
+     * las que Producción registró.
+     *
+     * Cuando esto es falso, el lote arrastra datos incoherentes — típicamente
+     * porque se borraron pesadas de producción que Calidad ya había consumido.
+     * Sus cifras de empaque y decisión salen de ahí, así que no son confiables
+     * y hay que avisarlo en pantalla en vez de esconderlo.
+     */
+    public function hasConsistentQualityData(): bool
+    {
+        return $this->getQualityVerifiedPieces() <= $this->getProductionTotalWeighed();
+    }
+
+    /**
+     * Cuántas piezas verificó Calidad sin respaldo en Producción.
+     */
+    public function getOrphanQualityPieces(): int
+    {
+        return max(0, $this->getQualityVerifiedPieces() - $this->getProductionTotalWeighed());
+    }
+
+    /**
+     * ¿Se puede borrar esta pesada de producción sin romper el invariante?
+     *
+     * Borrar piezas que Calidad ya verificó es justo lo que produce lotes
+     * incoherentes, así que se impide.
+     */
+    public function canDeleteProductionWeighing(Weighing $weighing): bool
+    {
+        $remaining = $this->getProductionTotalWeighed()
+            - ((int) $weighing->good_pieces + (int) $weighing->bad_pieces);
+
+        return $remaining >= $this->getQualityVerifiedPieces();
+    }
+
+    /**
+     * Por qué no se puede borrar esa pesada (null si sí se puede).
+     */
+    public function getProductionWeighingDeleteBlockReason(Weighing $weighing): ?string
+    {
+        if ($this->canDeleteProductionWeighing($weighing)) {
+            return null;
+        }
+
+        return 'Calidad ya verificó ' . number_format($this->getQualityVerifiedPieces())
+            . ' piezas de este lote. Borrar esta pesada dejaría menos producción que la ya verificada.'
+            . ' Elimina primero las pesadas de calidad correspondientes.';
+    }
+
+    /**
+     * ¿Este lote ya tiene actividad de empaque o posterior?
+     *
+     * Se usa para NO esconder avance real: un lote que ya se empacó, se
+     * entregó o se decidió sigue mostrando su estado aunque la cadena hacia
+     * atrás esté incompleta (p.ej. porque se borraron pesadas viejas).
+     */
+    public function hasPackagingActivity(): bool
+    {
+        return $this->getPackagingPackedPieces() > 0
+            || $this->packagingPieceWeighings()->exists()
+            || $this->packagingCrimpWeighings()->exists()
+            || $this->hasClosureDecision()
+            || $this->isViajeroReceived();
+    }
+
+    /**
+     * ¿Empaque puede empacar este lote?
+     *
+     * Para EMPEZAR hace falta la cadena completa: inspección aprobada,
+     * producción registrada y piezas aprobadas por Calidad. Si el lote ya
+     * tiene actividad de empaque, se deja pasar para no bloquear un flujo en
+     * curso ni ocultar lo ya hecho.
+     */
+    public function canBePackaged(): bool
+    {
+        if ($this->hasPackagingActivity()) {
+            return true;
+        }
+
+        return $this->canBeQualityChecked() && $this->getQualityGoodPieces() > 0;
+    }
+
+    /**
+     * Por qué Empaque no puede empacar todavía (null si sí puede).
+     */
+    public function getPackagingBlockedReason(): ?string
+    {
+        if ($this->canBePackaged()) {
+            return null;
+        }
+
+        $isCrimp = (bool) ($this->workOrder->purchaseOrder->part->is_crimp ?? false);
+        $unidad  = $isCrimp ? 'viajero' : 'lote';
+
+        // Se reporta el primer eslabón roto de la cadena, que es el que hay
+        // que resolver primero.
+        if (! $this->canBeProduced()) {
+            return $this->getProductionBlockedReason();
+        }
+
+        if (! $this->hasProductionWeighings()) {
+            return "Producción todavía no registra piezas de este {$unidad}. No hay nada que empacar.";
+        }
+
+        return "Calidad todavía no aprueba piezas de este {$unidad}. Empaque no puede empacar hasta que las verifique.";
+    }
+
+    /**
      * Scope a query to only include lots with pending inspection.
      */
     public function scopeInspectionPending($query)

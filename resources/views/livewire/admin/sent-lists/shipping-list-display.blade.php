@@ -676,6 +676,10 @@
                                                 </button>
                                             @endif
 
+                                            {{-- El aviso de datos incoherentes NO va aquí: un operador de piso
+                                                 no puede corregirlo y sólo le mete ruido a la fila. Se reporta
+                                                 en el Tablero, que es donde está quien sí puede actuar. --}}
+
                                             {{-- Próxima acción pendiente (lifecycle completo) --}}
                                             @php
                                                 // Resolver la primera fase pendiente del lote
@@ -847,19 +851,31 @@
                                                 $prodRemaining = max(0, $prodTotalToWeigh - $prodTotalWeighed);
                                                 $prodDone = $prodTotalWeighed > 0 && $prodTotalWeighed >= $prodTotalToWeigh;
 
+                                                // El flujo es secuencial: sin inspección aprobada esta etapa
+                                                // está cerrada, igual que Inspección lo está sin material
+                                                // liberado. Antes faltaba esta compuerta y "Pesar" aparecía
+                                                // habilitado aunque Calidad no hubiera inspeccionado.
+                                                $canProduce = $lot->canBeProduced();
+
                                                 $prodState = match (true) {
+                                                    !$canProduce            => 'idle',
                                                     $prodDone               => 'done',
                                                     $prodTotalWeighed > 0   => 'active',
                                                     default                 => 'pending',
                                                 };
-                                                $prodLabel = $prodDone
-                                                    ? 'Pesado'
-                                                    : ($prodTotalWeighed > 0 ? 'Faltan '.number_format($prodRemaining) : 'Pesar');
-                                                $prodHint = $prodDone
-                                                    ? 'Producción pesó las '.number_format($prodTotalToWeigh).' piezas del lote'
-                                                    : 'Producción debe pesar '.number_format($prodRemaining).' de '.number_format($prodTotalToWeigh).' piezas';
+                                                $prodLabel = match (true) {
+                                                    !$canProduce          => 'No disponible',
+                                                    $prodDone             => 'Pesado',
+                                                    $prodTotalWeighed > 0 => 'Faltan '.number_format($prodRemaining),
+                                                    default               => 'Pesar',
+                                                };
+                                                $prodHint = !$canProduce
+                                                    ? ($lot->getProductionBlockedReason() ?: 'Falta aprobar la inspección antes de producir')
+                                                    : ($prodDone
+                                                        ? 'Producción pesó las '.number_format($prodTotalToWeigh).' piezas del lote'
+                                                        : 'Producción debe pesar '.number_format($prodRemaining).' de '.number_format($prodTotalToWeigh).' piezas');
                                             @endphp
-                                            @if ($canProduction)
+                                            @if ($canProduction && $canProduce)
                                                 <x-ui.row-action :state="$prodState" :label="$prodLabel" :hint="$prodHint"
                                                     wire:click="openProductionModal({{ $lot->id }})" />
                                             @else
@@ -903,24 +919,34 @@
                                             @php
                                                 $lifecycle = $lot->getPostQualityLifecycle();
                                                 $surplus = $lot->getPackagingTotalSurplus();
-                                                $canDeliverSurplus = $canPackaging && $lot->viajero_received && $surplus > 0 && !$lot->surplus_delivered;
+                                                $canDeliverSurplus = $canPackaging && $lot->canBePackaged()
+                                                    && $lot->viajero_received && $surplus > 0 && !$lot->surplus_delivered;
+
+                                                // Compuerta de la cadena: sin producción registrada y piezas
+                                                // aprobadas por Calidad no se empieza a empacar. Los lotes que
+                                                // YA tienen actividad de empaque pasan, para no ocultar avance.
+                                                $canPack = $lot->canBePackaged();
 
                                                 $pkgSem = $lot->getPackagingSemaphoreStatus();
-                                                $pkgState = match ($pkgSem) {
-                                                    'green'  => 'done',
-                                                    'yellow' => 'pending',
-                                                    'blue'   => 'active',
-                                                    'orange' => 'active',
-                                                    default  => 'idle',
+                                                $pkgState = match (true) {
+                                                    !$canPack          => 'idle',
+                                                    $pkgSem === 'green'  => 'done',
+                                                    $pkgSem === 'yellow' => 'pending',
+                                                    $pkgSem === 'blue'   => 'active',
+                                                    $pkgSem === 'orange' => 'active',
+                                                    default              => 'idle',
                                                 };
-                                                $pkgLabel = match ($pkgSem) {
-                                                    'green'  => 'Empacado',
-                                                    'yellow' => 'Empacar',
-                                                    'blue'   => 'Recibido',
-                                                    'orange' => 'Con sobrantes',
-                                                    default  => 'No disponible',
+                                                $pkgLabel = match (true) {
+                                                    !$canPack          => 'No disponible',
+                                                    $pkgSem === 'green'  => 'Empacado',
+                                                    $pkgSem === 'yellow' => 'Empacar',
+                                                    $pkgSem === 'blue'   => 'Recibido',
+                                                    $pkgSem === 'orange' => 'Con sobrantes',
+                                                    default              => 'No disponible',
                                                 };
-                                                $pkgHint = $part->is_crimp
+                                                $pkgHint = !$canPack
+                                                    ? ($lot->getPackagingBlockedReason() ?: 'Falta que Calidad apruebe piezas antes de empacar')
+                                                    : ($part->is_crimp
                                                     ? 'Empaque CRIMP — piezas: '.number_format($lot->getPackagedPiecesTotal()).'/'.number_format($lot->getPackagingAvailablePieces())
                                                         .' · CRIMP: '.number_format($lot->getPackagedCrimpTotal()).'/'.number_format($lot->getCrimpTargetTotal())
                                                     : match ($pkgSem) {
@@ -929,7 +955,7 @@
                                                         'blue'   => 'Viajero recibido — falta la decisión de Materiales',
                                                         'orange' => 'Cerrado con sobrantes por entregar',
                                                         default  => 'Falta que Calidad verifique piezas antes de empacar',
-                                                    };
+                                                    });
                                             @endphp
                                             @if ($canPackaging && $pkgState !== 'idle')
                                                 {{-- CRIMP usa el modal único del Paso 5; el resto, el modal de empaque por lote. --}}
@@ -950,11 +976,17 @@
                                                 $decState = $trackStates[$lifecycle['decision']['state']] ?? 'idle';
                                                 $matState2 = $trackStates[$lifecycle['material']['state']] ?? 'idle';
 
+                                                // Todo esto es posterior al empaque: si el lote todavía no
+                                                // puede empacarse, nada de aquí está disponible.
+                                                if (! $canPack) {
+                                                    $vjState = $decState = $matState2 = 'idle';
+                                                }
+
                                                 $trackIsCrimp = $part->is_crimp ?? false;
                                             @endphp
                                             <div class="space-y-1">
                                                 {{-- Paso 7 · entrega del viajero --}}
-                                                @if ($trackIsCrimp && $canPackaging && in_array($lifecycle['viajero']['state'], ['pending', 'done']))
+                                                @if ($trackIsCrimp && $canPackaging && $canPack && in_array($lifecycle["viajero"]["state"], ["pending", "done"]))
                                                     <x-ui.row-action :state="$vjState"
                                                         :label="$lifecycle['viajero']['state'] === 'done' ? 'Viajero entregado' : 'Entregar viajero'"
                                                         :hint="'Paso 7 · '.$lifecycle['viajero']['label']"
@@ -965,7 +997,7 @@
                                                 @endif
 
                                                 {{-- Decisión de Materiales --}}
-                                                @if (in_array($lifecycle['decision']['state'], ['pending', 'done']) && $canMaterials)
+                                                @if (in_array($lifecycle['decision']['state'], ['pending', 'done']) && $canMaterials && $canPack)
                                                     <x-ui.row-action :state="$decState"
                                                         :label="$lifecycle['decision']['state'] === 'done' ? 'Ver decisión' : 'Decidir'"
                                                         :hint="'Decisión · '.$lifecycle['decision']['label']"

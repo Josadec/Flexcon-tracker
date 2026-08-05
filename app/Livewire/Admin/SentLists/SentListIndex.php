@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\SentLists;
 
 use App\Models\SentList;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -70,15 +71,14 @@ class SentListIndex extends Component
 
     // ── Cambio de estado sin salir del listado ───────────────────────────
 
+    /**
+     * El estado se puede cambiar en cualquier dirección, incluido regresar a
+     * «Pendiente». Antes sólo se dejaba salir de pendiente y un clic
+     * equivocado era irreversible.
+     */
     public function openStatusModal(int $id): void
     {
         $list = SentList::findOrFail($id);
-
-        if (! $list->isPending()) {
-            session()->flash('error', 'Sólo las listas pendientes pueden cambiar de estado.');
-
-            return;
-        }
 
         $this->statusModalId = $id;
         $this->newStatus = $list->status;
@@ -103,10 +103,28 @@ class SentListIndex extends Component
 
         $list = SentList::findOrFail($this->statusModalId);
 
-        // Se revalida en el servidor: la lista pudo cambiar mientras el modal
-        // estaba abierto.
-        if (! $list->isPending()) {
-            session()->flash('error', 'Esta lista ya no está pendiente; no se pudo cambiar su estado.');
+        // Cancelar borra la lista, salvo que alguna de sus órdenes ya esté
+        // corriendo en piso: en ese caso se conserva como evidencia.
+        if ($this->newStatus === SentList::STATUS_CANCELED) {
+            $running = $list->getRunningWorkOrders();
+
+            if ($running->isEmpty()) {
+                $id = $list->id;
+                $list->delete();
+
+                session()->flash('message', "Lista #{$id} cancelada y eliminada: ninguna de sus órdenes había empezado.");
+                $this->closeStatusModal();
+
+                return;
+            }
+
+            $list->update(['status' => SentList::STATUS_CANCELED]);
+
+            session()->flash('message',
+                "Lista #{$list->id} cancelada. No se eliminó porque {$running->count()} "
+                . Str::plural('orden', $running->count())
+                . ' ya está' . ($running->count() === 1 ? '' : 'n') . ' corriendo.');
+
             $this->closeStatusModal();
 
             return;
