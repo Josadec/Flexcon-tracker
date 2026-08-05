@@ -56,6 +56,9 @@ cd c:\xampp\htdocs\Laravel\Flexcon-tracker
 & "c:\xampp\mysql\bin\mysqldump.exe" -u root "flexcon_db" > backup_antes_de_reset.sql
 ```
 
+Si tiene password:
+& "C:\xampp\mysql\bin\mysqldump.exe" -u root -p flexcon_db --result-file=backup_antes_de_reset.sql
+
 Verifica que el archivo `backup_antes_de_reset.sql` se haya creado y **no esté vacío**
 antes de seguir.
 
