@@ -1,429 +1,375 @@
-<div class="space-y-6">
+{{--
+    VISTA DE CALIDAD DENTRO DE UNA LISTA PRELIMINAR
 
-    {{-- Aviso de solo lectura: el backend rechaza toda edición fuera de etapa/rol --}}
+    Se monta como pestaña del detalle de la lista, así que NO lleva
+    <x-ui.page>: la cabecera la pone la pantalla contenedora.
+
+    Calidad pesa las piezas que Producción registró y las aprueba o rechaza.
+    Las rechazadas se descartan: no regresan al lote.
+--}}
+<div class="space-y-5">
+
     @unless ($this->canEditDepartment())
-        <div class="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-amber-800 dark:text-amber-300">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span class="text-sm font-medium">Modo solo lectura: esta lista no está en la etapa de tu departamento o ya fue cerrada. No puedes modificar sus datos.</span>
-        </div>
+        <x-ui.note tone="warn" title="Modo sólo lectura">
+            Esta lista no está en la etapa de tu departamento o ya fue cerrada. Puedes consultarla, pero no modificarla.
+        </x-ui.note>
     @endunless
 
-    {{-- Flash Messages --}}
     @if (session()->has('message'))
-        <div class="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg text-green-800 dark:text-green-300">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            <span class="text-sm font-medium">{{ session('message') }}</span>
-        </div>
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
     @endif
-
     @if (session()->has('error'))
-        <div class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-800 dark:text-red-300">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span class="text-sm font-medium">{{ session('error') }}</span>
-        </div>
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
     @endif
 
-    {{-- Quality Sections per WO --}}
+    @php
+        $allLots    = $workOrders->flatMap->lots;
+        $recvSum    = (int) $allLots->sum(fn ($l) => $l->weighings->whereNull('kit_id')->sum('good_pieces'));
+        $goodSum    = (int) $allLots->sum(fn ($l) => $l->qualityWeighings->whereNull('kit_id')->sum('good_pieces'));
+        $badSum     = (int) $allLots->sum(fn ($l) => $l->qualityWeighings->whereNull('kit_id')->sum('bad_pieces'));
+        $seenSum    = $goodSum + $badSum;
+        $pendSum    = max(0, $recvSum - $seenSum);
+        $globalPct  = $recvSum > 0 ? min(100, round(($seenSum / $recvSum) * 100)) : 0;
+        $rejectRate = $seenSum > 0 ? round(($badSum / $seenSum) * 100, 1) : 0.0;
+    @endphp
+
+    {{-- Avance de la verificación --}}
+    <x-ui.section title="Avance de la verificación"
+        hint="Calidad sólo puede verificar piezas que Producción ya registró.">
+        <x-ui.stats cols="4">
+            <x-ui.stat label="Recibidas de Producción" :value="number_format($recvSum)" unit="pz" tone="info" />
+            <x-ui.stat label="Aprobadas" :value="number_format($goodSum)" unit="pz" tone="good" />
+            <x-ui.stat label="Rechazadas" :value="number_format($badSum)" unit="pz"
+                :tone="$badSum > 0 ? 'bad' : 'neutral'"
+                help="Las piezas rechazadas se descartan: no regresan al lote." />
+            <x-ui.stat label="Pendientes" :value="number_format($pendSum)" unit="pz"
+                :tone="$pendSum > 0 ? 'warn' : 'good'" />
+        </x-ui.stats>
+
+        <div class="mt-4">
+            <div class="mb-1.5 flex items-baseline justify-between text-xs">
+                <span class="font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Verificado</span>
+                <span class="font-bold tabular-nums text-slate-700 dark:text-slate-200">
+                    {{ $globalPct }}%
+                    @if ($seenSum > 0)
+                        <span class="ml-2 font-normal text-slate-400">· rechazo {{ $rejectRate }}%</span>
+                    @endif
+                </span>
+            </div>
+            <div class="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+                <div class="h-full rounded-full transition-all {{ $globalPct >= 100 ? 'bg-green-500' : 'bg-teal-500' }}" style="width: {{ $globalPct }}%"></div>
+            </div>
+        </div>
+    </x-ui.section>
+
+    {{-- Un bloque por Work Order --}}
     @forelse ($workOrders as $wo)
         @php $isCrimp = $wo->purchaseOrder->part->is_crimp ?? false; @endphp
 
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            {{-- WO Header --}}
-            <div class="flex items-center gap-4 px-5 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                <a href="{{ route('admin.sent-lists.display.wo', $wo->id) }}"
-                    wire:navigate
-                    class="font-mono font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
-                    title="Ver este WO en la Lista de envío">{{ $wo->purchaseOrder->wo ?? $wo->wo_number }}</a>
-                <span class="font-medium text-gray-800 dark:text-gray-200">{{ $wo->purchaseOrder->part->number ?? '-' }}</span>
-                <span class="text-gray-500 dark:text-gray-400 text-sm truncate flex-1">{{ $wo->purchaseOrder->part->description ?? '' }}</span>
-                @if ($isCrimp)
-                    <span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded">CRIMP</span>
-                @endif
-            </div>
+        <x-ui.section wire:key="wo-{{ $wo->id }}"
+            :title="($wo->purchaseOrder->wo ?? $wo->wo_number).' · '.($wo->purchaseOrder->part->number ?? '—')"
+            :hint="$wo->purchaseOrder->part->description ?? null">
 
-            {{-- Lots --}}
-            @if ($wo->lots->isNotEmpty())
-                <div class="p-4 space-y-4">
+            <x-slot:aside>
+                <div class="flex items-center gap-2">
+                    @if ($isCrimp)
+                        <x-ui.badge tone="accent">CRIMP</x-ui.badge>
+                    @endif
+                    <x-ui.btn variant="secondary" size="sm" href="{{ route('admin.sent-lists.display.wo', $wo->id) }}">
+                        Ver en el tablero
+                    </x-ui.btn>
+                </div>
+            </x-slot:aside>
+
+            @if ($wo->lots->isEmpty())
+                <x-ui.empty icon="box" title="Este WO no tiene lotes asignados"
+                    hint="Los lotes se crean desde el tablero de piso." />
+            @else
+                <div class="space-y-4">
                     @foreach ($wo->lots as $lot)
                         @php
-                            $prodTotal              = (int) $lot->weighings->whereNull('kit_id')->sum('good_pieces');
-                            $lotOnlyQualWeighings   = $lot->qualityWeighings->whereNull('kit_id')->values();
-                            $qualityGood            = (int) $lotOnlyQualWeighings->sum('good_pieces');
-                            $qualityBad             = (int) $lotOnlyQualWeighings->sum('bad_pieces');
-                            $qualityTotal           = $qualityGood + $qualityBad;
-                            $pendingPieces          = max(0, $prodTotal - $qualityTotal);
-                            $progressPct            = $prodTotal > 0 ? min(100, round(($qualityTotal / $prodTotal) * 100)) : 0;
-                            $progressColor          = $progressPct >= 100 ? 'bg-green-500' : ($progressPct > 0 ? 'bg-yellow-500' : 'bg-gray-300 dark:bg-gray-600');
-                            $lotIsReadyForQuality   = $lot->status === 'completed' || $lot->weighings->isNotEmpty();
-                            $lotProductionInProgress = $lot->weighings->isNotEmpty() && $lot->status !== 'completed';
+                            $prodTotal    = (int) $lot->weighings->whereNull('kit_id')->sum('good_pieces');
+                            $lotQW        = $lot->qualityWeighings->whereNull('kit_id')->values();
+                            $qualityGood  = (int) $lotQW->sum('good_pieces');
+                            $qualityBad   = (int) $lotQW->sum('bad_pieces');
+                            $qualityTotal = $qualityGood + $qualityBad;
+                            $pendingPcs   = max(0, $prodTotal - $qualityTotal);
+                            $pct          = $prodTotal > 0 ? min(100, round(($qualityTotal / $prodTotal) * 100)) : 0;
+                            $bar          = $pct >= 100 ? 'bg-green-500' : ($pct > 0 ? 'bg-teal-500' : 'bg-slate-300 dark:bg-slate-600');
+                            $readyForQuality = $lot->status === 'completed' || $lot->weighings->isNotEmpty();
                         @endphp
 
-                        @if (!$lotIsReadyForQuality)
-                            {{-- Lot not yet in production --}}
-                            <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
-                                <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-700/40">
-                                    <span class="font-mono text-sm font-semibold text-gray-500 dark:text-gray-400">Lote {{ $lot->lot_number }}</span>
-                                    <span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded">
-                                        Pendiente de producción
-                                    </span>
-                                </div>
-                                <div class="px-4 py-4 text-sm text-gray-400 dark:text-gray-500 italic text-center border-t border-gray-100 dark:border-gray-700">
-                                    Este lote aún no tiene pesadas de producción registradas.
-                                </div>
-                            </div>
-                        @else
+                        <div wire:key="lot-{{ $lot->id }}"
+                            class="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
 
-                        <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
-                            {{-- Warning: production still in progress --}}
-                            @if ($lotProductionInProgress)
-                                <div class="flex items-center gap-2 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-700 text-yellow-700 dark:text-yellow-300 text-xs">
-                                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                                    </svg>
-                                    Producción aún en progreso — datos parciales ({{ number_format($prodTotal) }} pzas pesadas)
-                                </div>
-                            @endif
-                            {{-- Lot Header --}}
-                            <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-700/40">
-                                <div class="flex items-center gap-3">
-                                    <span class="font-mono text-sm font-semibold text-gray-800 dark:text-gray-200">Lote {{ $lot->lot_number }}</span>
-                                    @if ($lot->completion_count > 0)
-                                        <span class="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded">Completado {{ $lot->completion_count }}</span>
-                                    @endif
-                                    <div class="flex items-center gap-2 text-xs">
-                                        <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
-                                            Recibidas: {{ number_format($prodTotal) }}
-                                        </span>
-                                        @if ($qualityGood > 0)
-                                            <span class="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
-                                                Buenas: {{ number_format($qualityGood) }}
+                            {{-- Cabecera del lote --}}
+                            <div class="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/40">
+                                <div class="flex flex-wrap items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="text-sm font-bold text-slate-900 dark:text-white">
+                                                {{ $isCrimp ? 'Viajero' : 'Lote' }} {{ $lot->lot_number }}
                                             </span>
-                                        @endif
-                                        @if ($qualityBad > 0)
-                                            <span class="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded">
-                                                Malas: {{ number_format($qualityBad) }}
-                                            </span>
-                                        @endif
-                                        @if ($pendingPieces > 0)
-                                            <span class="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded">
-                                                Pendientes: {{ number_format($pendingPieces) }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                </div>
-                                <button wire:click="openWeighingModal({{ $lot->id }})"
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                    </svg>
-                                    Agregar Pesada
-                                </button>
-                            </div>
-
-                            {{-- Progress Bar --}}
-                            @if ($prodTotal > 0)
-                                <div class="px-4 py-2 bg-white dark:bg-gray-800">
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                            <div class="{{ $progressColor }} h-full rounded-full transition-all duration-300" style="width: {{ $progressPct }}%"></div>
+                                            @if ($lot->completion_count > 0)
+                                                <x-ui.badge tone="warn">Completado {{ $lot->completion_count }}</x-ui.badge>
+                                            @endif
+                                            @if ($readyForQuality && $pendingPcs === 0 && $qualityTotal > 0)
+                                                <x-ui.badge tone="good" dot>Verificado</x-ui.badge>
+                                            @endif
                                         </div>
-                                        <span class="text-xs font-medium text-gray-600 dark:text-gray-400 w-32 text-right">
-                                            {{ number_format($qualityTotal) }} / {{ number_format($prodTotal) }} ({{ $progressPct }}%)
-                                        </span>
-                                    </div>
-                                </div>
-                            @endif
 
-                            {{-- Lot-level Quality Weighings History (no kit) --}}
-                            @if ($isCrimp && $lotOnlyQualWeighings->isNotEmpty())
-                                <div class="px-4 py-1.5 bg-yellow-50 dark:bg-yellow-900/20 border-t border-yellow-100 dark:border-yellow-800">
-                                    <span class="text-xs font-semibold text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Pesadas de Lote</span>
-                                </div>
-                            @endif
-                            @if ($lotOnlyQualWeighings->isNotEmpty())
-                                <div class="border-t border-gray-100 dark:border-gray-700">
-                                    <table class="w-full text-xs">
-                                        <thead class="bg-gray-50/70 dark:bg-gray-900/30">
-                                            <tr>
-                                                <th class="px-4 py-2 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Fecha/Hora</th>
-                                                <th class="px-4 py-2 text-right font-semibold text-gray-500 dark:text-gray-400 uppercase">Buenas</th>
-                                                <th class="px-4 py-2 text-right font-semibold text-gray-500 dark:text-gray-400 uppercase">Malas</th>
-                                                <th class="px-4 py-2 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Usuario</th>
-                                                <th class="px-4 py-2 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase">Comentarios</th>
-                                                <th class="px-4 py-2 text-center font-semibold text-gray-500 dark:text-gray-400 uppercase">Acción</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                                            @foreach ($lotOnlyQualWeighings as $qw)
-                                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                                    <td class="px-4 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                                                        {{ \Carbon\Carbon::parse($qw->weighed_at)->format('d/m/Y H:i') }}
-                                                    </td>
-                                                    <td class="px-4 py-2 text-right font-semibold text-green-700 dark:text-green-400">{{ number_format($qw->good_pieces) }}</td>
-                                                    <td class="px-4 py-2 text-right font-semibold {{ $qw->bad_pieces > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400' }}">
-                                                        {{ number_format($qw->bad_pieces) }}
-                                                    </td>
-                                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-400">
-                                                        {{ $qw->weighedBy->name ?? 'N/A' }}
-                                                    </td>
-                                                    <td class="px-4 py-2 text-gray-500 dark:text-gray-400 max-w-xs truncate">
-                                                        {{ $qw->comments ?: '-' }}
-                                                    </td>
-                                                    <td class="px-4 py-2 text-center">
-                                                        <div class="flex items-center justify-center gap-1">
-                                                            <button wire:click="editQualityWeighing({{ $lot->id }}, {{ $qw->id }})"
-                                                                class="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors" title="Editar">
-                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                                                </svg>
-                                                            </button>
-                                                            <button wire:click="deleteWeighing({{ $qw->id }})"
-                                                                wire:confirm="¿Eliminar esta pesada de calidad?"
-                                                                class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors" title="Eliminar">
-                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                        <tfoot class="bg-gray-50 dark:bg-gray-900/30">
-                                            <tr>
-                                                <td class="px-4 py-2 font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase">Total</td>
-                                                <td class="px-4 py-2 text-right text-xs font-bold text-green-700 dark:text-green-400">{{ number_format($qualityGood) }}</td>
-                                                <td class="px-4 py-2 text-right text-xs font-bold {{ $qualityBad > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500' }}">{{ number_format($qualityBad) }}</td>
-                                                <td colspan="3"></td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            @else
-                                <div class="px-4 py-5 text-center text-sm text-gray-400 dark:text-gray-500 italic border-t border-gray-100 dark:border-gray-700">
-                                    @if ($isCrimp)
-                                        Sin pesadas de calidad de lote. Usa "Agregar Pesada" para registrar piezas del viajero.
-                                    @else
-                                        Sin pesadas de calidad. Usa "Agregar Pesada" para comenzar.
+                                        @if ($readyForQuality)
+                                            <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                                                <span class="text-slate-500 dark:text-slate-400">
+                                                    Recibidas <strong class="tabular-nums text-sky-800 dark:text-sky-300">{{ number_format($prodTotal) }}</strong>
+                                                </span>
+                                                <span class="text-slate-500 dark:text-slate-400">
+                                                    Aprobadas <strong class="tabular-nums text-green-700 dark:text-green-400">{{ number_format($qualityGood) }}</strong>
+                                                </span>
+                                                @if ($qualityBad > 0)
+                                                    <span class="text-slate-500 dark:text-slate-400">
+                                                        Rechazadas <strong class="tabular-nums text-red-700 dark:text-red-400">{{ number_format($qualityBad) }}</strong>
+                                                    </span>
+                                                @endif
+                                                @if ($pendingPcs > 0)
+                                                    <span class="text-slate-500 dark:text-slate-400">
+                                                        Pendientes <strong class="tabular-nums text-amber-700 dark:text-amber-400">{{ number_format($pendingPcs) }}</strong>
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    @if ($readyForQuality)
+                                        <x-ui.btn variant="primary" size="sm" wire:click="openWeighingModal({{ $lot->id }})">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                            Agregar pesada
+                                        </x-ui.btn>
                                     @endif
                                 </div>
-                            @endif
+
+                                @if ($readyForQuality && $prodTotal > 0)
+                                    <div class="mt-3 flex items-center gap-3">
+                                        <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                                            <div class="h-full rounded-full transition-all {{ $bar }}" style="width: {{ $pct }}%"></div>
+                                        </div>
+                                        <span class="shrink-0 text-xs font-semibold tabular-nums text-slate-600 dark:text-slate-300">{{ $pct }}%</span>
+                                    </div>
+                                @endif
+                            </div>
+
+                            {{-- Contenido --}}
+                            <div class="p-4">
+                                @if (! $readyForQuality)
+                                    <x-ui.note tone="muted" title="Todavía no llega a Calidad">
+                                        Producción no ha registrado piezas de este lote. En cuanto lo haga podrás verificarlas.
+                                    </x-ui.note>
+                                @elseif ($lotQW->isEmpty())
+                                    <x-ui.empty icon="doc" title="Sin pesadas de calidad"
+                                        hint="Usa «Agregar pesada» para registrar cuántas piezas aprobaste y cuántas rechazaste." />
+                                @else
+                                    <x-ui.table>
+                                        <x-slot:head>
+                                            <tr>
+                                                <x-ui.th class="w-44">Fecha y hora</x-ui.th>
+                                                <x-ui.th class="w-28" align="right">Aprobadas</x-ui.th>
+                                                <x-ui.th class="w-28" align="right">Rechazadas</x-ui.th>
+                                                <x-ui.th class="w-40">Registró</x-ui.th>
+                                                <x-ui.th>Comentarios</x-ui.th>
+                                                <x-ui.th class="w-28" align="right">Acciones</x-ui.th>
+                                            </tr>
+                                        </x-slot:head>
+
+                                        @foreach ($lotQW as $qw)
+                                            <tr wire:key="qw-{{ $qw->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                                                <td class="whitespace-nowrap px-4 py-2.5 text-slate-700 dark:text-slate-300">
+                                                    {{ \Carbon\Carbon::parse($qw->weighed_at)->format('d/m/Y H:i') }}
+                                                </td>
+                                                <td class="px-4 py-2.5 text-right font-bold tabular-nums text-green-700 dark:text-green-400">
+                                                    {{ number_format($qw->good_pieces) }}
+                                                </td>
+                                                <td class="px-4 py-2.5 text-right tabular-nums {{ $qw->bad_pieces > 0 ? 'font-bold text-red-700 dark:text-red-400' : 'text-slate-400' }}">
+                                                    {{ number_format($qw->bad_pieces) }}
+                                                </td>
+                                                <td class="px-4 py-2.5 text-slate-600 dark:text-slate-300">{{ $qw->weighedBy->name ?? '—' }}</td>
+                                                <td class="max-w-xs truncate px-4 py-2.5 text-slate-500 dark:text-slate-400">{{ $qw->comments ?: '—' }}</td>
+                                                <td class="px-4 py-2.5">
+                                                    <div class="flex items-center justify-end gap-1.5">
+                                                        <x-ui.icon-btn tone="primary" label="Editar esta pesada de calidad"
+                                                            wire:click="editQualityWeighing({{ $lot->id }}, {{ $qw->id }})">
+                                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                                        </x-ui.icon-btn>
+                                                        <x-ui.icon-btn tone="danger" label="Eliminar esta pesada de calidad"
+                                                            wire:click="deleteWeighing({{ $qw->id }})"
+                                                            wire:confirm="¿Eliminar esta pesada de calidad?">
+                                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                        </x-ui.icon-btn>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+
+                                        <x-slot:foot>
+                                            <div class="flex flex-wrap items-center justify-end gap-x-6 gap-y-1 text-xs">
+                                                <span class="text-slate-500 dark:text-slate-400">
+                                                    Aprobadas <strong class="tabular-nums text-green-700 dark:text-green-400">{{ number_format($qualityGood) }}</strong>
+                                                </span>
+                                                <span class="text-slate-500 dark:text-slate-400">
+                                                    Rechazadas <strong class="tabular-nums {{ $qualityBad > 0 ? 'text-red-700 dark:text-red-400' : 'text-slate-500' }}">{{ number_format($qualityBad) }}</strong>
+                                                </span>
+                                            </div>
+                                        </x-slot:foot>
+                                    </x-ui.table>
+                                @endif
+                            </div>
                         </div>
-                        @endif {{-- end $lotIsReadyForQuality --}}
                     @endforeach
                 </div>
-
-                {{-- Pesadas de Calidad por Kit: eliminado en el reajuste CRIMP — la pesada de
-                     calidad se registra a nivel viajero (igual que NO-CRIMP), sin selección de kit. --}}
-            @else
-                <div class="px-5 py-8 text-center text-sm text-gray-400 dark:text-gray-500 italic">
-                    Este WO no tiene lotes asignados.
-                </div>
             @endif
-        </div>
+        </x-ui.section>
     @empty
-        <div class="text-center py-10 text-gray-400 dark:text-gray-500">No hay Work Orders en esta lista.</div>
+        <x-ui.section>
+            <x-ui.empty title="No hay Work Orders en esta lista"
+                hint="Las órdenes se agregan a la lista desde el wizard de capacidad." />
+        </x-ui.section>
     @endforelse
 
-    {{-- Footer Actions --}}
-    <div class="flex items-center justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-        <button wire:click="openSendModal"
-            class="inline-flex items-center gap-2 px-5 py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg shadow transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-            </svg>
-            Enviar a Empaque
-        </button>
-    </div>
+    {{-- Cierre de la etapa --}}
+    <x-ui.section title="Cerrar la verificación"
+        hint="Al enviar, la lista pasa a Empaque con las piezas aprobadas.">
+        @if ($pendSum > 0)
+            <x-ui.note tone="warn" class="mb-4">
+                Quedan <strong>{{ number_format($pendSum) }} piezas</strong> sin verificar.
+                Empaque sólo podrá empacar las que ya estén aprobadas.
+            </x-ui.note>
+        @endif
 
-    {{-- ===== QUALITY WEIGHING MODAL ===== --}}
+        <div class="flex justify-end">
+            <x-ui.btn variant="primary" wire:click="openSendModal">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                Enviar a Empaque
+            </x-ui.btn>
+        </div>
+    </x-ui.section>
+
+    {{-- Registrar / editar pesada de calidad --}}
     @if ($showWeighingModal)
-        @php
-            $modalLot      = $workOrders->flatMap->lots->firstWhere('id', $weighingLotId);
-            $modalWo       = $modalLot ? $workOrders->firstWhere('id', $modalLot->work_order_id) : null;
-            $modalIsCrimp  = $modalWo ? ($modalWo->purchaseOrder->part->is_crimp ?? false) : false;
-        @endphp
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeWeighingModal"></div>
-            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 bg-yellow-600 dark:bg-yellow-700">
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Pesada de Calidad</h3>
-                        @if ($modalLot)
-                            <p class="text-sm text-yellow-100 mt-0.5">
-                                Lote {{ $modalLot->lot_number }}
-                                &mdash; Producción: {{ number_format($productionGoodPieces) }} pzas
-                                | Pendientes: {{ number_format($remainingPieces) }}
-                            </p>
-                        @endif
+        @php $modalLot = $workOrders->flatMap->lots->firstWhere('id', $weighingLotId); @endphp
+        <x-ui-modal wire:key="modal-quality-weighing" title="Pesada de calidad"
+            :subtitle="$modalLot ? 'Lote '.$modalLot->lot_number : null"
+            close="closeWeighingModal" maxWidth="2xl">
+
+            <x-slot:context>
+                <x-ui-modal.ctx label="Lote" :value="$modalLot?->lot_number ?? '—'" />
+                <x-ui-modal.ctx label="Recibidas de Producción" :value="number_format($productionGoodPieces).' pz'" />
+                <x-ui-modal.ctx label="Ya verificadas" :value="number_format($alreadyWeighed).' pz'" />
+                <x-ui-modal.ctx label="Pendientes" :value="number_format($remainingPieces).' pz'" />
+            </x-slot:context>
+
+            <x-ui.section title="Resultado de la verificación"
+                hint="Aprobadas y rechazadas se suman: el total no puede pasar de las piezas pendientes.">
+                @if ($editingId)
+                    <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sky-300 bg-sky-50 px-4 py-3 dark:border-sky-800 dark:bg-sky-950/30">
+                        <p class="text-sm text-sky-900 dark:text-sky-100">
+                            Estás editando una pesada ya registrada, no creando una nueva.
+                        </p>
+                        <x-ui.btn variant="secondary" size="sm" wire:click="cancelEdit">Cancelar edición</x-ui.btn>
                     </div>
-                    <button wire:click="closeWeighingModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
+                @endif
 
-                <div class="px-6 py-4 space-y-4">
-                    {{-- Editing indicator --}}
-                    @if ($editingId)
-                        <div class="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <span class="text-sm text-blue-700 dark:text-blue-300 font-medium">Editando pesada existente</span>
-                            <button wire:click="cancelEdit" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 underline">Cancelar edición</button>
-                        </div>
-                    @endif
-
-                    {{-- Summary stats --}}
-                    <div class="grid grid-cols-3 gap-2 text-center text-xs">
-                        <div class="p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-                            <div class="font-bold text-blue-700 dark:text-blue-300">{{ number_format($productionGoodPieces) }}</div>
-                            <div class="text-gray-500">Producción</div>
-                        </div>
-                        <div class="p-2 bg-green-50 dark:bg-green-900/20 rounded">
-                            <div class="font-bold text-green-700 dark:text-green-300">{{ number_format($alreadyWeighed) }}</div>
-                            <div class="text-gray-500">Verificadas</div>
-                        </div>
-                        <div class="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
-                            <div class="font-bold text-yellow-700 dark:text-yellow-300">{{ number_format($remainingPieces) }}</div>
-                            <div class="text-gray-500">Pendientes</div>
-                        </div>
-                    </div>
-
-                    {{-- Good pieces --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Piezas aprobadas <span class="text-red-500">*</span></label>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ui.field label="Piezas aprobadas" required
+                        hint="Pasan a Empaque."
+                        :error="$errors->first('goodPieces')">
                         <input type="number" wire:model="goodPieces" min="0" placeholder="0"
-                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                        @error('goodPieces')
-                            <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
+                            class="w-full text-right text-lg font-bold tabular-nums">
+                    </x-ui.field>
 
-                    {{-- Bad pieces --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Piezas rechazadas</label>
+                    <x-ui.field label="Piezas rechazadas" optional
+                        hint="Se descartan: no regresan al lote."
+                        :error="$errors->first('badPieces')">
                         <input type="number" wire:model="badPieces" min="0" placeholder="0"
-                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                        @error('badPieces')
-                            <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    {{-- Comments shown prominently if bad pieces > 0 --}}
-                    @if ($badPieces > 0)
-                        <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-red-700 dark:text-red-300">
-                            Hay {{ $badPieces }} pieza(s) rechazada(s). Documente el motivo en los comentarios.
-                        </div>
-                    @endif
-
-                    {{-- Date/Time --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha y hora <span class="text-red-500">*</span></label>
-                        <input type="datetime-local" wire:model="weighingAt"
-                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                        @error('weighingAt')
-                            <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    {{-- Comments --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comentarios{{ $badPieces > 0 ? ' (recomendado)' : ' (opcional)' }}</label>
-                        <textarea wire:model="weighingComments" rows="2" placeholder="Observaciones de calidad..."
-                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"></textarea>
-                    </div>
+                            class="w-full text-right text-lg font-bold tabular-nums">
+                    </x-ui.field>
                 </div>
 
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeWeighingModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        Cancelar
-                    </button>
-                    <button wire:click="saveWeighing"
-                        class="px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors">
-                        {{ $editingId ? 'Actualizar Pesada' : 'Guardar Pesada' }}
-                    </button>
+                @if ($badPieces > 0)
+                    <x-ui.note tone="danger" class="mt-4" title="Hay {{ number_format($badPieces) }} piezas rechazadas">
+                        Documenta el motivo en los comentarios: es el registro que queda para auditoría.
+                    </x-ui.note>
+                @endif
+
+                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ui.field label="Fecha y hora" required :error="$errors->first('weighingAt')">
+                        <input type="datetime-local" wire:model="weighingAt" class="w-full">
+                    </x-ui.field>
+
+                    <x-ui.field label="Comentarios" :optional="$badPieces <= 0"
+                        :hint="$badPieces > 0 ? 'Explica por qué se rechazaron.' : null">
+                        <textarea wire:model="weighingComments" rows="2" class="w-full"
+                            placeholder="Observaciones de calidad..."></textarea>
+                    </x-ui.field>
                 </div>
-            </div>
-        </div>
+            </x-ui.section>
+
+            <x-slot:note>Las piezas aprobadas quedan disponibles para que Empaque las empaque.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeWeighingModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="primary" wire:click="saveWeighing"
+                    wire:loading.attr="disabled" wire:target="saveWeighing">Guardar pesada</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
     @endif
 
-    {{-- ===== SEND TO PACKAGING MODAL ===== --}}
+    {{-- Enviar a Empaque --}}
     @if ($showSendModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeSendModal"></div>
-            <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 bg-yellow-600 dark:bg-yellow-700">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Enviar a Empaque</h3>
-                    <button wire:click="closeSendModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
+        <x-ui-modal wire:key="modal-send-packaging" title="Enviar a Empaque"
+            subtitle="Revisa el resultado por lote antes de pasar la lista a la siguiente etapa."
+            close="closeSendModal" maxWidth="3xl">
 
-                <div class="px-6 py-4 space-y-4">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Resumen de piezas aprobadas por calidad (viajero):</p>
+            <x-ui.section title="Resumen de calidad" hint="Lo que Empaque va a recibir.">
+                <x-ui.table>
+                    <x-slot:head>
+                        <tr>
+                            <x-ui.th>Lote</x-ui.th>
+                            <x-ui.th class="w-28" align="right">Recibidas</x-ui.th>
+                            <x-ui.th class="w-28" align="right">Aprobadas</x-ui.th>
+                            <x-ui.th class="w-28" align="right">Rechazadas</x-ui.th>
+                        </tr>
+                    </x-slot:head>
 
-                    <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
-                        <table class="w-full text-sm">
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Lote</th>
-                                    <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Recibidas</th>
-                                    <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Buenas</th>
-                                    <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Rechazadas</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                                @foreach ($workOrders as $wo)
-                                    @php $sendWoIsCrimp = $wo->purchaseOrder->part->is_crimp ?? false; @endphp
-                                    @foreach ($wo->lots as $lot)
-                                        @php
-                                            $lotOnlyQW = $lot->qualityWeighings->whereNull('kit_id');
-                                            $lotRecv = (int) $lot->weighings->whereNull('kit_id')->sum('good_pieces');
-                                            $lotGood = (int) $lotOnlyQW->sum('good_pieces');
-                                            $lotBad  = (int) $lotOnlyQW->sum('bad_pieces');
-                                        @endphp
-                                        <tr>
-                                            <td class="px-4 py-2.5 font-mono text-gray-800 dark:text-gray-200">{{ $lot->lot_number }}</td>
-                                            <td class="px-4 py-2.5 text-right text-gray-600 dark:text-gray-400">{{ number_format($lotRecv) }}</td>
-                                            <td class="px-4 py-2.5 text-right font-semibold text-green-700 dark:text-green-400">{{ number_format($lotGood) }}</td>
-                                            <td class="px-4 py-2.5 text-right {{ $lotBad > 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400' }}">
-                                                {{ number_format($lotBad) }}
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                    @foreach ($workOrders as $wo)
+                        @foreach ($wo->lots as $lot)
+                            @php
+                                $lotQW   = $lot->qualityWeighings->whereNull('kit_id');
+                                $lotRecv = (int) $lot->weighings->whereNull('kit_id')->sum('good_pieces');
+                                $lotGood = (int) $lotQW->sum('good_pieces');
+                                $lotBad  = (int) $lotQW->sum('bad_pieces');
+                            @endphp
+                            <tr wire:key="send-q-{{ $lot->id }}">
+                                <td class="px-4 py-2.5 font-semibold text-slate-900 dark:text-white">{{ $lot->lot_number }}</td>
+                                <td class="px-4 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-400">{{ number_format($lotRecv) }}</td>
+                                <td class="px-4 py-2.5 text-right font-bold tabular-nums text-green-700 dark:text-green-400">{{ number_format($lotGood) }}</td>
+                                <td class="px-4 py-2.5 text-right tabular-nums {{ $lotBad > 0 ? 'font-bold text-red-700 dark:text-red-400' : 'text-slate-400' }}">{{ number_format($lotBad) }}</td>
+                            </tr>
+                        @endforeach
+                    @endforeach
+                </x-ui.table>
+            </x-ui.section>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notas (opcional)</label>
-                        <textarea wire:model="sendNotes" rows="2" placeholder="Observaciones para Empaque..."
-                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"></textarea>
-                    </div>
-                </div>
+            <x-ui.section title="Notas para Empaque">
+                <x-ui.field label="Notas" optional hint="Cualquier detalle que Empaque deba saber.">
+                    <textarea wire:model="sendNotes" rows="3" class="w-full"
+                        placeholder="Observaciones para Empaque..."></textarea>
+                </x-ui.field>
+            </x-ui.section>
 
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeSendModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        Cancelar
-                    </button>
-                    <button wire:click="sendToPackaging"
-                        class="px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors">
-                        Confirmar Envío
-                    </button>
-                </div>
-            </div>
-        </div>
+            <x-slot:note>Al enviar, la lista cambia de departamento y Empaque puede empezar a empacar.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeSendModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="primary" wire:click="sendToPackaging"
+                    wire:loading.attr="disabled" wire:target="sendToPackaging">Enviar a Empaque</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
     @endif
-
 </div>

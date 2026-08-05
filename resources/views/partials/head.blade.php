@@ -277,12 +277,27 @@ span.flatpickr-weekday { color: rgb(99 102 241); font-weight: 600; font-size: 0.
         // Re-initing or setDate() while open closes/resets the month navigation.
         if (el._flatpickr.isOpen) return;
 
-        // altInput removed by Livewire DOM morph — destroy and reinitialize
+        // altInput removed by Livewire DOM morph — destroy and reinitialize.
         if (el._flatpickr.altInput && !document.contains(el._flatpickr.altInput)) {
+            // El morph deja el input vacío: el HTML del servidor no serializa
+            // value=. Por eso no basta con guardar el.value — casi siempre ya
+            // viene en blanco. Se recupera la última fecha que Flatpickr
+            // conocía. Si el usuario la borró desde el calendario,
+            // latestSelectedDateObj es null y no se resucita nada.
             var savedValue = el.value;
+
+            if (!savedValue && el._flatpickr.latestSelectedDateObj) {
+                try {
+                    savedValue = el._flatpickr.formatDate(
+                        el._flatpickr.latestSelectedDateObj,
+                        el._flatpickr.config.dateFormat
+                    );
+                } catch (_) { /* formato inesperado: se queda vacío */ }
+            }
+
             try { el._flatpickr.destroy(); } catch (_) {}
             el._flatpickr = null;
-            el.value = savedValue;
+            el.value = savedValue || '';
             initFlatpickr(el);
             return;
         }

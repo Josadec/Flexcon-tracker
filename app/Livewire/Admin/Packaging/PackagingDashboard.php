@@ -2,135 +2,74 @@
 
 namespace App\Livewire\Admin\Packaging;
 
-use Livewire\Component;
-use Livewire\Attributes\Layout;
 use App\Models\Lot;
 use App\Models\PackagingRecord;
-use App\Models\WorkOrder;
 use App\Models\SentList;
-use App\Traits\ComputesAreaStats;
+use App\Support\PendingActions;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 
 #[Layout('components.layouts.app')]
 class PackagingDashboard extends Component
 {
-    use ComputesAreaStats;
+    /**
+     * Tablero del área de Empaque.
+     *
+     * Empaque cierra el ciclo: empaca las piezas que Calidad aprobó, entrega el
+     * viajero y devuelve los sobrantes a Materiales. El dato que más importa
+     * aquí son los sobrantes, porque son piezas físicas que alguien tiene que
+     * mover y que se pierden si nadie las reclama.
+     *
+     * Los pendientes salen de App\Support\PendingActions, la misma fuente que
+     * usan el tablero de administración y el de piso.
+     */
     public function render()
     {
-        // Lots with packaging records
-        $lotsWithPackaging = Lot::whereHas('packagingRecords')->count();
+        $pending = PendingActions::make();
 
-        // Lots pending packaging (have quality weighings but no packaging yet)
-        $lotsPendingPackaging = Lot::whereHas('qualityWeighings')
-            ->whereDoesntHave('packagingRecords')
-            ->where('status', '!=', Lot::STATUS_COMPLETED)
-            ->count();
+        $mine    = $pending->forActor('Empaque');
+        $viajero = $mine->where('phase', 'viajero')->values();
+        $surplus = $mine->where('phase', 'surplus_deliver')->values();
 
-        // Lots with viajero received but no closure decision
-        $lotsPendingDecision = Lot::where('viajero_received', true)
-            ->whereNull('closure_decision')
-            ->count();
+        // Piezas sobrantes que Empaque todavía tiene en su poder.
+        $surplusToDeliver = (int) $surplus->sum(fn ($i) => $i['lot']->getPackagingTotalSurplus());
 
-        // Lots with closure decision but surplus not received
-        $lotsPendingSurplus = Lot::whereNotNull('closure_decision')
-            ->where(function ($q) {
-                $q->whereNull('surplus_received')->orWhere('surplus_received', false);
-            })
-            ->count();
+        // ── Producción de empaque ────────────────────────────────────────
+        $packedTotal   = (int) PackagingRecord::sum('packed_pieces');
+        $surplusTotal  = (int) PackagingRecord::sum('surplus_pieces');
+        $todayPacked   = (int) PackagingRecord::whereDate('packed_at', today())->sum('packed_pieces');
+        $todayRecords  = PackagingRecord::whereDate('packed_at', today())->count();
 
-        // Completed packaging lots
-        $lotsCompleted = Lot::where('packaging_status', 'approved')->count();
+        // ── Ciclos cerrados ──────────────────────────────────────────────
+        $lotsClosed = Lot::whereNotNull('closure_decision')->count();
 
-        // Total packaging records
-        $totalRecords = PackagingRecord::count();
-
-        // Total packed pieces
-        $totalPackedPieces = PackagingRecord::sum('packed_pieces');
-
-        // Total surplus pieces
-        $totalSurplusPieces = PackagingRecord::sum('surplus_pieces');
-
-        // Recent packaging records
+        // ── Últimos registros de empaque ─────────────────────────────────
         $recentRecords = PackagingRecord::with(['lot.workOrder.purchaseOrder.part', 'packedBy'])
             ->orderByDesc('packed_at')
-            ->limit(10)
+            ->limit(8)
             ->get();
 
-        // Lots in packaging flow (have records, not completed)
-        $lotsInProgress = Lot::with(['workOrder.purchaseOrder.part', 'packagingRecords'])
-            ->whereHas('packagingRecords')
-            ->where('packaging_status', '!=', 'approved')
-            ->orderByDesc('updated_at')
-            ->limit(15)
-            ->get();
-
-        $pendingSentLists = SentList::with(['workOrders.purchaseOrder.part', 'workOrders.lots.packagingRecords'])
+        // ── Listas de envío paradas en Empaque ───────────────────────────
+        $sentListsHere = SentList::with(['workOrders.purchaseOrder.part'])
             ->where('current_department', SentList::DEPT_SHIPPING)
             ->where('status', SentList::STATUS_PENDING)
-            ->orderBy('created_at', 'desc')
+            ->latest()
+            ->take(8)
             ->get();
-
-        // ── CRIMP: viajeros que requieren acción de Empaque ──────────────
-        $crimpViajeros = Lot::query()
-            ->whereHas('workOrder.purchaseOrder.part', fn ($q) => $q->where('is_crimp', true))
-            ->where('status', '!=', Lot::STATUS_COMPLETED)
-            ->with([
-                'workOrder.purchaseOrder.part',
-                'crimpLots',
-                'qualityWeighings', 'weighings', 'packagingRecords',
-                'packagingPieceWeighings', 'packagingCrimpWeighings',
-            ])
-            ->get();
-
-        $crimpPorEmpacar = 0;
-        $crimpEmpacados = 0;
-        $crimpEntregarViajero = 0;
-        $crimpEntregarSobrantes = 0;
-        $empaquePendientes = collect();
-
-        foreach ($crimpViajeros as $vj) {
-            $packed   = $vj->packagingPieceWeighings->isNotEmpty() || $vj->packagingCrimpWeighings->isNotEmpty();
-            $released = ($vj->material_status ?? 'pending') === 'released';
-            $available = $vj->getPackagingAvailablePieces() > 0;
-
-            if (! $packed) {
-                if ($released && $available) {
-                    $crimpPorEmpacar++;
-                    $empaquePendientes->push(['lot' => $vj, 'action' => 'Empacar / Confirmar (Paso 5)', 'kind' => 'pack']);
-                }
-                continue;
-            }
-
-            $crimpEmpacados++;
-            $next = $vj->getNextPendingAction();
-            if ($next && ($next['actor'] ?? null) === 'Empaque') {
-                if ($next['phase'] === 'viajero') {
-                    $crimpEntregarViajero++;
-                    $empaquePendientes->push(['lot' => $vj, 'action' => 'Entregar viajero (Paso 7)', 'kind' => 'viajero']);
-                } elseif ($next['phase'] === 'material') {
-                    $crimpEntregarSobrantes++;
-                    $empaquePendientes->push(['lot' => $vj, 'action' => $next['label'], 'kind' => 'material']);
-                }
-            }
-        }
 
         return view('livewire.admin.packaging.packaging-dashboard', [
-            'crimpPorEmpacar'        => $crimpPorEmpacar,
-            'crimpEmpacados'         => $crimpEmpacados,
-            'crimpEntregarViajero'   => $crimpEntregarViajero,
-            'crimpEntregarSobrantes' => $crimpEntregarSobrantes,
-            'empaquePendientes'      => $empaquePendientes,
-            'areaStats' => $this->computeAreaStats(),
-            'pendingSentLists'  => $pendingSentLists,
-            'lotsWithPackaging' => $lotsWithPackaging,
-            'lotsPendingPackaging' => $lotsPendingPackaging,
-            'lotsPendingDecision' => $lotsPendingDecision,
-            'lotsPendingSurplus' => $lotsPendingSurplus,
-            'lotsCompleted' => $lotsCompleted,
-            'totalRecords' => $totalRecords,
-            'totalPackedPieces' => $totalPackedPieces,
-            'totalSurplusPieces' => $totalSurplusPieces,
-            'recentRecords' => $recentRecords,
-            'lotsInProgress' => $lotsInProgress,
+            'mine'             => $mine,
+            'viajeroQueue'     => $viajero,
+            'surplusQueue'     => $surplus,
+            'totalPending'     => $mine->count(),
+            'surplusToDeliver' => $surplusToDeliver,
+            'packedTotal'      => $packedTotal,
+            'surplusTotal'     => $surplusTotal,
+            'todayPacked'      => $todayPacked,
+            'todayRecords'     => $todayRecords,
+            'lotsClosed'       => $lotsClosed,
+            'recentRecords'    => $recentRecords,
+            'sentListsHere'    => $sentListsHere,
         ]);
     }
 }

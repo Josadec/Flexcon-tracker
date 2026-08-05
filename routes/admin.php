@@ -39,13 +39,14 @@ Route::middleware(['auth', 'verified', 'role:admin|Materiales|Produccion|Calidad
 // SHARED: Sent Lists (admin + all department roles)
 // ===================================================================
 Route::middleware(['auth', 'verified', 'role:admin|Materiales|Produccion|Calidad|Empaques'])->group(function () {
-    Route::get('/sent-lists', [\App\Http\Controllers\SentListController::class, 'index'])->name('sent-lists.index');
+    // Listado y detalle son Livewire: filtran, ordenan y cambian estado sin recargar.
+    Route::get('/sent-lists', \App\Livewire\Admin\SentLists\SentListIndex::class)->name('sent-lists.index');
     Route::get('/sent-lists/display', \App\Livewire\Admin\SentLists\ShippingListDisplay::class)->name('sent-lists.display');
     Route::get('/sent-lists/display/wo/{workOrder}', \App\Livewire\Admin\SentLists\ShippingListDisplay::class)->name('sent-lists.display.wo');
     Route::get('/sent-lists/display/wo/{workOrder}/resume', \App\Livewire\Admin\SentLists\WoResume::class)->name('sent-lists.display.wo.resume');
     Route::get('/sent-lists/display/sl/{sentList}', \App\Livewire\Admin\SentLists\ShippingListDisplay::class)->name('sent-lists.display.sl');
     Route::get('/sent-lists/tv', \App\Livewire\Admin\SentLists\TvDisplay::class)->name('sent-lists.tv');
-    Route::get('/sent-lists/{sentList}', [\App\Http\Controllers\SentListController::class, 'show'])->name('sent-lists.show');
+    Route::get('/sent-lists/{sentList}', \App\Livewire\Admin\SentLists\SentListShow::class)->name('sent-lists.show');
     Route::get('/sent-lists/{sentList}/export/pdf', [\App\Http\Controllers\SentListController::class, 'exportPdf'])->name('sent-lists.export-pdf');
     Route::get('/sent-lists/{sentList}/edit', [\App\Http\Controllers\SentListController::class, 'edit'])->name('sent-lists.edit');
     Route::put('/sent-lists/{sentList}', [\App\Http\Controllers\SentListController::class, 'update'])->name('sent-lists.update');

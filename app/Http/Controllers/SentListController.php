@@ -11,19 +11,15 @@ use Illuminate\Support\Facades\DB;
 class SentListController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * NOTA: el listado y el detalle ya no viven aquí.
+     *
+     * `admin.sent-lists.index` → App\Livewire\Admin\SentLists\SentListIndex
+     * `admin.sent-lists.show`  → App\Livewire\Admin\SentLists\SentListShow
+     *
+     * Se movieron a Livewire para poder buscar, filtrar, ordenar y cambiar el
+     * estado sin recargar la página. Aquí sólo quedan las acciones que no son
+     * pantallas: exportar el PDF, el formulario de estado y el borrado.
      */
-    public function index()
-    {
-        // Todas las áreas ven todas las listas preliminares, sin importar la
-        // etapa del flujo en la que estén (visibilidad de solo lectura para
-        // todos los roles autorizados por la ruta).
-        $sentLists = SentList::with(['purchaseOrder.part', 'purchaseOrders.part', 'workOrders', 'shifts'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
-
-        return view('sent-lists.index', compact('sentLists'));
-    }
 
     /**
      * Export the shipping list (Lista de Envío, FPL-02) of a single SentList as PDF.
@@ -96,32 +92,6 @@ class SentListController extends Controller
     }
 
     /**
-     * Display the specified resource.
-     * Routes to the appropriate department view based on current_department.
-     */
-    public function show(SentList $sentList)
-    {
-        $sentList->load([
-            'purchaseOrders.part',
-            'workOrders.purchaseOrder.part',
-            'workOrders.lots.weighings',
-            'workOrders.lots.qualityWeighings',
-            'workOrders.lots.packagingRecords',
-            'workOrders.kits',
-            'shifts',
-            'materialsApprover',
-            'inspectionApprover',
-            'productionApprover',
-            'qualityApprover',
-            'shippingApprover',
-            'unresolvedRejections.rejectedBy',
-            'unresolvedRejections.lot',
-        ]);
-
-        return view('sent-lists.show', compact('sentList'));
-    }
-
-    /**
      * Show the form for editing the specified resource.
      */
     public function edit(SentList $sentList)
@@ -153,8 +123,9 @@ class SentListController extends Controller
 
         $sentList->update($validated);
 
+        // 'message' es la clave que leen las vistas Livewire de listas.
         return redirect()->route('admin.sent-lists.show', $sentList)
-            ->with('success', 'Lista de envío actualizada exitosamente.');
+            ->with('message', 'Estado de la lista actualizado a «'.$sentList->fresh()->status_label.'».');
     }
 
     /**
@@ -176,9 +147,10 @@ class SentListController extends Controller
                 ->with('error', $message);
         }
 
+        $id = $sentList->id;
         $sentList->delete();
 
         return redirect()->route('admin.sent-lists.index')
-            ->with('success', 'Lista de envío eliminada exitosamente.');
+            ->with('message', "Lista #{$id} eliminada.");
     }
 }

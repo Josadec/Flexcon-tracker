@@ -1,269 +1,164 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <x-area-header accent="blue" title="Producción" subtitle="Pesadas, rendimiento y actividad de la línea">
-        <x-slot:icon>
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-        </x-slot:icon>
-    </x-area-header>
+{{--
+    TABLERO DE PRODUCCIÓN
 
-    {{-- ===== Producción CRIMP (viajeros) ===== --}}
-    <section class="space-y-4">
-        <div class="flex items-center gap-2">
-            <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
-            </span>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Producción CRIMP</h2>
-            <span class="text-xs text-gray-400 dark:text-gray-500">Pesada a nivel viajero</span>
-        </div>
+    Producción tiene un solo trabajo en el flujo: pesar las piezas de los lotes
+    que Calidad ya aprobó. Por eso el tablero abre con la cola de pesada y sigue
+    con la productividad del turno. Los pendientes salen de
+    App\Support\PendingActions, igual que en el tablero de piso.
+--}}
+<x-ui.page eyebrow="Área · Producción" title="Producción"
+    subtitle="Lotes por pesar y rendimiento de la línea.">
 
-        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-amber-200 dark:border-amber-800 p-5 shadow-sm">
-                <div class="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide">Por pesar</div>
-                <div class="mt-1 text-3xl font-bold text-amber-700 dark:text-amber-300">{{ number_format($prodPorPesar) }}</div>
-                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Material liberado · producción incompleta</div>
-            </div>
-            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-green-200 dark:border-green-800 p-5 shadow-sm">
-                <div class="text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wide">Pesados</div>
-                <div class="mt-1 text-3xl font-bold text-green-700 dark:text-green-300">{{ number_format($prodPesados) }}</div>
-                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Producción completa</div>
-            </div>
-            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-cyan-200 dark:border-cyan-800 p-5 shadow-sm">
-                <div class="text-xs font-medium text-cyan-600 dark:text-cyan-400 uppercase tracking-wide">Pendientes</div>
-                <div class="mt-1 text-3xl font-bold text-cyan-700 dark:text-cyan-300">{{ number_format($prodPendientes->count()) }}</div>
-                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Viajeros esperando pesada</div>
-            </div>
-        </div>
+    <x-slot:actions>
+        <x-ui.btn variant="secondary" href="{{ route('admin.sent-lists.index') }}">Listas de envío</x-ui.btn>
+        <x-ui.btn variant="primary" href="{{ route('admin.sent-lists.display') }}">Abrir tablero de piso</x-ui.btn>
+    </x-slot:actions>
 
-        @include('livewire.admin.partials.crimp-pending-list', [
-            'titulo' => 'Pendientes de Producción',
-            'pendientes' => $prodPendientes,
-            'badges' => ['weigh' => 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'],
-            'empty' => 'Sin viajeros CRIMP por pesar. 🎉',
-        ])
-    </section>
+    {{-- Carga del área --}}
+    <x-ui.stats cols="4">
+        <x-ui.stat label="Lotes por pesar" :value="$totalPending"
+            :tone="$totalPending > 0 ? 'warn' : 'good'"
+            help="Lotes con inspección aprobada a los que les faltan piezas por registrar." />
+        <x-ui.stat label="Piezas por pesar" :value="number_format($piecesPending)"
+            :tone="$piecesPending > 0 ? 'info' : 'good'"
+            help="Suma de lo que falta en todos los lotes pendientes." />
+        <x-ui.stat label="Piezas hoy" :value="number_format($todayPieces)" tone="good"
+            :help="$todayWeighings.' '.Str::plural('pesada', $todayWeighings).' registradas hoy'" />
+        <x-ui.stat label="Piezas esta semana" :value="number_format($weekPieces)" tone="info" />
+    </x-ui.stats>
 
-    <!-- Area Progress Donuts -->
-    @include('partials.area-progress-donuts', ['areaStats' => $areaStats])
+    {{-- Cola de trabajo --}}
+    <x-ui.section title="Cola de pesada"
+        hint="Lotes listos para producir. Si un lote no aparece aquí, es porque Calidad todavía no aprueba su inspección.">
+        <x-ui.pending-table :items="$mine"
+            emptyTitle="Producción está al día"
+            emptyHint="No hay lotes con inspección aprobada esperando pesada." />
+    </x-ui.section>
 
-    <!-- Pending Sent Lists -->
-    @include('livewire.admin.sent-lists.partials.pending-lists-panel', [
-        'pendingSentLists' => $pendingSentLists,
-        'deptLabel'        => 'Producción',
-        'deptColor'        => 'blue',
-    ])
-
-    <!-- Actividad de Hoy -->
-    <section>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-            </svg>
-            Actividad de Hoy
-        </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-5">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Pesadas Hoy</p>
-                        <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($todayWeighings) }}</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-5">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-blue-600 dark:text-blue-400 mb-1">Piezas Pesadas Hoy</p>
-                        <p class="text-2xl font-semibold text-blue-700 dark:text-blue-300">{{ number_format($todayPiecesWeighed) }}</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Acceso Rápido -->
-    <section>
-        <a href="{{ route('admin.production.weighings') }}" wire:navigate
-            class="group bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-lg transition-all block">
-            <div class="flex items-start gap-4">
-                <div class="w-14 h-14 rounded-lg bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-colors">
-                    <svg class="w-7 h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-                    </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Gestionar Pesadas</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Crear, editar y eliminar registros de pesadas de producción</p>
-                    <div class="flex items-center gap-4 mt-4">
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-blue-200 dark:border-blue-700"></span>
-                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ number_format($totalWeighings) }} pesadas totales</span>
-                        </div>
-                        @if ($rejectedPieces > 0)
-                            <div class="flex items-center gap-1.5">
-                                <span class="w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-red-200 dark:border-red-700"></span>
-                                <span class="text-sm font-medium text-red-600 dark:text-red-400">{{ number_format($rejectedPieces) }} pz descartadas</span>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-                <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
-            </div>
-        </a>
-    </section>
-
-    <!-- Resumen General -->
-    <section>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-            Resumen General
-        </h2>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
-                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Pesadas</div>
-                <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($totalWeighings) }}</div>
-            </div>
-            <div class="bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-4 text-center">
-                <div class="text-xs text-blue-600 dark:text-blue-400 mb-1">Piezas Pesadas</div>
-                <div class="text-2xl font-semibold text-blue-700 dark:text-blue-300">{{ number_format($totalPiecesWeighed) }}</div>
-            </div>
-            <div class="bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-700 rounded-lg p-4 text-center">
-                <div class="text-xs text-red-600 dark:text-red-400 mb-1">Rechazadas (Calidad)</div>
-                <div class="text-2xl font-semibold text-red-700 dark:text-red-300">{{ number_format($rejectedPieces) }}</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Estado de Lotes -->
-    <section>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-            </svg>
-            Estado de Lotes
-        </h2>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
-                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Con Pesadas</div>
-                <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($lotsWithWeighings) }}</div>
-            </div>
-            <div class="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-green-700 rounded-lg p-4 text-center">
-                <div class="text-xs text-green-600 dark:text-green-400 mb-1">Completados</div>
-                <div class="text-2xl font-semibold text-green-700 dark:text-green-300">{{ number_format($lotsFullyWeighed) }}</div>
-            </div>
-            <div class="bg-white dark:bg-gray-800 border-2 border-yellow-200 dark:border-yellow-700 rounded-lg p-4 text-center">
-                <div class="text-xs text-yellow-600 dark:text-yellow-400 mb-1">Pendientes</div>
-                <div class="text-2xl font-semibold text-yellow-700 dark:text-yellow-300">{{ number_format($lotsPendingWeighing) }}</div>
-            </div>
-            <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
-                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Sin Pesar</div>
-                <div class="text-2xl font-semibold text-gray-700 dark:text-gray-300">{{ number_format($lotsWithoutWeighings) }}</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Top Operadores (30 días) -->
-    @if ($topOperators->count() > 0)
-        <section>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                </svg>
-                Top Operadores (30 días)
-            </h2>
-            <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">#</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Operador</th>
-                            <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Pesadas</th>
-                            <th class="px-6 py-3 text-right text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase">Pz Pesadas</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                        @foreach ($topOperators as $index => $op)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                <td class="px-6 py-4 text-gray-500 dark:text-gray-400 font-medium">{{ $index + 1 }}</td>
-                                <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ $op->weighedBy->name ?? 'N/A' }}</td>
-                                <td class="px-6 py-4 text-right text-gray-700 dark:text-gray-300">{{ number_format($op->total_weighings) }}</td>
-                                <td class="px-6 py-4 text-right font-medium text-blue-600 dark:text-blue-400">{{ number_format($op->total_good) }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    @endif
-
-    <!-- Actividad Reciente -->
-    <section>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            Actividad Reciente
-        </h2>
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            @if ($recentWeighings->count() > 0)
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Fecha</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">WO</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Lote</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Parte</th>
-                                <th class="px-6 py-3 text-right text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase">Pz Pesadas</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Operador</th>
-                                <th class="px-6 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                            @foreach ($recentWeighings as $w)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                    <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ $w->weighed_at->format('d/m/Y H:i') }}</td>
-                                    <td class="px-6 py-4 text-blue-600 dark:text-blue-400 font-medium">{{ $w->lot->workOrder->purchaseOrder->wo ?? 'N/A' }}</td>
-                                    <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ $w->lot->lot_number ?? 'N/A' }}</td>
-                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">{{ $w->lot->workOrder->purchaseOrder->part->number ?? 'N/A' }}</td>
-                                    <td class="px-6 py-4 text-right font-medium text-blue-600 dark:text-blue-400">{{ number_format($w->good_pieces) }}</td>
-                                    <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ $w->weighedBy->name ?? 'N/A' }}</td>
-                                    <td class="px-6 py-4 text-center">
-                                        <a href="{{ route('admin.production.weighings', ['search' => $w->lot->lot_number ?? '']) }}" wire:navigate
-                                            class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
-                                            Ver
-                                        </a>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+    <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        {{-- Tendencia de la semana --}}
+        <x-ui.section title="Piezas por día" hint="Últimos 7 días, sólo piezas buenas.">
+            @if ($dailySeries->sum('pieces') === 0)
+                <x-ui.empty icon="doc" title="Sin pesadas esta semana"
+                    hint="En cuanto se registre la primera pesada aparecerá aquí la tendencia." />
             @else
-                <div class="px-6 py-12 text-center">
-                    <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-                    </svg>
-                    <p class="mt-4 text-base font-medium text-gray-900 dark:text-white">Sin pesadas registradas</p>
-                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Las pesadas aparecerán aquí cuando se registren.</p>
+                <div class="flex items-end justify-between gap-2" style="height: 10rem;">
+                    @foreach ($dailySeries as $day)
+                        @php $h = $maxDaily > 0 ? max(4, round(($day['pieces'] / $maxDaily) * 100)) : 4; @endphp
+                        <div class="flex h-full flex-1 flex-col items-center justify-end gap-2">
+                            <span class="text-xs font-bold tabular-nums text-slate-700 dark:text-slate-200">
+                                {{ $day['pieces'] > 0 ? number_format($day['pieces']) : '' }}
+                            </span>
+                            <div class="w-full rounded-t {{ $day['pieces'] > 0 ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700' }}"
+                                style="height: {{ $h }}%"
+                                title="{{ $day['date'] }}: {{ number_format($day['pieces']) }} piezas"></div>
+                            <span class="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">{{ $day['label'] }}</span>
+                        </div>
+                    @endforeach
                 </div>
+                <p class="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">
+                    Total acumulado histórico: <strong class="text-slate-700 dark:text-slate-200">{{ number_format($totalPieces) }}</strong> piezas
+                </p>
             @endif
-        </div>
-    </section>
-</div>
+        </x-ui.section>
+
+        {{-- Operadores --}}
+        <x-ui.section title="Quién está pesando" hint="Últimos 30 días, ordenado por piezas buenas.">
+            @if ($topOperators->isEmpty())
+                <x-ui.empty icon="doc" title="Sin actividad en 30 días"
+                    hint="No hay pesadas registradas en el último mes." />
+            @else
+                <ul class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+                    @foreach ($topOperators as $i => $op)
+                        <li class="flex items-center gap-3 px-4 py-2.5">
+                            <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white dark:bg-slate-200 dark:text-slate-900">
+                                {{ $i + 1 }}
+                            </span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate text-sm font-semibold text-slate-900 dark:text-white">
+                                    {{ $op->weighedBy->name ?? 'Sin usuario' }}
+                                </span>
+                                <span class="block text-xs text-slate-500 dark:text-slate-400">
+                                    {{ number_format($op->total_weighings) }} {{ Str::plural('pesada', $op->total_weighings) }}
+                                </span>
+                            </span>
+                            <span class="shrink-0 text-right">
+                                <span class="block text-sm font-bold tabular-nums text-indigo-700 dark:text-indigo-300">
+                                    {{ number_format($op->total_good) }}
+                                </span>
+                                <span class="block text-[11px] text-slate-400">piezas</span>
+                            </span>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </x-ui.section>
+    </div>
+
+    {{-- Últimas pesadas --}}
+    <x-ui.table title="Últimas pesadas registradas" hint="Los 8 registros más recientes.">
+        <x-slot:head>
+            <tr>
+                <x-ui.th class="w-36">Lote</x-ui.th>
+                <x-ui.th class="w-32">Parte</x-ui.th>
+                <x-ui.th class="w-28" align="right">Buenas</x-ui.th>
+                <x-ui.th class="w-28" align="right">Malas</x-ui.th>
+                <x-ui.th>Registró</x-ui.th>
+                <x-ui.th class="w-40">Fecha</x-ui.th>
+            </tr>
+        </x-slot:head>
+
+        @forelse ($recentWeighings as $w)
+            <tr wire:key="w-{{ $w->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="whitespace-nowrap px-4 py-3 font-semibold text-slate-900 dark:text-white">
+                    {{ $w->lot->lot_number ?? '—' }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
+                    {{ $w->lot->workOrder->purchaseOrder->part->number ?? '—' }}
+                </td>
+                <td class="px-4 py-3 text-right font-bold tabular-nums text-green-700 dark:text-green-400">
+                    {{ number_format($w->good_pieces) }}
+                </td>
+                <td class="px-4 py-3 text-right tabular-nums {{ $w->bad_pieces > 0 ? 'font-semibold text-red-700 dark:text-red-400' : 'text-slate-400' }}">
+                    {{ number_format($w->bad_pieces) }}
+                </td>
+                <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ $w->weighedBy->name ?? '—' }}</td>
+                <td class="whitespace-nowrap px-4 py-3 text-slate-500 dark:text-slate-400">
+                    {{ $w->weighed_at?->format('d/m/Y H:i') ?? '—' }}
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="6">
+                    <x-ui.empty title="Sin pesadas registradas"
+                        hint="Las pesadas se registran desde el tablero de piso, en la columna Prod." />
+                </td>
+            </tr>
+        @endforelse
+    </x-ui.table>
+
+    {{-- Listas paradas aquí --}}
+    <x-ui.section title="Listas de envío en Producción"
+        hint="Listas pendientes cuyo departamento actual es Producción.">
+        @if ($sentListsHere->isEmpty())
+            <x-ui.empty icon="doc" title="Ninguna lista parada aquí"
+                hint="Todas las listas pendientes están en otro departamento." />
+        @else
+            <ul class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+                @foreach ($sentListsHere as $sl)
+                    <li class="flex items-center justify-between gap-3 px-4 py-2.5">
+                        <span class="min-w-0">
+                            <span class="block text-sm font-semibold text-slate-900 dark:text-white">Lista #{{ $sl->id }}</span>
+                            <span class="block truncate text-xs text-slate-500 dark:text-slate-400">
+                                {{ $sl->workOrders->count() }} {{ Str::plural('orden', $sl->workOrders->count()) }} ·
+                                {{ $sl->created_at->format('d/m/Y') }}
+                            </span>
+                        </span>
+                        <x-ui.btn variant="secondary" size="sm"
+                            href="{{ route('admin.sent-lists.show', $sl->id) }}">Ver</x-ui.btn>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </x-ui.section>
+</x-ui.page>

@@ -1,110 +1,95 @@
-<x-layouts.admin>
-    <x-slot name="header">
-        <div class="flex justify-between items-center gap-4 w-full">
-            <div>
-                <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Editar lista #{{ $sentList->id }}</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Cambiar estado de la lista</p>
-            </div>
-            <div class="flex items-center gap-2 flex-shrink-0 ml-auto">
-                <a href="{{ route('admin.sent-lists.display.sl', $sentList->id) }}"
-                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 014-4h4m0 0l-3-3m3 3l-3 3M5 5h6a2 2 0 012 2v2" />
-                    </svg>
-                    Lista de envío
-                </a>
-                <a href="{{ route('admin.sent-lists.show', $sentList) }}"
-                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Volver
-                </a>
-            </div>
-        </div>
-    </x-slot>
+{{--
+    EDITAR LISTA PRELIMINAR (cambio de estado)
 
-    <div class="space-y-6">
+    El mismo cambio se puede hacer en un modal desde el listado y desde el
+    detalle; esta pantalla se conserva porque la URL es enlazable y aquí cabe
+    explicar con calma qué implica cada estado.
+--}}
+<x-layouts.admin>
+    <x-ui.page :title="'Editar lista preliminar #'.$sentList->id"
+        subtitle="Cambia el estado de la lista. El resto de los datos se definen en el wizard de capacidad."
+        :back="route('admin.sent-lists.show', $sentList)" backLabel="Volver al detalle">
+
+        <x-slot:actions>
+            <x-ui.btn variant="secondary" :href="route('admin.sent-lists.display.sl', $sentList->id)">
+                Tablero de piso
+            </x-ui.btn>
+        </x-slot:actions>
+
         @if (session('error'))
-            <div class="rounded-lg border-2 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3">
-                <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
-            </div>
+            <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
         @endif
 
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <div class="p-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Cambiar estado de la lista</h3>
+        {{-- Qué se está editando --}}
+        <x-ui.section title="Lista que estás editando">
+            <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+                <x-ui.kv label="Lista" :value="'#'.$sentList->id" />
+                <x-ui.kv label="Órdenes de compra"
+                    :value="$sentList->purchaseOrders->count() > 0
+                        ? ($sentList->purchaseOrders->count() === 1
+                            ? $sentList->purchaseOrders->first()->po_number
+                            : $sentList->purchaseOrders->count().' órdenes de compra')
+                        : '—'" />
+                <x-ui.kv label="Work Orders" :value="$sentList->workOrders->count()" />
+                <x-ui.kv label="Período"
+                    :value="$sentList->start_date && $sentList->end_date
+                        ? $sentList->start_date->format('d/m/Y').' – '.$sentList->end_date->format('d/m/Y')
+                        : 'Sin período'" />
+                <x-ui.kv label="Departamento actual" :value="$sentList->department_label" />
+                <x-ui.kv label="Estado actual" :value="$sentList->status_label"
+                    :tone="$sentList->status === 'confirmed' ? 'good' : ($sentList->status === 'canceled' ? 'bad' : 'warn')" />
+            </dl>
+        </x-ui.section>
 
-                {{-- Resumen --}}
-                <div class="mb-6 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                    <dl class="grid grid-cols-2 gap-4">
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">PO / Partes</dt>
-                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                                @if($sentList->purchaseOrders && $sentList->purchaseOrders->count() > 0)
-                                    @if($sentList->purchaseOrders->count() === 1)
-                                        {{ $sentList->purchaseOrders->first()->po_number }}
-                                    @else
-                                        {{ $sentList->purchaseOrders->count() }} POs
-                                    @endif
-                                @else
-                                    N/A
-                                @endif
-                            </dd>
-                        </div>
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Estado actual</dt>
-                            <dd class="mt-1">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    {{ $sentList->status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : '' }}
-                                    {{ $sentList->status === 'pending' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : '' }}
-                                    {{ $sentList->status === 'canceled' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : '' }}">
-                                    {{ $sentList->status_label }}
-                                </span>
-                            </dd>
-                        </div>
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Período</dt>
-                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                                {{ $sentList->start_date->format('d/m/Y') }} – {{ $sentList->end_date->format('d/m/Y') }}
-                            </dd>
-                        </div>
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Work Orders</dt>
-                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $sentList->workOrders->count() }}</dd>
-                        </div>
-                    </dl>
+        <form action="{{ route('admin.sent-lists.update', $sentList) }}" method="POST" class="space-y-5">
+            @csrf
+            @method('PUT')
+
+            <x-ui.section title="Nuevo estado" hint="Elige a dónde pasa la lista y qué implica el cambio.">
+                @php
+                    $options = [
+                        'pending'   => ['Pendiente',  'Sigue en planeación. Es el único estado que permite editar o eliminar la lista.',       'warn'],
+                        'confirmed' => ['Confirmada', 'La lista queda cerrada: ya no se puede editar ni eliminar.',                            'good'],
+                        'canceled'  => ['Cancelada',  'La lista se descarta. Tampoco se podrá editar ni eliminar después.',                    'bad'],
+                    ];
+                    $current = old('status', $sentList->status);
+                @endphp
+
+                {{-- Radios reales: esta pantalla no usa Livewire, así que el
+                     estado seleccionado tiene que viajar en el formulario. --}}
+                <div class="grid grid-cols-1 gap-3">
+                    @foreach ($options as $value => [$label, $desc, $tone])
+                        @php
+                            $toneRing = [
+                                'warn' => 'has-checked:border-amber-500 has-checked:bg-amber-50 dark:has-checked:bg-amber-950/30',
+                                'good' => 'has-checked:border-green-500 has-checked:bg-green-50 dark:has-checked:bg-green-950/30',
+                                'bad'  => 'has-checked:border-red-500 has-checked:bg-red-50 dark:has-checked:bg-red-950/30',
+                            ][$tone];
+                        @endphp
+                        <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700/50 {{ $toneRing }}">
+                            <input type="radio" name="status" value="{{ $value }}" class="mt-0.5 shrink-0"
+                                @checked($current === $value)>
+                            <span class="min-w-0">
+                                <span class="block text-sm font-bold text-slate-900 dark:text-white">{{ $label }}</span>
+                                <span class="mt-0.5 block text-xs leading-4 text-slate-500 dark:text-slate-400">{{ $desc }}</span>
+                            </span>
+                        </label>
+                    @endforeach
                 </div>
 
-                <form action="{{ route('admin.sent-lists.update', $sentList) }}" method="POST">
-                    @csrf
-                    @method('PUT')
+                @error('status')
+                    <x-ui.note tone="danger" class="mt-3">{{ $message }}</x-ui.note>
+                @enderror
 
-                    <div class="mb-6">
-                        <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nuevo estado</label>
-                        <select name="status" id="status"
-                            class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                            <option value="pending" {{ $sentList->status === 'pending' ? 'selected' : '' }}>Pendiente</option>
-                            <option value="confirmed" {{ $sentList->status === 'confirmed' ? 'selected' : '' }}>Confirmada</option>
-                            <option value="canceled" {{ $sentList->status === 'canceled' ? 'selected' : '' }}>Cancelada</option>
-                        </select>
-                        @error('status')
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
+                <x-ui.note tone="warn" class="mt-4" title="Al salir de «Pendiente» el cambio es de una sola vía">
+                    Una lista confirmada o cancelada ya no se puede editar ni eliminar desde el sistema.
+                </x-ui.note>
+            </x-ui.section>
 
-                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <a href="{{ route('admin.sent-lists.show', $sentList) }}"
-                            class="inline-flex items-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors">
-                            Cancelar
-                        </a>
-                        <button type="submit"
-                            class="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
-                            Guardar cambios
-                        </button>
-                    </div>
-                </form>
+            <div class="flex flex-col-reverse gap-2 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-700">
+                <x-ui.btn variant="secondary" :href="route('admin.sent-lists.show', $sentList)">Cancelar</x-ui.btn>
+                <x-ui.btn variant="primary" type="submit">Guardar estado</x-ui.btn>
             </div>
-        </div>
-    </div>
+        </form>
+    </x-ui.page>
 </x-layouts.admin>

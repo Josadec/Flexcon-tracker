@@ -1,537 +1,505 @@
-<div class="space-y-6">
+{{--
+    VISTA DE MATERIALES DENTRO DE UNA LISTA PRELIMINAR
 
-    {{-- Aviso de solo lectura: el backend rechaza toda edición fuera de etapa/rol --}}
+    Se monta como pestaña del detalle de la lista, así que NO lleva
+    <x-ui.page>: la cabecera la pone la pantalla contenedora.
+
+    Materiales divide cada WO en lotes/viajeros, captura los lotes de CRIMP y
+    libera el material para que Inspección pueda empezar.
+--}}
+<div class="space-y-5">
+
     @unless ($this->canEditDepartment())
-        <div class="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-amber-800 dark:text-amber-300">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span class="text-sm font-medium">Modo solo lectura: esta lista no está en la etapa de tu departamento o ya fue cerrada. No puedes modificar sus datos.</span>
-        </div>
+        <x-ui.note tone="warn" title="Modo sólo lectura">
+            Esta lista no está en la etapa de tu departamento o ya fue cerrada. Puedes consultarla, pero no modificarla.
+        </x-ui.note>
     @endunless
 
-    {{-- Flash Messages --}}
     @if (session()->has('message'))
-        <div class="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg text-green-800 dark:text-green-300">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            <span class="text-sm font-medium">{{ session('message') }}</span>
-        </div>
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
     @endif
-
     @if (session()->has('error'))
-        <div class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-800 dark:text-red-300">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span class="text-sm font-medium">{{ session('error') }}</span>
-        </div>
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
     @endif
 
-    {{-- Unresolved Rejections Panel --}}
+    {{-- Rechazos que devolvieron la lista a Materiales --}}
     @if ($sentList->unresolvedRejections->isNotEmpty())
-        <div class="p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-lg">
-            <div class="flex items-center gap-2 mb-3">
-                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                </svg>
-                <h4 class="font-semibold text-red-700 dark:text-red-300">Rechazos Pendientes de Corrección ({{ $sentList->unresolvedRejections->count() }})</h4>
-            </div>
-            <div class="space-y-2">
+        <x-ui.section title="Rechazos por resolver"
+            hint="Otro departamento devolvió estos lotes. La lista no avanza hasta corregirlos.">
+            <ul class="divide-y divide-slate-200 rounded-lg border border-red-300 dark:divide-slate-700 dark:border-red-800">
                 @foreach ($sentList->unresolvedRejections as $rejection)
-                    <div class="p-3 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-600 rounded-lg text-sm">
-                        <div class="flex flex-wrap gap-4">
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400">Rechazado por:</span>
-                                <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ $rejection->rejectedBy->name ?? 'N/A' }}</span>
+                    <li class="bg-red-50 px-4 py-3 dark:bg-red-950/30">
+                        <div class="flex flex-wrap items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <p class="text-sm font-bold text-red-900 dark:text-red-100">
+                                    @if ($rejection->lot)
+                                        Lote {{ $rejection->lot->lot_number }}
+                                    @else
+                                        Lista completa
+                                    @endif
+                                    <span class="font-normal">· rechazó {{ $rejection->rejectedBy->name ?? 'sin usuario' }}</span>
+                                </p>
+                                <p class="mt-0.5 text-xs leading-4 text-red-800 dark:text-red-200">
+                                    {{ $rejection->reason ?? $rejection->comments ?? 'Sin motivo capturado' }}
+                                </p>
                             </div>
-                            @if ($rejection->lot)
-                                <div>
-                                    <span class="text-gray-500 dark:text-gray-400">Lote:</span>
-                                    <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ $rejection->lot->lot_number }}</span>
-                                </div>
-                            @endif
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400">Fecha:</span>
-                                <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ $rejection->created_at?->format('d/m/Y H:i') }}</span>
-                            </div>
+                            <span class="shrink-0 text-xs text-red-700 dark:text-red-300">
+                                {{ $rejection->created_at?->format('d/m/Y H:i') }}
+                            </span>
                         </div>
-                        <div class="mt-2">
-                            <span class="text-gray-500 dark:text-gray-400">Motivo:</span>
-                            <span class="text-red-700 dark:text-red-300 ml-1">{{ $rejection->reason }}</span>
-                        </div>
-                    </div>
+                    </li>
                 @endforeach
-            </div>
-        </div>
+            </ul>
+        </x-ui.section>
     @endif
 
-    {{-- Work Orders Table --}}
-    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-base font-semibold text-gray-900 dark:text-white">Work Orders en la Lista</h3>
-        </div>
+    @php
+        $rejectedLotIds = $sentList->unresolvedRejections->pluck('lot_id')->filter()->all();
+        $allLots        = $workOrders->flatMap->lots;
+        $releasedCount  = $allLots->where('material_status', 'released')->count();
+        $woWithoutLots  = $workOrders->filter(fn ($w) => $w->lots->isEmpty())->count();
+    @endphp
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-900/50">
-                    <tr>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">WO #</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Parte</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cant. WO</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lotes / Viajeros</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lotes de CRIMP</th>
-                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse ($workOrders as $wo)
-                        @php
-                            $isCrimp        = $wo->purchaseOrder->part->is_crimp ?? false;
-                            $hasLots        = $wo->lots->isNotEmpty();
-                            $hasCrimpLots   = $wo->lots->contains(fn($l) => $l->crimpLots->isNotEmpty());
-                            $isReady        = $hasLots && (!$isCrimp || $hasCrimpLots);
-                            $semaphore      = $isReady ? 'green' : ($hasLots && $isCrimp && !$hasCrimpLots ? 'yellow' : 'red');
-                            $rejectedLotIds = $sentList->unresolvedRejections->pluck('lot_id')->filter()->toArray();
-                        @endphp
-                        <tr wire:key="wo-{{ $wo->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {{ $wo->lots->pluck('id')->intersect($rejectedLotIds)->isNotEmpty() ? 'bg-red-50 dark:bg-red-900/10 border-l-4 border-red-400' : '' }}">
-                            <td class="px-4 py-3 font-mono font-medium">
-                                <a href="{{ route('admin.sent-lists.display.wo', $wo->id) }}"
-                                    wire:navigate
-                                    class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
-                                    title="Ver este WO en la Lista de envío">
-                                    {{ $wo->purchaseOrder->wo ?? $wo->wo_number }}
-                                </a>
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="font-medium text-gray-900 dark:text-white">{{ $wo->purchaseOrder->part->number ?? '-' }}</div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{{ $wo->purchaseOrder->part->description ?? '' }}</div>
-                                @if ($isCrimp)
-                                    <span class="inline-block mt-1 px-1.5 py-0.5 text-xs bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded font-medium">CRIMP</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
-                                {{ number_format($wo->original_quantity) }}
-                            </td>
-                            <td class="px-4 py-3">
-                                @if ($hasLots)
-                                    <div class="space-y-1">
-                                        @foreach ($wo->lots as $lot)
-                                            @php
-                                                $isRejectedLot = in_array($lot->id, $rejectedLotIds);
-                                                $matSt    = $lot->material_status ?? 'pending';
-                                                $matColor = match($matSt) { 'released' => 'bg-green-500', 'rejected' => 'bg-red-500', default => 'bg-gray-400' };
-                                                $matTitle = match($matSt) { 'released' => 'Aprobado', 'rejected' => 'Rechazado', default => 'Pendiente' };
-                                            @endphp
-                                            <div class="flex items-center gap-2 text-xs">
-                                                <button wire:click="openMaterialModal({{ $lot->id }})"
-                                                    class="w-3 h-3 rounded-full {{ $matColor }} hover:opacity-75 flex-shrink-0 cursor-pointer"
-                                                    title="Material: {{ $matTitle }}"></button>
-                                                <span class="px-2 py-0.5 rounded font-mono
-                                                    {{ $isRejectedLot
-                                                        ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-600 font-bold'
-                                                        : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' }}">
-                                                    @if($isRejectedLot) &#9888; @endif{{ $lot->lot_number }}
-                                                </span>
-                                                <span class="{{ $isRejectedLot ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400' }}">
-                                                    {{ number_format($lot->quantity) }} pzas
-                                                </span>
-                                                @if($isRejectedLot)
-                                                    @php $lotRejection = $sentList->unresolvedRejections->firstWhere('lot_id', $lot->id); @endphp
-                                                    @if($lotRejection)
-                                                        <span class="text-red-600 dark:text-red-400 italic truncate max-w-xs" title="{{ $lotRejection->reason }}">
-                                                            &mdash; {{ Str::limit($lotRejection->reason, 40) }}
-                                                        </span>
-                                                    @endif
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                            Total: {{ number_format($wo->lots->sum('quantity')) }} / {{ number_format($wo->original_quantity) }}
-                                        </div>
+    {{-- Avance del área --}}
+    <x-ui.section title="Avance de Materiales"
+        hint="Cada WO necesita sus lotes; cada lote, su material liberado.">
+        <x-ui.stats cols="4">
+            <x-ui.stat label="Work Orders" :value="$workOrders->count()" />
+            <x-ui.stat label="Lotes creados" :value="$allLots->count()" tone="info" />
+            <x-ui.stat label="Material liberado" :value="$releasedCount" tone="good"
+                :help="'de '.$allLots->count().' lotes'" />
+            <x-ui.stat label="WO sin lotes" :value="$woWithoutLots"
+                :tone="$woWithoutLots > 0 ? 'bad' : 'good'"
+                help="Una WO sin lotes no puede avanzar en el flujo." />
+        </x-ui.stats>
+    </x-ui.section>
+
+    {{-- Work Orders --}}
+    <x-ui.table title="Work Orders de la lista"
+        hint="Divide cada orden en lotes o viajeros y libera su material.">
+        <x-slot:head>
+            <tr>
+                <x-ui.th class="w-32">WO</x-ui.th>
+                <x-ui.th class="w-44">Parte</x-ui.th>
+                <x-ui.th class="w-28" align="right">Cant. WO</x-ui.th>
+                <x-ui.th>Lotes / viajeros</x-ui.th>
+                <x-ui.th>Lotes de CRIMP</x-ui.th>
+                <x-ui.th class="w-36">Estado</x-ui.th>
+                <x-ui.th class="w-40" align="right">Acciones</x-ui.th>
+            </tr>
+        </x-slot:head>
+
+        @forelse ($workOrders as $wo)
+            @php
+                $isCrimp      = $wo->purchaseOrder->part->is_crimp ?? false;
+                $hasLots      = $wo->lots->isNotEmpty();
+                $hasCrimpLots = $wo->lots->contains(fn ($l) => $l->crimpLots->isNotEmpty());
+                $semaphore    = ! $hasLots ? 'red' : (($isCrimp && ! $hasCrimpLots) ? 'yellow' : 'green');
+                $woRejected   = $wo->lots->pluck('id')->intersect($rejectedLotIds)->isNotEmpty();
+            @endphp
+            <tr wire:key="wo-{{ $wo->id }}"
+                class="hover:bg-slate-50 dark:hover:bg-slate-700/30 {{ $woRejected ? 'bg-red-50 dark:bg-red-950/20' : '' }}">
+
+                <td class="whitespace-nowrap px-4 py-3">
+                    <a href="{{ route('admin.sent-lists.display.wo', $wo->id) }}" wire:navigate
+                        class="font-bold text-sky-700 underline-offset-2 hover:underline dark:text-sky-300">
+                        {{ $wo->purchaseOrder->wo ?? $wo->wo_number }}
+                    </a>
+                </td>
+
+                <td class="px-4 py-3">
+                    <span class="block font-medium text-slate-900 dark:text-white">{{ $wo->purchaseOrder->part->number ?? '—' }}</span>
+                    <span class="block max-w-xs truncate text-xs text-slate-500 dark:text-slate-400">{{ $wo->purchaseOrder->part->description ?? '' }}</span>
+                    @if ($isCrimp)
+                        <x-ui.badge tone="accent" class="mt-1">CRIMP</x-ui.badge>
+                    @endif
+                </td>
+
+                <td class="px-4 py-3 text-right font-bold tabular-nums text-slate-900 dark:text-white">
+                    {{ number_format($wo->original_quantity) }}
+                </td>
+
+                {{-- Cada lote abre su modal de material --}}
+                <td class="px-4 py-3">
+                    @if (! $hasLots)
+                        <span class="text-xs text-slate-400">Sin lotes creados</span>
+                    @else
+                        <div class="space-y-1.5">
+                            @foreach ($wo->lots as $lot)
+                                @php
+                                    $isRejectedLot = in_array($lot->id, $rejectedLotIds);
+                                    $matSt = $lot->material_status ?? 'pending';
+                                    $matState = match ($matSt) {
+                                        'released' => 'done',
+                                        'rejected' => 'error',
+                                        default    => 'pending',
+                                    };
+                                    $matLabel = match ($matSt) {
+                                        'released' => 'Liberado',
+                                        'rejected' => 'Rechazado',
+                                        default    => 'Pendiente',
+                                    };
+                                @endphp
+                                <div wire:key="lot-{{ $lot->id }}" class="flex items-center gap-2">
+                                    <span class="w-28 shrink-0">
+                                        <x-ui.row-action :state="$matState"
+                                            :label="$lot->lot_number"
+                                            :hint="'Material: '.$matLabel.' · '.number_format($lot->quantity).' pz'"
+                                            wire:click="openMaterialModal({{ $lot->id }})" />
+                                    </span>
+                                    <span class="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                                        {{ number_format($lot->quantity) }} pz
+                                    </span>
+                                    @if ($isRejectedLot)
+                                        <x-ui.badge tone="bad">Rechazado</x-ui.badge>
+                                    @endif
+                                </div>
+                            @endforeach
+
+                            <p class="pt-1 text-xs text-slate-500 dark:text-slate-400">
+                                Suma <strong class="tabular-nums {{ $wo->lots->sum('quantity') != $wo->original_quantity ? 'text-amber-700 dark:text-amber-400' : 'text-slate-700 dark:text-slate-200' }}">{{ number_format($wo->lots->sum('quantity')) }}</strong>
+                                de {{ number_format($wo->original_quantity) }}
+                            </p>
+                        </div>
+                    @endif
+                </td>
+
+                {{-- Lotes de CRIMP --}}
+                <td class="px-4 py-3">
+                    @if (! $isCrimp)
+                        <span class="text-xs text-slate-400">No aplica</span>
+                    @elseif (! $hasLots)
+                        <span class="text-xs text-slate-400">Crea primero los viajeros</span>
+                    @else
+                        <div class="space-y-2">
+                            @foreach ($wo->lots as $lot)
+                                <div wire:key="cl-{{ $lot->id }}">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">Viajero {{ $lot->lot_number }}</span>
+                                        <x-ui.btn variant="accent" size="sm" wire:click="openCrimpLotModal({{ $lot->id }})">
+                                            Gestionar
+                                        </x-ui.btn>
                                     </div>
-                                @else
-                                    <span class="text-xs text-gray-400 dark:text-gray-500 italic">Sin lotes</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3">
-                                @if ($isCrimp)
-                                    @if ($hasLots)
-                                        <div class="space-y-2">
-                                            @foreach ($wo->lots as $lot)
-                                                <div class="text-xs">
-                                                    <div class="flex items-center justify-between gap-2 mb-1">
-                                                        <span class="font-mono text-gray-500 dark:text-gray-400">Viajero {{ $lot->lot_number }}</span>
-                                                        <button wire:click="openCrimpLotModal({{ $lot->id }})"
-                                                            class="px-2 py-0.5 text-xs font-medium bg-cyan-600 hover:bg-cyan-700 text-white rounded transition-colors">
-                                                            Gestionar
-                                                        </button>
-                                                    </div>
-                                                    @if ($lot->crimpLots->isNotEmpty())
-                                                        <div class="space-y-1 pl-2">
-                                                            @foreach ($lot->crimpLots as $cl)
-                                                                <div class="flex items-center flex-wrap gap-2">
-                                                                    <span class="px-2 py-0.5 bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded font-mono">{{ $cl->crimp_lot_number }}</span>
-                                                                    @if ($cl->lote_fabricante)
-                                                                        <span class="text-gray-500 dark:text-gray-400" title="Lote de fabricante">Fab: {{ $cl->lote_fabricante }}</span>
-                                                                    @endif
-                                                                    <span class="text-gray-500 dark:text-gray-400">{{ number_format($cl->quantity) }} pzas</span>
-                                                                </div>
-                                                            @endforeach
-                                                        </div>
-                                                    @else
-                                                        <span class="text-gray-400 dark:text-gray-500 italic pl-2">Sin lotes de CRIMP</span>
-                                                    @endif
-                                                </div>
+                                    @if ($lot->crimpLots->isEmpty())
+                                        <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">Sin lotes capturados</p>
+                                    @else
+                                        <div class="mt-1 flex flex-wrap gap-1">
+                                            @foreach ($lot->crimpLots as $cl)
+                                                <x-ui.badge tone="accent"
+                                                    title="{{ number_format($cl->quantity) }} pz{{ $cl->lote_fabricante ? ' · fabricante '.$cl->lote_fabricante : '' }}">
+                                                    {{ $cl->crimp_lot_number }}
+                                                </x-ui.badge>
                                             @endforeach
                                         </div>
-                                    @else
-                                        <span class="text-xs text-gray-400 dark:text-gray-500 italic">Crea viajeros primero</span>
                                     @endif
-                                @else
-                                    <span class="text-xs text-gray-400 dark:text-gray-500">N/A</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3 text-center">
-                                @if ($semaphore === 'green')
-                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
-                                        <span class="w-2 h-2 rounded-full bg-green-500"></span> Listo
-                                    </span>
-                                @elseif ($semaphore === 'yellow')
-                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300">
-                                        <span class="w-2 h-2 rounded-full bg-yellow-500"></span> Sin lotes CRIMP
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
-                                        <span class="w-2 h-2 rounded-full bg-red-500"></span> Sin lotes
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center justify-center gap-2 flex-wrap">
-                                    <button wire:click="openLotModal({{ $wo->id }})"
-                                        class="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                                        Gestionar Lotes
-                                    </button>
                                 </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500">
-                                No hay Work Orders en esta lista.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    {{-- Footer Actions --}}
-    <div class="flex items-center justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-        <button wire:click="openSendModal"
-            class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-            </svg>
-            Enviar a Inspección
-        </button>
-    </div>
-
-    {{-- ===== LOT (VIAJERO) MODAL ===== --}}
-    @if ($showLotModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4" x-data>
-            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeLotModal"></div>
-            <div class="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
-                {{-- Header --}}
-                <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Gestionar Lotes</h3>
-                        @php $selectedWo = $workOrders->firstWhere('id', $selectedWorkOrderId); @endphp
-                        @if ($selectedWo)
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                                {{ $selectedWo->purchaseOrder->wo ?? $selectedWo->wo_number }} &mdash; {{ $selectedWo->purchaseOrder->part->number ?? '' }}
-                                (Cant. WO: {{ number_format($selectedWo->original_quantity) }})
-                            </p>
-                        @endif
-                    </div>
-                    <button wire:click="closeLotModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-
-                {{-- Body --}}
-                <div class="px-6 py-4 max-h-[55vh] overflow-y-auto space-y-3">
-                    @error('lots')
-                        <div class="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-300 text-sm">
-                            {{ $message }}
+                            @endforeach
                         </div>
-                    @enderror
-
-                    @forelse ($lots as $index => $lot)
-                        <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                            <div class="flex-1 grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">No. Lote / Viajero</label>
-                                    <input type="text" wire:model="lots.{{ $index }}.number"
-                                        placeholder="Ej: 001"
-                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    @error("lots.{$index}.number")
-                                        <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cantidad</label>
-                                    <input type="number" wire:model="lots.{{ $index }}.quantity"
-                                        placeholder="0" min="1"
-                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    @error("lots.{$index}.quantity")
-                                        <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                            </div>
-                            <button wire:click="removeLotRow({{ $index }})"
-                                class="mt-5 p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                                title="Eliminar fila">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
-                        </div>
-                    @empty
-                        <p class="text-center text-sm text-gray-400 dark:text-gray-500 py-4">No hay lotes. Agrega uno nuevo.</p>
-                    @endforelse
-
-                    <button wire:click="addLotRow"
-                        class="w-full py-2.5 border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Agregar Fila de Lote
-                    </button>
-                </div>
-
-                {{-- Footer --}}
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeLotModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        Cancelar
-                    </button>
-                    <button wire:click="saveLots"
-                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
-                        Guardar Lotes
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- ===== CRIMP LOT MODAL (CRIMP) ===== --}}
-    @if ($showCrimpLotModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4" x-data>
-            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeCrimpLotModal"></div>
-            <div class="relative w-full max-w-5xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
-                {{-- Header --}}
-                <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Lotes de CRIMP</h3>
-                        @if ($crimpLotViajeroLabel)
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ $crimpLotViajeroLabel }} · Cantidad del Viajero: {{ number_format($crimpLotViajeroQty) }}</p>
-                        @endif
-                    </div>
-                    <button wire:click="closeCrimpLotModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-
-                {{-- Body --}}
-                <div class="px-6 py-4 max-h-[55vh] overflow-y-auto space-y-3">
-                    {{-- Restador automático: Cantidad del viajero − suma de lotes (sin tope, informativo) --}}
-                    @php
-                        $asignado = collect($crimpLots)->sum(fn ($r) => (int) ($r['quantity'] ?? 0));
-                        $restante = (int) $crimpLotViajeroQty - $asignado;
-                    @endphp
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 p-3 text-center">
-                            <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Cantidad del Viajero</div>
-                            <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ number_format($crimpLotViajeroQty) }}</div>
-                        </div>
-                        <div class="rounded-lg bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-700 p-3 text-center">
-                            <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Asignado (lotes)</div>
-                            <div class="text-xl font-bold text-cyan-700 dark:text-cyan-300">{{ number_format($asignado) }}</div>
-                        </div>
-                        <div class="rounded-lg border p-3 text-center {{ $restante === 0 ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' : ($restante < 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700' : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700') }}">
-                            <div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">Restante</div>
-                            <div class="text-xl font-bold {{ $restante === 0 ? 'text-green-700 dark:text-green-300' : ($restante < 0 ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300') }}">{{ number_format($restante) }}</div>
-                        </div>
-                    </div>
-                    @if ($restante < 0)
-                        <p class="text-xs text-red-600 dark:text-red-400">⚠ La suma de lotes sobrepasa la cantidad del viajero por {{ number_format(abs($restante)) }} pz.</p>
-                    @elseif ($restante === 0 && $asignado > 0)
-                        <p class="text-xs text-green-600 dark:text-green-400">✓ La suma de lotes coincide con la cantidad del viajero.</p>
                     @endif
+                </td>
 
-                    @forelse ($crimpLots as $index => $cl)
-                        <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                            <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
-                                <div>
-                                    <label class="flex items-start text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 min-h-[2rem] leading-tight">No. Lote CRIMP</label>
-                                    <input type="text" wire:model="crimpLots.{{ $index }}.crimp_lot_number"
-                                        placeholder="Ej: CL-001"
-                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                                    @error("crimpLots.{$index}.crimp_lot_number")
-                                        <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                                <div>
-                                    <label class="flex items-start text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 min-h-[2rem] leading-tight">Lote de fabricante&nbsp;<span class="text-gray-400">(opcional)</span></label>
-                                    <input type="text" wire:model="crimpLots.{{ $index }}.lote_fabricante"
-                                        placeholder="Ej: FAB-2024"
-                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                                </div>
-                                <div>
-                                    <label class="flex items-start text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 min-h-[2rem] leading-tight">Cantidad</label>
-                                    <input type="number" wire:model.live.debounce.400ms="crimpLots.{{ $index }}.quantity"
-                                        placeholder="0" min="1"
-                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                                    @error("crimpLots.{$index}.quantity")
-                                        <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                                <div>
-                                    <label class="flex items-start text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 min-h-[2rem] leading-tight">Comentarios&nbsp;<span class="text-gray-400">(opcional)</span></label>
-                                    <input type="text" wire:model="crimpLots.{{ $index }}.comments"
-                                        placeholder="Observaciones..."
-                                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                <td class="px-4 py-3">
+                    @if ($semaphore === 'green')
+                        <x-ui.badge tone="good" dot>Listo</x-ui.badge>
+                    @elseif ($semaphore === 'yellow')
+                        <x-ui.badge tone="warn" dot>Sin lotes CRIMP</x-ui.badge>
+                    @else
+                        <x-ui.badge tone="bad" dot>Sin lotes</x-ui.badge>
+                    @endif
+                </td>
+
+                <td class="px-4 py-3">
+                    <div class="flex justify-end">
+                        <x-ui.btn variant="primary" size="sm" wire:click="openLotModal({{ $wo->id }})">
+                            Gestionar lotes
+                        </x-ui.btn>
+                    </div>
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="7">
+                    <x-ui.empty title="No hay Work Orders en esta lista"
+                        hint="Las órdenes se agregan a la lista desde el wizard de capacidad." />
+                </td>
+            </tr>
+        @endforelse
+    </x-ui.table>
+
+    {{-- Cierre de la etapa --}}
+    <x-ui.section title="Cerrar Materiales"
+        hint="Al enviar, la lista pasa a Inspección para que Calidad revise los lotes.">
+        @if ($woWithoutLots > 0)
+            <x-ui.note tone="warn" class="mb-4">
+                Hay <strong>{{ $woWithoutLots }} {{ Str::plural('orden', $woWithoutLots) }}</strong> sin lotes creados.
+                Esas órdenes no van a poder avanzar en el flujo.
+            </x-ui.note>
+        @endif
+
+        <div class="flex justify-end">
+            <x-ui.btn variant="success" wire:click="openSendModal">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                Enviar a Inspección
+            </x-ui.btn>
+        </div>
+    </x-ui.section>
+
+    {{-- Gestión de lotes / viajeros --}}
+    @if ($showLotModal)
+        @php
+            $lotWo = $workOrders->firstWhere('id', $selectedWorkOrderId);
+            $lotsAsignado = collect($lots)->sum(fn ($r) => (int) ($r['quantity'] ?? 0));
+            $lotsRestante = (int) ($lotWo->original_quantity ?? 0) - $lotsAsignado;
+        @endphp
+        <x-ui-modal wire:key="modal-lots" title="Lotes y viajeros"
+            subtitle="Divide la orden en las partes que se van a producir por separado."
+            close="closeLotModal" maxWidth="4xl">
+
+            @if ($lotWo)
+                <x-slot:context>
+                    <x-ui-modal.ctx label="WO" :value="$lotWo->purchaseOrder->wo ?? $lotWo->wo_number" />
+                    <x-ui-modal.ctx label="Parte" :value="$lotWo->purchaseOrder->part->number ?? '—'" />
+                    <x-ui-modal.ctx label="Cantidad del WO" :value="number_format($lotWo->original_quantity).' pz'" />
+                    <x-ui-modal.ctx label="Registros" :value="count($lots).' lotes'" />
+                </x-slot:context>
+            @endif
+
+            <x-ui.section title="Reparto de la orden" hint="La suma de los lotes debería igualar la cantidad del WO.">
+                <x-ui.stats cols="3">
+                    <x-ui.stat label="Cantidad del WO" :value="number_format($lotWo->original_quantity ?? 0)" unit="pz" />
+                    <x-ui.stat label="Asignado a lotes" :value="number_format($lotsAsignado)" unit="pz" tone="info" />
+                    <x-ui.stat label="Restante" :value="number_format($lotsRestante)" unit="pz"
+                        :tone="$lotsRestante === 0 ? 'good' : ($lotsRestante < 0 ? 'bad' : 'warn')" />
+                </x-ui.stats>
+
+                @if ($lotsRestante < 0)
+                    <x-ui.note tone="danger" class="mt-4">
+                        La suma de los lotes sobrepasa la cantidad del WO por <strong>{{ number_format(abs($lotsRestante)) }} pz</strong>.
+                    </x-ui.note>
+                @elseif ($lotsRestante === 0 && $lotsAsignado > 0)
+                    <x-ui.note tone="success" class="mt-4">La suma coincide con la cantidad del WO.</x-ui.note>
+                @endif
+            </x-ui.section>
+
+            <x-ui.section title="Lotes de la orden" hint="Un renglón por lote o viajero.">
+                <x-slot:aside>
+                    <x-ui.btn variant="success" size="sm" wire:click="addLotRow">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Agregar lote
+                    </x-ui.btn>
+                </x-slot:aside>
+
+                @if (empty($lots))
+                    <x-ui.empty icon="box" title="Sin lotes"
+                        hint="Agrega al menos uno para que la orden pueda avanzar." />
+                @else
+                    <div class="space-y-3">
+                        @foreach ($lots as $index => $row)
+                            <div wire:key="lotrow-{{ $index }}"
+                                class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
+                                <div class="flex items-start gap-3">
+                                    <span class="mt-6 flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white dark:bg-slate-200 dark:text-slate-900">
+                                        {{ $index + 1 }}
+                                    </span>
+
+                                    <div class="grid min-w-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <x-ui.field label="No. de lote / viajero" required
+                                            :error="$errors->first('lots.'.$index.'.number')">
+                                            <input type="text" wire:model="lots.{{ $index }}.number"
+                                                placeholder="Ej: 001" class="w-full">
+                                        </x-ui.field>
+
+                                        <x-ui.field label="Cantidad" required
+                                            :error="$errors->first('lots.'.$index.'.quantity')">
+                                            <input type="number" min="1" wire:model="lots.{{ $index }}.quantity"
+                                                placeholder="0" class="w-full text-right font-bold tabular-nums">
+                                        </x-ui.field>
+                                    </div>
+
+                                    <div class="pt-6">
+                                        <x-ui.icon-btn tone="danger" label="Eliminar el lote {{ $index + 1 }}"
+                                            wire:click="removeLotRow({{ $index }})"
+                                            wire:confirm="¿Eliminar este lote?">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </x-ui.icon-btn>
+                                    </div>
                                 </div>
                             </div>
-                            <button wire:click="removeCrimpLotRow({{ $index }})"
-                                class="mt-5 p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                                title="Eliminar lote de CRIMP">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
-                        </div>
-                    @empty
-                        <p class="text-center text-sm text-gray-400 dark:text-gray-500 py-4">No hay lotes de CRIMP. Agrega uno nuevo.</p>
-                    @endforelse
-
-                    <button wire:click="addCrimpLotRow"
-                        class="w-full py-2.5 border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-cyan-400 hover:text-cyan-500 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Agregar Lote de CRIMP
-                    </button>
-                </div>
-
-                {{-- Footer --}}
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeCrimpLotModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        Cancelar
-                    </button>
-                    <button wire:click="saveCrimpLots"
-                        class="px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors">
-                        Guardar Lotes de CRIMP
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- ===== SEND TO INSPECTION MODAL ===== --}}
-    @if ($showSendModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeSendModal"></div>
-            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
-                <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Confirmar Envío a Inspección</h3>
-                    <button wire:click="closeSendModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-
-                <div class="px-6 py-4 space-y-4">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                        La lista pasará de <strong class="text-gray-900 dark:text-white">Materiales</strong> a <strong class="text-gray-900 dark:text-white">Inspección</strong>. Esta acción resolverá automáticamente los rechazos pendientes.
-                    </p>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notas de envío (opcional)</label>
-                        <textarea wire:model="sendNotes" rows="3" placeholder="Observaciones para Inspección..."
-                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"></textarea>
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeSendModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        Cancelar
-                    </button>
-                    <button wire:click="sendToInspection"
-                        class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                        Confirmar Envío
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- ===== MATERIAL STATUS MODAL (viajero / lote) ===== --}}
-    @if ($showMaterialModal)
-        @php $matLot = \App\Models\Lot::find($materialLotId); @endphp
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-gray-900/70" wire:click="closeMaterialModal"></div>
-            <div class="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
-                <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Estado de Material</h3>
-                        @if ($matLot)
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Lote {{ $matLot->lot_number }} &mdash; {{ number_format($matLot->quantity) }} pzas</p>
-                        @endif
-                    </div>
-                    <button wire:click="closeMaterialModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="px-6 py-5 space-y-3">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Estado del material</label>
-                    <div class="space-y-2">
-                        @foreach (['pending' => ['Pendiente', 'bg-gray-400'], 'released' => ['Aprobado / Liberado', 'bg-green-500'], 'rejected' => ['Rechazado', 'bg-red-500']] as $val => [$label, $dot])
-                            <label class="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors
-                                {{ $materialStatus === $val ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' }}">
-                                <input type="radio" wire:model.live="materialStatus" value="{{ $val }}" class="sr-only">
-                                <span class="w-4 h-4 rounded-full {{ $dot }} flex-shrink-0"></span>
-                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $label }}</span>
-                            </label>
                         @endforeach
                     </div>
-                </div>
-                <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeMaterialModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        Cancelar
-                    </button>
-                    <button wire:click="saveMaterial"
-                        class="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors">
-                        Guardar
-                    </button>
-                </div>
-            </div>
-        </div>
+                @endif
+            </x-ui.section>
+
+            <x-slot:note>Verifica que la suma de las cantidades corresponda a la orden antes de guardar.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeLotModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="primary" wire:click="saveLots"
+                    wire:loading.attr="disabled" wire:target="saveLots">Guardar lotes</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
     @endif
 
+    {{-- Lotes de CRIMP --}}
+    @if ($showCrimpLotModal)
+        @php
+            $asignado = collect($crimpLots)->sum(fn ($r) => (int) ($r['quantity'] ?? 0));
+            $restante = (int) $crimpLotViajeroQty - $asignado;
+        @endphp
+        <x-ui-modal wire:key="modal-crimp-lots" title="Lotes de CRIMP"
+            :subtitle="$crimpLotViajeroLabel.' · cantidad del viajero: '.number_format($crimpLotViajeroQty).' pz'"
+            close="closeCrimpLotModal" maxWidth="6xl">
+
+            <x-ui.section title="Reparto del viajero" hint="La suma de los lotes debería igualar la cantidad del viajero.">
+                <x-ui.stats cols="3">
+                    <x-ui.stat label="Cantidad del viajero" :value="number_format($crimpLotViajeroQty)" unit="pz" />
+                    <x-ui.stat label="Asignado a lotes" :value="number_format($asignado)" unit="pz" tone="accent" />
+                    <x-ui.stat label="Restante" :value="number_format($restante)" unit="pz"
+                        :tone="$restante === 0 ? 'good' : ($restante < 0 ? 'bad' : 'warn')" />
+                </x-ui.stats>
+
+                @if ($restante < 0)
+                    <x-ui.note tone="danger" class="mt-4">
+                        La suma sobrepasa la cantidad del viajero por <strong>{{ number_format(abs($restante)) }} pz</strong>.
+                    </x-ui.note>
+                @elseif ($restante === 0 && $asignado > 0)
+                    <x-ui.note tone="success" class="mt-4">La suma coincide con la cantidad del viajero.</x-ui.note>
+                @endif
+            </x-ui.section>
+
+            <x-ui.section title="Lotes de CRIMP del viajero"
+                hint="Empaque los necesita para poder registrar el Paso 5.">
+                <x-slot:aside>
+                    <x-ui.btn variant="accent" size="sm" wire:click="addCrimpLotRow">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Agregar lote
+                    </x-ui.btn>
+                </x-slot:aside>
+
+                @if (empty($crimpLots))
+                    <x-ui.empty icon="box" title="Sin lotes de CRIMP"
+                        hint="Sin ellos, Empaque no puede registrar el Paso 5 de este viajero." />
+                @else
+                    <div class="space-y-3">
+                        @foreach ($crimpLots as $index => $cl)
+                            <div wire:key="crimprow-{{ $index }}"
+                                class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
+                                <div class="flex items-start gap-3">
+                                    <div class="grid min-w-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                                        <x-ui.field label="No. lote CRIMP" required
+                                            :error="$errors->first('crimpLots.'.$index.'.crimp_lot_number')">
+                                            <input type="text" wire:model="crimpLots.{{ $index }}.crimp_lot_number"
+                                                placeholder="Ej: CL-001" class="w-full">
+                                        </x-ui.field>
+
+                                        <x-ui.field label="Lote de fabricante" optional>
+                                            <input type="text" wire:model="crimpLots.{{ $index }}.lote_fabricante"
+                                                placeholder="Ej: FAB-2024" class="w-full">
+                                        </x-ui.field>
+
+                                        <x-ui.field label="Cantidad" required
+                                            :error="$errors->first('crimpLots.'.$index.'.quantity')">
+                                            <input type="number" min="1" placeholder="0"
+                                                wire:model.live.debounce.400ms="crimpLots.{{ $index }}.quantity"
+                                                class="w-full text-right font-bold tabular-nums">
+                                        </x-ui.field>
+
+                                        <x-ui.field label="Comentarios" optional>
+                                            <input type="text" wire:model="crimpLots.{{ $index }}.comments"
+                                                placeholder="Observaciones..." class="w-full">
+                                        </x-ui.field>
+                                    </div>
+
+                                    <div class="pt-6">
+                                        <x-ui.icon-btn tone="danger" label="Eliminar el lote de CRIMP {{ $index + 1 }}"
+                                            wire:click="removeCrimpLotRow({{ $index }})"
+                                            wire:confirm="¿Eliminar este lote de CRIMP?">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </x-ui.icon-btn>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </x-ui.section>
+
+            <x-slot:note>El lote de fabricante es opcional; el número y la cantidad no.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeCrimpLotModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="accent" wire:click="saveCrimpLots"
+                    wire:loading.attr="disabled" wire:target="saveCrimpLots">Guardar lotes de CRIMP</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
+    @endif
+
+    {{-- Estado del material de un lote --}}
+    @if ($showMaterialModal)
+        @php $matLot = $workOrders->flatMap->lots->firstWhere('id', $materialLotId); @endphp
+        <x-ui-modal wire:key="modal-material" title="Estado del material"
+            :subtitle="$matLot ? 'Lote '.$matLot->lot_number.' · '.number_format($matLot->quantity).' pz' : null"
+            close="closeMaterialModal" maxWidth="2xl">
+
+            <x-ui.section title="¿El material está listo?"
+                hint="Sin material liberado, Calidad no puede inspeccionar el lote.">
+                <div class="grid grid-cols-1 gap-3">
+                    <x-ui.choice tone="warn" title="Pendiente"
+                        desc="Todavía no se revisa. El lote no avanza."
+                        :selected="$materialStatus === 'pending'"
+                        wire:click="$set('materialStatus', 'pending')" />
+                    <x-ui.choice tone="good" title="Aprobado / liberado"
+                        desc="El material está completo y correcto. Habilita la inspección."
+                        :selected="$materialStatus === 'released'"
+                        wire:click="$set('materialStatus', 'released')" />
+                    <x-ui.choice tone="bad" title="Rechazado"
+                        desc="Falta material o viene mal. El lote se detiene hasta corregirlo."
+                        :selected="$materialStatus === 'rejected'"
+                        wire:click="$set('materialStatus', 'rejected')" />
+                </div>
+            </x-ui.section>
+
+            <x-slot:note>El estado mueve el semáforo de <strong>Material</strong> en el tablero de piso.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeMaterialModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="primary" wire:click="saveMaterial"
+                    wire:loading.attr="disabled" wire:target="saveMaterial">Guardar estado</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
+    @endif
+
+    {{-- Enviar a Inspección --}}
+    @if ($showSendModal)
+        <x-ui-modal wire:key="modal-send-inspection" title="Enviar a Inspección"
+            subtitle="La lista pasa a Calidad para que revise los lotes antes de producir."
+            close="closeSendModal" maxWidth="3xl">
+
+            <x-ui.section title="Lo que se envía">
+                <x-ui.stats cols="3">
+                    <x-ui.stat label="Work Orders" :value="$workOrders->count()" />
+                    <x-ui.stat label="Lotes" :value="$allLots->count()" tone="info" />
+                    <x-ui.stat label="Con material liberado" :value="$releasedCount" tone="good" />
+                </x-ui.stats>
+
+                @if ($woWithoutLots > 0)
+                    <x-ui.note tone="warn" class="mt-4">
+                        <strong>{{ $woWithoutLots }} {{ Str::plural('orden', $woWithoutLots) }}</strong> sin lotes creados no podrán avanzar.
+                    </x-ui.note>
+                @endif
+            </x-ui.section>
+
+            <x-ui.section title="Notas para Inspección">
+                <x-ui.field label="Notas de envío" optional
+                    hint="Cualquier detalle que Calidad deba saber antes de inspeccionar.">
+                    <textarea wire:model="sendNotes" rows="3" class="w-full"
+                        placeholder="Observaciones para Inspección..."></textarea>
+                </x-ui.field>
+            </x-ui.section>
+
+            <x-slot:note>Al enviar, la lista cambia de departamento y Calidad puede empezar a inspeccionar.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeSendModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="success" wire:click="sendToInspection"
+                    wire:loading.attr="disabled" wire:target="sendToInspection">Enviar a Inspección</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
+    @endif
 </div>

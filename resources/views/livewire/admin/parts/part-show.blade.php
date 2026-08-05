@@ -201,10 +201,14 @@
                         </div>
                     </x-ui.field>
 
+                    {{-- wire:ignore: sin él, el morph que dispara el selector de
+                         tipo de estación borra la fecha (Flatpickr + morph). --}}
                     <x-ui.field label="Fecha efectiva" required
                         hint="Desde cuándo aplica este precio."
                         :error="$errors->first('priceEffectiveDate')">
-                        <input wire:model="priceEffectiveDate" type="date" class="w-full" required>
+                        <div wire:ignore>
+                            <input wire:model="priceEffectiveDate" type="date" class="w-full" required>
+                        </div>
                     </x-ui.field>
                 </div>
             </x-ui.section>

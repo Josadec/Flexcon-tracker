@@ -1,6 +1,8 @@
 @props([
-    'tone'  => 'neutral', // neutral | primary | danger | success
-    'label' => '',        // obligatorio: describe la acción para lectores de pantalla
+    'tone'     => 'neutral', // neutral | primary | danger | success
+    'label'    => '',        // obligatorio: describe la acción para lectores de pantalla
+    'href'     => null,      // si viene, se renderiza como <a> (navegación) en vez de <button>
+    'navigate' => true,      // wire:navigate en los enlaces internos
 ])
 
 @php
@@ -10,14 +12,23 @@
         'success' => 'bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/70',
         'danger'  => 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/70',
     ];
+
+    $classes = 'ui-icon-btn ' . ($tones[$tone] ?? $tones['neutral']);
 @endphp
 
 {{-- Botón sólo-icono. Siempre lleva `label`: sin texto visible, el nombre accesible es lo único que queda. --}}
-<button {{ $attributes->merge([
-    'type'       => 'button',
-    'title'      => $label,
-    'aria-label' => $label,
-    'class'      => 'ui-icon-btn '.($tones[$tone] ?? $tones['neutral']),
-]) }}>
-    {{ $slot }}
-</button>
+@if ($href)
+    <a href="{{ $href }}" @if ($navigate) wire:navigate @endif
+        {{ $attributes->merge(['title' => $label, 'aria-label' => $label, 'class' => $classes]) }}>
+        {{ $slot }}
+    </a>
+@else
+    <button {{ $attributes->merge([
+        'type'       => 'button',
+        'title'      => $label,
+        'aria-label' => $label,
+        'class'      => $classes,
+    ]) }}>
+        {{ $slot }}
+    </button>
+@endif

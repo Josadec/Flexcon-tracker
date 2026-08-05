@@ -3018,18 +3018,16 @@ class ShippingListDisplay extends Component
         foreach ($workOrders as $wo) {
             $isCrimp = (bool) ($wo->purchaseOrder?->part?->is_crimp ?? false);
             foreach ($wo->lots as $lot) {
-                // Kit / Material
-                if ($isCrimp) {
-                    // CRIMP: sin kits aún, o kits en estado preparing/pending
-                    $hasKits = $lot->kits->isNotEmpty();
-                    $hasPendingKit = $lot->kits->contains(fn($k) => in_array($k->status, ['preparing','pending'], true));
-                    if (!$hasKits || $hasPendingKit) {
-                        $lifecycleSummary['crimp_kit_pending']++;
-                    }
-                } else {
-                    if (($lot->material_status ?? 'pending') === 'pending') {
-                        $lifecycleSummary['material_release_pending']++;
-                    }
+                // Material a nivel viajero.
+                // CRIMP y NO-CRIMP se miden por `material_status`, igual que la
+                // columna Material de la tabla. Antes el caso CRIMP se contaba
+                // por Kits: como los Kits ya no se crean desde ninguna pantalla,
+                // ese contador se quedaba pegado y marcaba como pendientes
+                // viajeros cuyo material ya estaba liberado.
+                if (($lot->material_status ?? 'pending') === 'pending') {
+                    $isCrimp
+                        ? $lifecycleSummary['crimp_kit_pending']++
+                        : $lifecycleSummary['material_release_pending']++;
                 }
 
                 // Inspección
