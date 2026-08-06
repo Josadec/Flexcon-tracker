@@ -210,11 +210,25 @@ class SentListPackagingView extends Component
         $this->ensureCanEditDepartment();
 
         $lot = Lot::whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
-        $lot->update([
+
+        $updates = [
             'viajero_received'    => true,
             'viajero_received_at' => now(),
             'viajero_received_by' => Auth::id(),
-        ]);
+        ];
+
+        // Las decisiones "completar" de CRIMP no las marca el observer (Paso 6),
+        // porque dejan trabajo pendiente: la entrada a la cola de despacho se
+        // difiere hasta aquí (Paso 7). Sin esto, un viajero cerrado desde esta
+        // pantalla nunca llegaba a la cola — sí lo hacía desde el tablero de piso.
+        if ($lot->isCompletionClosure()) {
+            $updates['ready_for_shipping']    = true;
+            $updates['ready_for_shipping_at'] = now();
+            $updates['quantity_packed_final'] = $lot->getPackagedPiecesTotal();
+            $updates['closed_by_type']        = $lot->closure_decision;
+        }
+
+        $lot->update($updates);
         $this->closeViajeroModal();
         $this->sentList->refresh();
         session()->flash('message', "Viajero {$lot->lot_number} recibido. Continúa al Paso 8 (sobrantes).");
@@ -225,11 +239,32 @@ class SentListPackagingView extends Component
         $this->ensureCanEditDepartment();
 
         $lot = Lot::whereIn('id', $this->sentListLotIds())->findOrFail($lotId);
-        $lot->update([
+
+        // Un lote que ya salió en un Packing Slip no se puede revertir: ese
+        // documento ya se emitió. Mismo criterio que el tablero de piso.
+        if ($lot->packingSlipItem()->exists()) {
+            session()->flash('error', 'No se puede revertir: el lote ya tiene un Packing Slip generado.');
+
+            return;
+        }
+
+        $updates = [
             'viajero_received'    => false,
             'viajero_received_at' => null,
             'viajero_received_by' => null,
-        ]);
+        ];
+
+        // Simétrico a markViajeroReceived: si la entrada a la cola se difirió
+        // hasta el Paso 7, aquí hay que sacarlo. Sin esto quedaba un "viajero
+        // fantasma" en la cola de despacho.
+        if ($lot->isCompletionClosure()) {
+            $updates['ready_for_shipping']    = false;
+            $updates['ready_for_shipping_at'] = null;
+            $updates['quantity_packed_final'] = null;
+            $updates['closed_by_type']        = null;
+        }
+
+        $lot->update($updates);
         $this->closeViajeroModal();
         $this->sentList->refresh();
         session()->flash('message', "Entrega del viajero {$lot->lot_number} revertida (marcado como NO recibido).");
@@ -276,9 +311,50 @@ class SentListPackagingView extends Component
         $this->showCloseModal = true;
     }
 
+    /**
+     * ¿Todos los lotes de la lista tienen empaque registrado?
+     *
+     * NO-CRIMP → al menos un PackagingRecord.
+     * CRIMP    → al menos una pesada de piezas o de CRIMP.
+     *
+     * Vive aquí y no sólo en render() porque closeList() tiene que revalidarlo
+     * en el servidor: el botón deshabilitado del blade no protege nada.
+     */
+    public function allLotsHavePackaging(): bool
+    {
+        $workOrders = $this->sentList->getEffectiveWorkOrders()
+            ->load([
+                'purchaseOrder.part',
+                'lots.packagingRecords',
+                'lots.packagingPieceWeighings',
+                'lots.packagingCrimpWeighings',
+            ]);
+
+        if ($workOrders->flatMap->lots->isEmpty()) {
+            return false;
+        }
+
+        return $workOrders->every(function ($wo) {
+            $isCrimp = (bool) ($wo->purchaseOrder->part->is_crimp ?? false);
+
+            return $wo->lots->every(fn ($l) => $isCrimp
+                ? ($l->packagingPieceWeighings->isNotEmpty() || $l->packagingCrimpWeighings->isNotEmpty())
+                : $l->packagingRecords->isNotEmpty());
+        });
+    }
+
     public function closeList(): void
     {
         $this->ensureCanEditDepartment();
+
+        // Se revalida en el servidor: el `disabled` del botón es sólo cosmético
+        // y una llamada Livewire directa cerraba la lista con lotes sin empacar.
+        if (! $this->allLotsHavePackaging()) {
+            session()->flash('error', 'No se puede cerrar la lista: faltan lotes por empacar.');
+            $this->showCloseModal = false;
+
+            return;
+        }
 
         $this->sentList->update(['status' => SentList::STATUS_CONFIRMED]);
         session()->flash('message', 'Lista completada y cerrada exitosamente.');
@@ -376,10 +452,15 @@ class SentListPackagingView extends Component
             'completed_at'           => now(),
         ]);
 
-        // 2. Soft-delete old records so the lot starts a fresh cycle
+        // 2. Soft-delete old records so the lot starts a fresh cycle.
+        //    En CRIMP el empaque NO vive en packaging_records sino en las
+        //    pesadas de piezas y de CRIMP; si no se borran también, el ciclo
+        //    nuevo arranca arrastrando lo empacado del ciclo anterior.
         Weighing::where('lot_id', $lot->id)->delete();
         QualityWeighing::where('lot_id', $lot->id)->delete();
         PackagingRecord::where('lot_id', $lot->id)->delete();
+        PackagingPieceWeighing::where('lot_id', $lot->id)->delete();
+        PackagingCrimpWeighing::where('lot_id', $lot->id)->delete();
 
         // 3. Reset lot with missing quantity and fresh statuses
         $lot->update([
@@ -517,17 +598,20 @@ class SentListPackagingView extends Component
         $lot     = $this->selectedLotForDecision;
         $missing = $this->decMissing;
 
+        // El lote NO se marca completado aquí: eso pasa en el Paso 8, cuando
+        // Materiales confirma que recibió los sobrantes (confirmSurplusReceived).
+        // Antes esta pantalla ponía status=COMPLETED y packaging_status=approved,
+        // saltándose ese paso — el tablero de piso nunca lo hizo. Cerrar el lote
+        // desde una u otra pantalla dejaba estados distintos.
         $lot->update([
             'closure_decision'   => Lot::CLOSURE_CLOSE_AS_IS,
             'closure_decided_by' => Auth::id(),
             'closure_decided_at' => now(),
-            'status'             => Lot::STATUS_COMPLETED,
-            'packaging_status'   => 'approved',
         ]);
 
         session()->flash('message', $missing > 0
-            ? "Lote cerrado aceptando " . number_format($missing) . " piezas faltantes."
-            : 'Lote cerrado sin faltantes.');
+            ? 'Lote cerrado aceptando ' . number_format($missing) . ' piezas faltantes. Pendiente: recepción de material.'
+            : 'Lote cerrado. Pendiente: confirmación de recepción de material.');
 
         $this->openDecisionModal($lot->id);
         $this->sentList->refresh();
@@ -1045,20 +1129,10 @@ class SentListPackagingView extends Component
         ]);
 
         $workOrders = $this->sentList->getEffectiveWorkOrders();
-        $allLots    = $workOrders->flatMap->lots;
 
-        // Un lote "está empacado" si: NO-CRIMP → tiene PackagingRecord;
-        // CRIMP → tiene al menos una pesada de piezas o de CRIMP.
-        $allLotsHavePackaging = $allLots->isNotEmpty()
-            && $workOrders->every(function ($wo) {
-                $isCrimp = (bool) ($wo->purchaseOrder->part->is_crimp ?? false);
-
-                return $wo->lots->every(function ($l) use ($isCrimp) {
-                    return $isCrimp
-                        ? ($l->packagingPieceWeighings->isNotEmpty() || $l->packagingCrimpWeighings->isNotEmpty())
-                        : $l->packagingRecords->isNotEmpty();
-                });
-            });
+        // Misma fuente que usa closeList(), para que el botón y la validación
+        // del servidor no puedan decir cosas distintas.
+        $allLotsHavePackaging = $this->allLotsHavePackaging();
 
         return view('livewire.admin.sent-lists.packaging-view', compact('workOrders', 'allLotsHavePackaging'));
     }

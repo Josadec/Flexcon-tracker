@@ -1334,8 +1334,16 @@ class ShippingListDisplay extends Component
     /**
      * Approve a lot (set status to completed).
      */
+    /**
+     * NOTA: ningún blade invoca este método (la inspección usa el suyo en
+     * SentListInspectionView). Aun así es un método público de Livewire, o sea
+     * invocable por petición directa: sin el guard, cualquiera podía marcar
+     * cualquier lote como completado.
+     */
     public function approveLot($lotId)
     {
+        if (!$this->guardDepartment('quality')) return;
+
         $lot = Lot::find($lotId);
 
         if (!$lot) {
@@ -1354,8 +1362,11 @@ class ShippingListDisplay extends Component
     /**
      * Reject a lot (set status to cancelled).
      */
+    /** Mismo caso que approveLot(): sin uso en blades, pero público en Livewire. */
     public function rejectLot($lotId)
     {
+        if (!$this->guardDepartment('quality')) return;
+
         $lot = Lot::find($lotId);
 
         if (!$lot) {
@@ -2041,10 +2052,15 @@ class ShippingListDisplay extends Component
             'completed_at' => now(),
         ]);
 
-        // 2. Soft-delete old records so the lot starts a fresh cycle
+        // 2. Soft-delete old records so the lot starts a fresh cycle.
+        //    En CRIMP el empaque NO vive en packaging_records sino en las
+        //    pesadas de piezas y de CRIMP; si no se borran también, el ciclo
+        //    nuevo arranca arrastrando lo empacado del ciclo anterior.
         Weighing::where('lot_id', $lot->id)->delete();
         QualityWeighing::where('lot_id', $lot->id)->delete();
         PackagingRecord::where('lot_id', $lot->id)->delete();
+        PackagingPieceWeighing::where('lot_id', $lot->id)->delete();
+        PackagingCrimpWeighing::where('lot_id', $lot->id)->delete();
 
         // 3. Reset lot with missing quantity and fresh statuses
         $lot->update([
