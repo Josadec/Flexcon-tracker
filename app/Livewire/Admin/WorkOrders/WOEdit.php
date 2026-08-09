@@ -73,8 +73,10 @@ class WOEdit extends Component
             );
         }
 
-        session()->flash('flash.banner', 'Work Order actualizada correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        // Sólo `success`: al redirigir, la ficha pinta el aviso en línea con
+        // <x-ui.note>. Con `flash.banner` saldría también el banner del layout
+        // y el usuario vería el mismo mensaje dos veces en la misma pantalla.
+        session()->flash('success', 'Orden de trabajo actualizada correctamente.');
 
         $this->redirect(route('admin.work-orders.show', $this->workOrder));
     }

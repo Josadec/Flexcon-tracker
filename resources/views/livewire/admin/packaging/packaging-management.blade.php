@@ -1,376 +1,226 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Gestión de Empaques</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Registros de empaque de lotes</p>
-        </div>
-    </div>
+<x-ui.page eyebrow="Empaque" title="Gestión de empaques"
+    subtitle="Registros de empaque por lote: piezas empacadas, sobrantes y ajustes.">
 
-    <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Registros</p>
-                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($totalRecords) }}</p>
-                </div>
-                <div class="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-green-700 rounded-lg p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-green-600 dark:text-green-400 mb-1">Piezas Empacadas</p>
-                    <p class="text-2xl font-semibold text-green-700 dark:text-green-300">{{ number_format($totalPackedPieces) }}</p>
-                </div>
-                <div class="w-12 h-12 rounded-lg bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-orange-200 dark:border-orange-700 rounded-lg p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-orange-600 dark:text-orange-400 mb-1">Piezas Sobrantes</p>
-                    <p class="text-2xl font-semibold text-orange-700 dark:text-orange-300">{{ number_format($totalSurplusPieces) }}</p>
-                </div>
-                <div class="w-12 h-12 rounded-lg bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-amber-200 dark:border-amber-700 rounded-lg p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-amber-600 dark:text-amber-400 mb-1">Sobrantes Ajustados</p>
-                    <p class="text-2xl font-semibold text-amber-700 dark:text-amber-300">{{ number_format($totalAdjustedSurplus) }}</p>
-                </div>
-                <div class="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-700 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-slot:actions>
+        @if ($lotsForCreate->isNotEmpty())
+            <x-ui.btn variant="primary" wire:click="openCreateModal">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Nuevo registro
+            </x-ui.btn>
+        @endif
+    </x-slot:actions>
 
-    <!-- Flash Messages -->
-    @if (session()->has('message'))
-        <div class="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg" role="alert">
-            <div class="flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span class="text-sm font-medium">{{ session('message') }}</span>
-            </div>
-        </div>
+    {{-- Resumen --}}
+    <x-ui.stats cols="4">
+        <x-ui.stat label="Total registros" :value="number_format($totalRecords)" />
+        <x-ui.stat label="Piezas empacadas" :value="number_format($totalPackedPieces)" tone="good" />
+        <x-ui.stat label="Piezas sobrantes" :value="number_format($totalSurplusPieces)" tone="warn"
+            help="Piezas buenas que no entraron en la caja." />
+        <x-ui.stat label="Sobrantes ajustados" :value="number_format($totalAdjustedSurplus)" tone="info"
+            help="Sobrantes corregidos manualmente con una razón registrada." />
+    </x-ui.stats>
+
+    @if (session('message'))
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
     @endif
-    @if (session()->has('error'))
-        <div class="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg" role="alert">
-            <div class="flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span class="text-sm font-medium">{{ session('error') }}</span>
-            </div>
-        </div>
+    @if (session('error'))
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
     @endif
 
-    <!-- Search and Filters -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div class="flex-1 max-w-md">
-                <flux:input
-                    wire:model.live.debounce.300ms="searchTerm"
-                    placeholder="Buscar por lote, WO, parte o comentario..."
-                    icon="magnifying-glass"
-                />
-            </div>
+    {{-- Filtros --}}
+    <x-ui.section title="Buscar" hint="Filtra por lote, WO, parte o comentario, o acota por WO o lote.">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+            <x-ui.field label="Texto a buscar">
+                <div class="relative">
+                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </span>
+                    <input type="text" wire:model.live.debounce.300ms="searchTerm"
+                        placeholder="Lote, WO, parte o comentario..." class="w-full pl-10">
+                </div>
+            </x-ui.field>
 
-            <div class="flex flex-wrap gap-2 items-center">
-                {{-- WO Filter --}}
-                <select wire:model.live="filterWorkOrderId" class="px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            <x-ui.field label="Orden de trabajo">
+                <select wire:model.live="filterWorkOrderId" class="w-full">
                     <option value="">Todas las WO</option>
-                    @foreach($workOrdersForFilter as $wo)
+                    @foreach ($workOrdersForFilter as $wo)
                         <option value="{{ $wo->id }}">{{ $wo->purchaseOrder->wo ?? 'N/A' }} — {{ $wo->purchaseOrder->part->number ?? '' }}</option>
                     @endforeach
                 </select>
+            </x-ui.field>
 
-                {{-- Lot Filter --}}
-                <select wire:model.live="filterLotId" class="px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            <x-ui.field label="Lote">
+                <select wire:model.live="filterLotId" class="w-full">
                     <option value="">Todos los lotes</option>
-                    @foreach($lotsForFilter as $lot)
+                    @foreach ($lotsForFilter as $lot)
                         <option value="{{ $lot->id }}">{{ $lot->lot_number }} — {{ $lot->workOrder->purchaseOrder->part->number ?? '' }}</option>
                     @endforeach
                 </select>
+            </x-ui.field>
+        </div>
 
-                @if($searchTerm || $filterLotId || $filterWorkOrderId)
-                    <flux:button wire:click="clearFilters" variant="ghost" size="sm">
-                        Limpiar
-                    </flux:button>
-                @endif
-
-                {{-- Create Button --}}
-                @if($lotsForCreate->isNotEmpty())
-                    <flux:dropdown position="bottom" align="end">
-                        <flux:button icon="plus" variant="primary">Nuevo Registro</flux:button>
-
-                        <flux:menu class="w-80 max-h-64 overflow-y-auto">
-                            @foreach($lotsForCreate as $lot)
-                                <flux:menu.item wire:click="openCreateForLot({{ $lot->id }})">
-                                    <span class="font-medium">Lote {{ $lot->lot_number }}</span>
-                                    <span class="text-xs text-gray-500 ml-1">{{ $lot->workOrder->purchaseOrder->wo ?? 'N/A' }} — {{ $lot->workOrder->purchaseOrder->part->number ?? '' }}</span>
-                                </flux:menu.item>
-                            @endforeach
-                        </flux:menu>
-                    </flux:dropdown>
-                @endif
+        @if ($searchTerm || $filterLotId || $filterWorkOrderId)
+            <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Mostrando resultados filtrados.</span>
+                <x-ui.btn variant="ghost" size="sm" wire:click="clearFilters">Limpiar filtros</x-ui.btn>
             </div>
-        </div>
-    </div>
+        @endif
+    </x-ui.section>
 
-    <!-- Records Table -->
-    @if($records->isEmpty())
-        <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-            <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No hay registros de empaque</h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                @if($searchTerm || $filterLotId || $filterWorkOrderId)
-                    No se encontraron registros con los filtros aplicados.
-                @else
-                    Los registros de empaque se crean desde la lista de envío o aquí.
-                @endif
-            </p>
-        </div>
-    @else
-        <div class="overflow-hidden bg-white dark:bg-gray-800 shadow-sm rounded-lg border-2 border-gray-200 dark:border-gray-700">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">ID</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Lote</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">WO</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Parte</th>
-                            <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Disponibles</th>
-                            <th class="px-6 py-3 text-right text-xs font-semibold text-green-600 dark:text-green-400 uppercase">Empacadas</th>
-                            <th class="px-6 py-3 text-right text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase">Sobrantes</th>
-                            <th class="px-6 py-3 text-right text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase">Ajustado</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Empacó</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Fecha</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Comentarios</th>
-                            <th class="px-6 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        @foreach($records as $record)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $record->id }}</td>
-                                <td class="px-6 py-4 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                                    {{ $record->lot->lot_number ?? 'N/A' }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                    {{ $record->lot->workOrder->purchaseOrder->wo ?? 'N/A' }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                    {{ $record->lot->workOrder->purchaseOrder->part->number ?? 'N/A' }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-right text-gray-700 dark:text-gray-300">
-                                    {{ number_format($record->available_pieces) }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-right font-medium text-green-600 dark:text-green-400">
-                                    {{ number_format($record->packed_pieces) }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-right font-medium text-orange-600 dark:text-orange-400">
-                                    {{ number_format($record->surplus_pieces) }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-right">
-                                    @if($record->adjusted_surplus !== null)
-                                        <span class="font-medium text-amber-600 dark:text-amber-400">{{ number_format($record->adjusted_surplus) }}</span>
-                                        @if($record->adjustment_reason)
-                                            <span class="block text-xs text-gray-400" title="{{ $record->adjustment_reason }}">{{ Str::limit($record->adjustment_reason, 20) }}</span>
-                                        @endif
-                                    @else
-                                        <span class="text-gray-400">-</span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                    {{ $record->packedBy->name ?? 'N/A' }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                    {{ $record->packed_at?->format('d/m/Y H:i') ?? '-' }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate" title="{{ $record->comments }}">
-                                    {{ $record->comments ?? '-' }}
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <button wire:click="openEditModal({{ $record->id }})" class="inline-flex items-center justify-center w-8 h-8 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-2 border-transparent hover:border-emerald-300 dark:hover:border-emerald-700 rounded-md transition-colors" title="Editar">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                        </button>
-                                        <button wire:click="deleteRecord({{ $record->id }})" wire:confirm="¿Eliminar este registro de empaque?" class="inline-flex items-center justify-center w-8 h-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-2 border-transparent hover:border-red-300 dark:hover:border-red-700 rounded-md transition-colors" title="Eliminar">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+    {{-- Listado --}}
+    <x-ui.table>
+        <x-slot:head>
+            <tr>
+                <x-ui.th class="w-16">ID</x-ui.th>
+                <x-ui.th>Lote</x-ui.th>
+                <x-ui.th>WO</x-ui.th>
+                <x-ui.th>Parte</x-ui.th>
+                <x-ui.th align="right">Disponibles</x-ui.th>
+                <x-ui.th align="right">Empacadas</x-ui.th>
+                <x-ui.th align="right">Sobrantes</x-ui.th>
+                <x-ui.th align="right">Ajustado</x-ui.th>
+                <x-ui.th>Empacó</x-ui.th>
+                <x-ui.th>Fecha</x-ui.th>
+                <x-ui.th>Comentarios</x-ui.th>
+                <x-ui.th align="right">Acciones</x-ui.th>
+            </tr>
+        </x-slot:head>
 
-            {{-- Pagination --}}
-            @if($records->hasPages())
-                <div class="px-6 py-4 border-t-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                    {{ $records->links() }}
-                </div>
-            @endif
-        </div>
-    @endif
-
-    {{-- Create/Edit Modal --}}
-    @if($showModal)
-        <div wire:key="modal-packaging-form" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeModal"></div>
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border-2 border-gray-200 dark:border-gray-700">
-
-                    {{-- Header --}}
-                    <div class="px-6 py-4 border-b-2 border-emerald-500 bg-emerald-600">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-semibold text-white">
-                                {{ $editingId ? 'Editar Registro de Empaque' : 'Nuevo Registro de Empaque' }}
-                            </h3>
-                            <button wire:click="closeModal" class="text-white hover:text-emerald-200 cursor-pointer">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    {{-- Body --}}
-                    <div class="px-6 py-5 space-y-4">
-
-                        {{-- Lot selector --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Lote</label>
-                            @if($editingId || $formLotId)
-                                <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white">
-                                    <span class="font-medium">Lote {{ $modalLotNumber }}</span>
-                                    <span class="text-gray-500 dark:text-gray-400 ml-2">WO: {{ $modalWo }} — {{ $modalPartNumber }}</span>
-                                    <span class="text-gray-500 dark:text-gray-400 ml-2">({{ number_format($modalAvailable) }} pz disponibles)</span>
-                                </div>
-                            @else
-                                <select wire:model.live="formLotId"
-                                    class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                    <option value="">Seleccionar lote...</option>
-                                    @foreach($lotsForCreate as $lot)
-                                        <option value="{{ $lot->id }}">
-                                            Lote {{ $lot->lot_number }} — {{ $lot->workOrder->purchaseOrder->wo ?? 'N/A' }} — {{ $lot->workOrder->purchaseOrder->part->number ?? '' }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            @endif
-                            @error('formLotId')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        {{-- Packed Pieces --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Piezas Empacadas</label>
-                            <input type="number" wire:model="formPackedPieces" min="0"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                            @error('formPackedPieces')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        {{-- Surplus Pieces --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Piezas Sobrantes</label>
-                            <input type="number" wire:model="formSurplusPieces" min="0"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                            @error('formSurplusPieces')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        {{-- Adjusted Surplus --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sobrante Ajustado <span class="text-gray-400 font-normal">(opcional)</span></label>
-                            <input type="number" wire:model="formAdjustedSurplus" min="0" placeholder="Dejar vacío si no aplica"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                            @error('formAdjustedSurplus')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        {{-- Adjustment Reason --}}
-                        @if($formAdjustedSurplus !== null && $formAdjustedSurplus !== '')
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Razón del Ajuste</label>
-                                <textarea wire:model="formAdjustmentReason" rows="2"
-                                    class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                                    placeholder="Indique la razón del ajuste..."></textarea>
-                                @error('formAdjustmentReason')
-                                    <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                                @enderror
-                            </div>
+        @forelse ($records as $record)
+            <tr wire:key="pr-{{ $record->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="whitespace-nowrap px-4 py-3 tabular-nums text-slate-500 dark:text-slate-400">{{ $record->id }}</td>
+                <td class="whitespace-nowrap px-4 py-3 font-semibold text-slate-900 dark:text-white">
+                    {{ $record->lot->lot_number ?? '—' }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 font-semibold text-sky-700 dark:text-sky-300">
+                    {{ $record->lot->workOrder->purchaseOrder->wo ?? '—' }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
+                    {{ $record->lot->workOrder->purchaseOrder->part->number ?? '—' }}
+                </td>
+                <td class="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">
+                    {{ number_format($record->available_pieces) }}
+                </td>
+                <td class="px-4 py-3 text-right font-bold tabular-nums text-green-700 dark:text-green-400">
+                    {{ number_format($record->packed_pieces) }}
+                </td>
+                <td class="px-4 py-3 text-right tabular-nums {{ $record->surplus_pieces > 0 ? 'font-semibold text-orange-700 dark:text-orange-400' : 'text-slate-400' }}">
+                    {{ number_format($record->surplus_pieces) }}
+                </td>
+                <td class="px-4 py-3 text-right tabular-nums">
+                    @if ($record->adjusted_surplus !== null)
+                        <span class="font-semibold text-amber-700 dark:text-amber-400">{{ number_format($record->adjusted_surplus) }}</span>
+                        @if ($record->adjustment_reason)
+                            <span class="block text-xs text-slate-400 dark:text-slate-500" title="{{ $record->adjustment_reason }}">{{ Str::limit($record->adjustment_reason, 20) }}</span>
                         @endif
+                    @else
+                        <span class="text-slate-400">—</span>
+                    @endif
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">{{ $record->packedBy->name ?? '—' }}</td>
+                <td class="whitespace-nowrap px-4 py-3 text-slate-500 dark:text-slate-400">
+                    {{ $record->packed_at?->format('d/m/Y H:i') ?? '—' }}
+                </td>
+                <td class="max-w-xs truncate px-4 py-3 text-slate-500 dark:text-slate-400" title="{{ $record->comments }}">
+                    {{ $record->comments ?: '—' }}
+                </td>
+                <td class="px-4 py-3">
+                    <x-ui.row-actions label="el registro #{{ $record->id }}"
+                        delete="deleteRecord({{ $record->id }})"
+                        deleteConfirm="¿Eliminar este registro de empaque? Esta acción no se puede deshacer.">
+                        <x-ui.icon-btn tone="primary" label="Editar el registro #{{ $record->id }}"
+                            wire:click="openEditModal({{ $record->id }})">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </x-ui.icon-btn>
+                    </x-ui.row-actions>
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="12">
+                    <x-ui.empty icon="box" title="No hay registros de empaque"
+                        hint="{{ ($searchTerm || $filterLotId || $filterWorkOrderId) ? 'No se encontraron registros con los filtros aplicados.' : 'Los registros de empaque se crean desde la lista de envío o aquí.' }}" />
+                </td>
+            </tr>
+        @endforelse
 
-                        {{-- Packed At --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fecha y Hora de Empaque</label>
-                            <input type="datetime-local" wire:model="formPackedAt"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                            @error('formPackedAt')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
+        @if ($records->hasPages())
+            <x-slot:foot>{{ $records->links() }}</x-slot:foot>
+        @endif
+    </x-ui.table>
 
-                        {{-- Comments --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comentarios <span class="text-gray-400 font-normal">(opcional)</span></label>
-                            <textarea wire:model="formComments" rows="2"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                                placeholder="Observaciones..."></textarea>
-                            @error('formComments')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
+    {{-- Alta / Edición de un registro --}}
+    @if ($showModal)
+        <x-ui-modal wire:key="modal-packaging-form"
+            :title="$editingId ? 'Editar registro de empaque' : 'Nuevo registro de empaque'"
+            subtitle="Captura las piezas empacadas y los sobrantes del lote."
+            close="closeModal" maxWidth="2xl">
+
+            <x-ui.section title="Lote" hint="El lote determina cuántas piezas hay disponibles para empacar.">
+                @if ($editingId || $formLotId)
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900/40">
+                        <span class="font-semibold text-slate-900 dark:text-white">Lote {{ $modalLotNumber }}</span>
+                        <span class="ml-2 text-slate-500 dark:text-slate-400">WO: {{ $modalWo }} — {{ $modalPartNumber }}</span>
+                        <span class="ml-2 text-slate-500 dark:text-slate-400">({{ number_format($modalAvailable) }} pz disponibles)</span>
                     </div>
+                    @error('formLotId') <p class="mt-1.5 text-[11px] font-medium text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                @else
+                    <x-ui.field label="Selecciona un lote" required :error="$errors->first('formLotId')">
+                        <select wire:model.live="formLotId" class="w-full">
+                            <option value="">Seleccionar lote...</option>
+                            @foreach ($lotsForCreate as $lot)
+                                <option value="{{ $lot->id }}">
+                                    Lote {{ $lot->lot_number }} — {{ $lot->workOrder->purchaseOrder->wo ?? 'N/A' }} — {{ $lot->workOrder->purchaseOrder->part->number ?? '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </x-ui.field>
+                @endif
+            </x-ui.section>
 
-                    {{-- Footer --}}
-                    <div class="px-6 py-4 border-t-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-end gap-3">
-                        <button wire:click="closeModal"
-                            class="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-                            Cancelar
-                        </button>
-                        <button wire:click="save"
-                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors cursor-pointer">
-                            {{ $editingId ? 'Actualizar' : 'Crear' }}
-                        </button>
-                    </div>
+            <x-ui.section title="Cantidades" hint="Piezas empacadas y las que quedaron como sobrante.">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ui.field label="Piezas empacadas" required :error="$errors->first('formPackedPieces')">
+                        <input type="number" wire:model="formPackedPieces" min="0" class="w-full">
+                    </x-ui.field>
+
+                    <x-ui.field label="Piezas sobrantes" required :error="$errors->first('formSurplusPieces')">
+                        <input type="number" wire:model="formSurplusPieces" min="0" class="w-full">
+                    </x-ui.field>
+
+                    <x-ui.field label="Sobrante ajustado" optional :error="$errors->first('formAdjustedSurplus')"
+                        hint="Déjalo vacío si no aplica.">
+                        <input type="number" wire:model.live="formAdjustedSurplus" min="0" class="w-full" placeholder="—">
+                    </x-ui.field>
+
+                    @if ($formAdjustedSurplus !== null && $formAdjustedSurplus !== '')
+                        <x-ui.field label="Razón del ajuste" required :error="$errors->first('formAdjustmentReason')">
+                            <textarea wire:model="formAdjustmentReason" rows="2" class="w-full"
+                                placeholder="Indica la razón del ajuste..."></textarea>
+                        </x-ui.field>
+                    @endif
                 </div>
-            </div>
-        </div>
+            </x-ui.section>
+
+            <x-ui.section title="Registro" hint="Fecha del empaque y observaciones.">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ui.field label="Fecha y hora de empaque" required :error="$errors->first('formPackedAt')">
+                        <input type="datetime-local" wire:model="formPackedAt" class="w-full">
+                    </x-ui.field>
+
+                    <x-ui.field label="Comentarios" optional :error="$errors->first('formComments')">
+                        <textarea wire:model="formComments" rows="2" class="w-full" placeholder="Observaciones..."></textarea>
+                    </x-ui.field>
+                </div>
+            </x-ui.section>
+
+            <x-slot:note>
+                {{ $editingId ? 'Se actualizará el registro de empaque del lote.' : 'Se creará un nuevo registro de empaque para el lote seleccionado.' }}
+            </x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="primary" wire:click="save">{{ $editingId ? 'Actualizar' : 'Crear' }}</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
     @endif
-</div>
+</x-ui.page>
