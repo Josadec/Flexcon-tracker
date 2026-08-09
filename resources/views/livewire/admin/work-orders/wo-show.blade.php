@@ -156,7 +156,18 @@
             <div class="space-y-6">
                 {{-- Cambiar Estado --}}
                 <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Cambiar Estado</h2>
+                    <div class="mb-4 flex items-start justify-between gap-3">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Cambiar Estado</h2>
+                        {{-- Administrar el catálogo (colores incluidos) sin salir del WO. --}}
+                        @can(\App\Livewire\Admin\StatusesWO\StatusWOManager::PERMISSION_VIEW)
+                            <button type="button" wire:click="$dispatch('open-statuses-wo-manager')"
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-md transition-colors"
+                                title="Administrar estados y sus colores">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828L11.828 17M7 17h.01"/></svg>
+                                Administrar estados
+                            </button>
+                        @endcan
+                    </div>
                     <div class="flex flex-col gap-2">
                         @foreach($statuses as $status)
                             @if($status->id === $workOrder->status_id)
@@ -748,4 +759,11 @@
 
     {{-- Signature Modal Component - DESHABILITADO TEMPORALMENTE --}}
     {{-- <livewire:admin.signature-modal @signature-completed="refreshWorkOrder" /> --}}
+
+    {{-- Administración de estados de WO (colores incluidos) sin salir del WO.
+         Se abre con el evento 'open-statuses-wo-manager' y, al guardar, emite
+         'statuses-wo-updated' para que este componente recargue las píldoras. --}}
+    @can(\App\Livewire\Admin\StatusesWO\StatusWOManager::PERMISSION_VIEW)
+        @livewire(\App\Livewire\Admin\StatusesWO\StatusWOManager::class, [], key('statuses-wo-manager'))
+    @endcan
 </div>

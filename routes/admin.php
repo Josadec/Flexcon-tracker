@@ -107,10 +107,9 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('/break-times/{breakTime}', \App\Livewire\Admin\BreakTimes\BreakTimeShow::class)->name('break-times.show');
     Route::get('/break-times/{breakTime}/edit', \App\Livewire\Admin\BreakTimes\BreakTimeEdit::class)->name('break-times.edit');
 
-    // Gestión de estados de Work Orders
-    Route::get('/statuses-wo', \App\Livewire\Admin\StatusesWO\StatusWOList::class)->name('statuses-wo.index');
-    Route::get('/statuses-wo/create', \App\Livewire\Admin\StatusesWO\StatusWOCreate::class)->name('statuses-wo.create');
-    Route::get('/statuses-wo/{statusWO}/edit', \App\Livewire\Admin\StatusesWO\StatusWOEdit::class)->name('statuses-wo.edit');
+    // Los estados de Work Orders ya no tienen pantalla propia: se administran
+    // (colores incluidos) desde el modal StatusWOManager en la vista del WO,
+    // para no sacar al empleado del WO que está mirando.
 
     // Gestión de precios
     Route::get('/prices', \App\Livewire\Admin\Prices\PriceList::class)->name('prices.index');

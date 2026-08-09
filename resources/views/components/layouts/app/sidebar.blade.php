@@ -28,9 +28,8 @@
                 <flux:navlist.item icon="clipboard-document-check" :href="route('admin.work-orders.index')"
                     :current="request()->routeIs('admin.work-orders.*')" wire:navigate>{{ __('Manage PO') }}
                 </flux:navlist.item>
-                <flux:navlist.item icon="clipboard-document-list" :href="route('admin.statuses-wo.index')"
-                    :current="request()->routeIs('admin.statuses-wo.*')" wire:navigate>{{ __('Estados') }}
-                </flux:navlist.item>
+                {{-- "Estados" salió del menú: los estados de WO se administran
+                     desde el modal de la vista del WO (StatusWOManager). --}}
                 <flux:navlist.item icon="calculator" :href="route('admin.capacity.wizard')"
                     :current="request()->routeIs('admin.capacity.*')" wire:navigate>
                     {{ __('Capacidad') }}

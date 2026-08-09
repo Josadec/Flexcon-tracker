@@ -9,6 +9,7 @@ use App\Models\WorkOrder;
 use App\Services\PurchaseOrderService;
 use App\Services\SignatureService;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -160,6 +161,17 @@ class WOShow extends Component
         session()->flash('flash.banner', 'Estado actualizado correctamente.');
         session()->flash('flash.bannerStyle', 'success');
 
+        $this->refreshWorkOrder();
+    }
+
+    /**
+     * El modal de administración de estados (StatusWOManager) avisa cuando
+     * cambia un color/nombre. Se recarga el WO para que la píldora del estado
+     * y la lista de "Cambiar Estado" salgan ya con el color nuevo.
+     */
+    #[On('statuses-wo-updated')]
+    public function onStatusesWOUpdated(): void
+    {
         $this->refreshWorkOrder();
     }
 

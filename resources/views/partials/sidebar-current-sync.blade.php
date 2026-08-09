@@ -36,7 +36,6 @@
             '/admin/purchase-orders',
             '/admin/work-orders',
             '/admin/shipping-list',
-            '/admin/statuses-wo',
             '/admin/capacity-wizard',
             '/admin/capacity-calculator',
             '/admin/invoices',
