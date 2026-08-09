@@ -2,18 +2,24 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\Admin\SentLists\TvDisplay;
 use App\Models\Lot;
 use App\Models\Part;
 use App\Models\PurchaseOrder;
 use App\Models\StatusWO;
 use App\Models\WorkOrder;
-use App\Traits\ComputesAreaStats;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * M8 — Semáforos: la columna "Kit" para CRIMP se evalúa por material_status
- * (liberación a nivel viajero), ya no por estado de Kit.
+ * M8 — Semáforos: la columna de Materiales/Viajero para CRIMP se evalúa por
+ * material_status (liberación a nivel viajero), ya no por estado de Kit.
+ *
+ * El cálculo vivía en App\Traits\ComputesAreaStats, eliminado en cfcc37d al
+ * refactorizar los dashboards a App\Support\PendingActions. Hoy la única
+ * implementación viva del semáforo por área es TvDisplay, que alimenta tanto
+ * /tv (público) como /admin/sent-lists/tv.
  */
 class CrimpAreaStatsTest extends TestCase
 {
@@ -34,25 +40,45 @@ class CrimpAreaStatsTest extends TestCase
         ]);
     }
 
-    public function test_kit_column_uses_material_status_for_crimp(): void
+    public function test_material_column_uses_material_status_for_crimp(): void
     {
         // CRIMP liberado → verde; CRIMP pendiente → gris; sin kits de por medio.
         $this->makeLot(isCrimp: true, materialStatus: 'released');
         $this->makeLot(isCrimp: true, materialStatus: 'pending');
         $this->makeLot(isCrimp: false, materialStatus: 'released');
 
-        $stats = (new class {
-            use ComputesAreaStats;
+        $stats = Livewire::test(TvDisplay::class)->viewData('areaStats');
 
-            public function run(): array
-            {
-                return $this->computeAreaStats();
-            }
-        })->run();
+        $this->assertSame(3, $stats['material']['total']);
+        $this->assertSame(2, $stats['material']['green']); // 1 crimp + 1 no-crimp liberados
+        $this->assertSame(1, $stats['material']['gray']);  // crimp pendiente
+        $this->assertSame(0, $stats['material']['yellow']); // ya no hay amarillo por materiales
+    }
 
-        $this->assertSame(3, $stats['kit']['total']);
-        $this->assertSame(2, $stats['kit']['green']); // 1 crimp + 1 no-crimp liberados
-        $this->assertSame(1, $stats['kit']['gray']);  // crimp pendiente
-        $this->assertSame(0, $stats['kit']['yellow']); // ya no hay amarillo por kit
+    public function test_crimp_and_non_crimp_share_the_same_material_rule(): void
+    {
+        // Mismo material_status → mismo color, tenga o no CRIMP la parte.
+        $this->makeLot(isCrimp: true, materialStatus: 'pending');
+        $this->makeLot(isCrimp: false, materialStatus: 'pending');
+
+        $stats = Livewire::test(TvDisplay::class)->viewData('areaStats');
+
+        $this->assertSame(2, $stats['material']['total']);
+        $this->assertSame(0, $stats['material']['green']);
+        $this->assertSame(2, $stats['material']['gray']);
+    }
+
+    public function test_crimp_lots_report_release_from_the_viajero_material_status(): void
+    {
+        // La tarjeta de la WO marca los lotes de CRIMP como liberados según el
+        // material_status del viajero, no según un estado propio del kit.
+        $this->makeLot(isCrimp: true, materialStatus: 'released');
+
+        $cards = Livewire::test(TvDisplay::class)->viewData('woCards');
+
+        $this->assertCount(1, $cards);
+        $this->assertTrue($cards[0]['is_crimp']);
+        $this->assertSame(1, $cards[0]['material']['green']);
+        $this->assertSame(0, $cards[0]['material']['gray']);
     }
 }
