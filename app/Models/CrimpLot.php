@@ -23,10 +23,17 @@ class CrimpLot extends Model
         'date_code',
         'quantity',
         'comments',
+        'surplus_pieces',
+        'surplus_crimps',
+        'surplus_captured_at',
+        'surplus_captured_by',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
+        'surplus_pieces' => 'integer',
+        'surplus_crimps' => 'integer',
+        'surplus_captured_at' => 'datetime',
     ];
 
     /**
@@ -75,5 +82,22 @@ class CrimpLot extends Model
     public function getPackagedCrimpTotal(): int
     {
         return (int) $this->packagingCrimpWeighings->sum('quantity');
+    }
+
+    /**
+     * Usuario que capturó por última vez el sobrante declarado (Paso 5 · Empaque).
+     */
+    public function surplusCapturedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'surplus_captured_by');
+    }
+
+    /**
+     * ¿Ya se declaró un sobrante (manguitas o CRIMP) en este lote de CRIMP?
+     * NULL en ambas columnas = todavía no se capturó nada.
+     */
+    public function hasSurplusCaptured(): bool
+    {
+        return $this->surplus_pieces !== null || $this->surplus_crimps !== null;
     }
 }

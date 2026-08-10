@@ -172,6 +172,11 @@ class ShippingListDisplay extends Component
     public $editPieceWQty = 0;
     public $editCrimpWId = null;
     public $editCrimpWQty = 0;
+    // Sobrante DECLARADO manualmente por Empaque, por lote de CRIMP (Paso 5).
+    // Se rehidratan al abrir el modal y al cambiar de lote de CRIMP.
+    // Sin tipar a int: un <input number> vacío llega como '' → TypeError si fuese int.
+    public $cPieceSurplus = null;
+    public $cCrimpSurplus = null;
 
     // Modal Decisión Control de Materiales (separate modal)
     public $showDecisionModal = false;
@@ -1094,8 +1099,133 @@ class ShippingListDisplay extends Component
         $this->editCrimpWQty     = 0;
         $this->confirmLabelCount = $lot->packaging_label_count;
         $this->confirmComments   = '';
+        $this->hydrateSurplusFields();
         $this->resetErrorBag();
         $this->showConfirmModal  = true;
+    }
+
+    /**
+     * El sobrante declarado depende del lote de CRIMP seleccionado, así que se
+     * rehidrata cada vez que cambia (el selector usa $set, que dispara este hook).
+     */
+    public function updatedConfirmCrimpLotId(): void
+    {
+        $this->hydrateSurplusFields();
+        $this->resetErrorBag(['cPieceSurplus', 'cCrimpSurplus']);
+    }
+
+    private function hydrateSurplusFields(): void
+    {
+        $cl = $this->confirmCrimpLotId ? CrimpLot::find($this->confirmCrimpLotId) : null;
+        $this->cPieceSurplus = $cl?->surplus_pieces;
+        $this->cCrimpSurplus = $cl?->surplus_crimps;
+    }
+
+    /**
+     * Motivo por el que el sobrante ya no puede capturarse/corregirse, o null.
+     * RP-01: sólo bloquea la ESCRITURA del sobrante; no toca ningún total.
+     */
+    private function surplusLockedReason(CrimpLot $crimpLot): ?string
+    {
+        $lot = $crimpLot->lot;
+
+        if ($lot?->isInPackingSlip()) {
+            return 'No se puede capturar el sobrante: el viajero ya tiene un Packing Slip generado.';
+        }
+        if ($lot?->ready_for_shipping) {
+            return 'No se puede capturar el sobrante: el viajero ya está listo para embarque.';
+        }
+        if ($lot?->hasClosureDecision()) {
+            return 'No se puede capturar el sobrante: Materiales ya tomó la decisión de cierre (Paso 6).';
+        }
+
+        return null;
+    }
+
+    /**
+     * Guarda el sobrante declarado de manguitas del lote de CRIMP seleccionado.
+     * RP-01: escribe SÓLO en crimp_lots.surplus_*; no toca pesadas ni totales.
+     */
+    public function saveConfirmPieceSurplus()
+    {
+        $this->saveConfirmSurplus('surplus_pieces', 'cPieceSurplus', 'Sobrante de manguitas guardado.');
+    }
+
+    /**
+     * Guarda el sobrante declarado de CRIMP del lote de CRIMP seleccionado.
+     */
+    public function saveConfirmCrimpSurplus()
+    {
+        $this->saveConfirmSurplus('surplus_crimps', 'cCrimpSurplus', 'Sobrante de CRIMP guardado.');
+    }
+
+    private function saveConfirmSurplus(string $column, string $prop, string $okMessage): void
+    {
+        if (!$this->guardDepartment('packaging')) return;
+
+        $this->validate([
+            'confirmCrimpLotId' => 'required|exists:crimp_lots,id',
+            $prop               => 'required|integer|min:0',
+        ], [
+            'confirmCrimpLotId.required' => 'Selecciona primero el lote de CRIMP.',
+            $prop.'.required'            => 'Captura el sobrante (usa 0 si no hubo).',
+            $prop.'.integer'             => 'El sobrante debe ser un número entero.',
+            $prop.'.min'                 => 'El sobrante no puede ser negativo.',
+        ]);
+
+        $crimpLot = CrimpLot::find($this->confirmCrimpLotId);
+        if (!$crimpLot || (int) $crimpLot->lot_id !== (int) $this->confirmLotId) {
+            session()->flash('error', 'El lote de CRIMP ya no existe. Actualiza la página.');
+            return;
+        }
+
+        if ($reason = $this->surplusLockedReason($crimpLot)) {
+            session()->flash('error', $reason);
+            return;
+        }
+
+        $crimpLot->update([
+            $column               => (int) $this->{$prop},
+            'surplus_captured_at' => now(),
+            'surplus_captured_by' => Auth::id(),
+        ]);
+
+        $this->confirmDone = false; // cambió una cifra del resumen → re-confirmar
+        $this->dispatch('refresh-display');
+        session()->flash('message', $okMessage);
+    }
+
+    /**
+     * Regla de negocio: la suma de pesadas de un lote de CRIMP (manguitas o CRIMP
+     * por separado) NO puede superar crimp_lots.quantity del lote seleccionado.
+     * Devuelve true si la cota se respeta; si no, agrega el error y devuelve false.
+     * En edición, pasar $excludeId para no contar la pesada que se está editando.
+     */
+    private function weighingWithinCrimpLotCap(string $modelClass, int $newQty, ?int $excludeId, string $field, string $label, ?int $crimpLotId = null): bool
+    {
+        $crimpLotId = $crimpLotId ?: $this->confirmCrimpLotId;
+        $crimpLot   = CrimpLot::find($crimpLotId);
+        if (!$crimpLot) {
+            $this->addError($field, 'El lote de CRIMP ya no existe. Actualiza la página.');
+            return false;
+        }
+
+        $target  = (int) $crimpLot->quantity;
+        $already  = (int) $modelClass::query()
+            ->where('lot_id', $crimpLot->lot_id)
+            ->where('crimp_lot_id', $crimpLot->id)
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->sum('quantity');
+
+        if ($already + $newQty > $target) {
+            $this->addError($field, sprintf(
+                'No puedes capturar más de %s piezas de %s para este lote de CRIMP. Ya llevas %s.',
+                number_format($target), $label, number_format($already)
+            ));
+            return false;
+        }
+
+        return true;
     }
 
     public function addConfirmPieceWeighing()
@@ -1110,6 +1240,10 @@ class ShippingListDisplay extends Component
             'cPieceQty.required'         => 'La cantidad de piezas es obligatoria.',
             'cPieceQty.min'              => 'La cantidad debe ser mayor a 0.',
         ]);
+
+        if (!$this->weighingWithinCrimpLotCap(PackagingPieceWeighing::class, (int) $this->cPieceQty, null, 'cPieceQty', 'manguitas')) {
+            return;
+        }
 
         PackagingPieceWeighing::create([
             'lot_id'       => $this->confirmLotId,
@@ -1138,6 +1272,10 @@ class ShippingListDisplay extends Component
             'cCrimpQty.required'         => 'La cantidad de CRIMP es obligatoria.',
             'cCrimpQty.min'              => 'La cantidad debe ser mayor a 0.',
         ]);
+
+        if (!$this->weighingWithinCrimpLotCap(PackagingCrimpWeighing::class, (int) $this->cCrimpQty, null, 'cCrimpQty', 'CRIMP')) {
+            return;
+        }
 
         PackagingCrimpWeighing::create([
             'lot_id'       => $this->confirmLotId,
@@ -1189,7 +1327,12 @@ class ShippingListDisplay extends Component
             ['editPieceWQty.required' => 'La cantidad es obligatoria.', 'editPieceWQty.min' => 'La cantidad debe ser mayor a 0.']
         );
         $w = PackagingPieceWeighing::find($this->editPieceWId);
-        if ($w) { $w->update(['quantity' => $this->editPieceWQty]); }
+        if ($w) {
+            if (!$this->weighingWithinCrimpLotCap(PackagingPieceWeighing::class, (int) $this->editPieceWQty, $w->id, 'editPieceWQty', 'manguitas', $w->crimp_lot_id)) {
+                return;
+            }
+            $w->update(['quantity' => $this->editPieceWQty]);
+        }
         $this->editPieceWId  = null;
         $this->editPieceWQty = 0;
         $this->confirmDone   = false;
@@ -1221,7 +1364,12 @@ class ShippingListDisplay extends Component
             ['editCrimpWQty.required' => 'La cantidad es obligatoria.', 'editCrimpWQty.min' => 'La cantidad debe ser mayor a 0.']
         );
         $w = PackagingCrimpWeighing::find($this->editCrimpWId);
-        if ($w) { $w->update(['quantity' => $this->editCrimpWQty]); }
+        if ($w) {
+            if (!$this->weighingWithinCrimpLotCap(PackagingCrimpWeighing::class, (int) $this->editCrimpWQty, $w->id, 'editCrimpWQty', 'CRIMP', $w->crimp_lot_id)) {
+                return;
+            }
+            $w->update(['quantity' => $this->editCrimpWQty]);
+        }
         $this->editCrimpWId  = null;
         $this->editCrimpWQty = 0;
         $this->confirmDone   = false;
@@ -1271,7 +1419,7 @@ class ShippingListDisplay extends Component
      */
     private function dispatchEmpaqueTerminado($lotId, $labelCount, $comments): int
     {
-        $lot = Lot::with('workOrder.purchaseOrder.part')->findOrFail($lotId);
+        $lot = Lot::with(['workOrder.purchaseOrder.part', 'crimpLots'])->findOrFail($lotId);
 
         $lot->update([
             'packaging_label_count' => $labelCount,
@@ -1326,6 +1474,8 @@ class ShippingListDisplay extends Component
         $this->editPieceWQty     = 0;
         $this->editCrimpWId      = null;
         $this->editCrimpWQty     = 0;
+        $this->cPieceSurplus     = null;
+        $this->cCrimpSurplus     = null;
         $this->confirmLabelCount = null;
         $this->confirmComments   = '';
         $this->resetErrorBag();

@@ -6,6 +6,10 @@
     $crimp       = $viajero->getPackagedCrimpTotal();
     $sobPiezas   = $viajero->getPackagedPiecesSurplus();
     $sobCrimp    = $viajero->getPackagedCrimpSurplus();
+    // Sobrante DECLARADO manualmente por Empaque (Paso 5), agregado por viajero.
+    $hasDeclared    = $viajero->crimpLots->contains(fn($cl) => $cl->hasSurplusCaptured());
+    $declaredPiezas = (int) $viajero->crimpLots->filter(fn($cl) => $cl->surplus_pieces !== null)->sum('surplus_pieces');
+    $declaredCrimp  = (int) $viajero->crimpLots->filter(fn($cl) => $cl->surplus_crimps !== null)->sum('surplus_crimps');
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -64,9 +68,14 @@
                         <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;font-weight:bold;color:#7c3aed;">{{ number_format($crimp) }}</td>
                     </tr>
                     <tr>
-                        <td style="padding:8px;border:1px solid #e5e7eb;">Sobrante</td>
+                        <td style="padding:8px;border:1px solid #e5e7eb;">Sobrante (calculado)</td>
                         <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;color:#ea580c;">{{ number_format($sobPiezas) }}</td>
                         <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;color:#ea580c;">{{ number_format($sobCrimp) }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:8px;border:1px solid #e5e7eb;">Sobrante declarado por Empaque</td>
+                        <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;color:#b45309;">{{ $hasDeclared ? number_format($declaredPiezas) : '—' }}</td>
+                        <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;color:#b45309;">{{ $hasDeclared ? number_format($declaredCrimp) : '—' }}</td>
                     </tr>
                 </tbody>
             </table>
