@@ -49,7 +49,6 @@
             '/admin/shifts',
             '/admin/break-times',
             '/admin/over-times',
-            '/admin/production-statuses',
             '/admin/packing-slips',
             '/admin/users',
             '/admin/employees',

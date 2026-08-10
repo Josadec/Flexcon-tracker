@@ -18,13 +18,35 @@ class BreakTimeList extends Component
     public string $filterActive = 'all';
     public string $filterShift = 'all';
 
+    /** Columnas por las que se puede ordenar el listado. */
+    private const SORTABLE = ['name', 'start_break_time', 'end_break_time', 'shift_id', 'active', 'created_at'];
+
     public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterActive(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterShift(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingPerPage(): void
     {
         $this->resetPage();
     }
 
     public function sortBy(string $field): void
     {
+        if (!in_array($field, self::SORTABLE, true)) {
+            return;
+        }
+
         if ($this->sortField === $field) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
@@ -33,16 +55,26 @@ class BreakTimeList extends Component
         $this->sortField = $field;
     }
 
+    public function clearFilters(): void
+    {
+        $this->search = '';
+        $this->filterActive = 'all';
+        $this->filterShift = 'all';
+        $this->resetPage();
+    }
+
     public function deleteBreakTime(int $id): void
     {
         $breakTime = BreakTime::findOrFail($id);
+
         if (!$breakTime->canBeDeleted()) {
-            session()->flash('error', 'No se puede eliminar este descanso.');
+            session()->flash('error', 'No se puede eliminar el descanso «' . $breakTime->name . '».');
             return;
         }
+
         $breakTime->delete();
-        session()->flash('flash.banner', 'Descanso eliminado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+
+        session()->flash('message', 'Descanso «' . $breakTime->name . '» eliminado correctamente.');
     }
 
     public function render()
@@ -62,17 +94,14 @@ class BreakTimeList extends Component
         $breakTimes = $query->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
 
-        $shifts = Shift::orderBy('name')->get();
-        $totalBreakTimes = BreakTime::count();
-        $activeBreakTimes = BreakTime::active()->count();
-        $shiftsWithBreaks = Shift::has('BreakTimes')->count();
-
         return view('livewire.admin.break-times.break-time-list', [
             'breakTimes' => $breakTimes,
-            'shifts' => $shifts,
-            'totalBreakTimes' => $totalBreakTimes,
-            'activeBreakTimes' => $activeBreakTimes,
-            'shiftsWithBreaks' => $shiftsWithBreaks,
+            'shifts' => Shift::orderBy('name')->get(),
+            'totalBreakTimes' => BreakTime::count(),
+            'activeBreakTimes' => BreakTime::active()->count(),
+            'inactiveBreakTimes' => BreakTime::inactive()->count(),
+            // Turnos sin ningún descanso: se les cuenta el turno completo como productivo.
+            'shiftsWithoutBreaks' => Shift::active()->doesntHave('BreakTimes')->count(),
         ]);
     }
 }

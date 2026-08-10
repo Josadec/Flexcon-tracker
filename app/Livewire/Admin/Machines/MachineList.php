@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Machines;
 
 use App\Models\Machine;
 use App\Models\Area;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -12,12 +13,14 @@ class MachineList extends Component
     use WithPagination;
 
     public string $search = '';
-    public string $sortBy = 'name';
+    public string $sortField = 'name';
     public string $sortDirection = 'asc';
     public string $filterArea = '';
     public string $filterStatus = '';
-    public bool $showDeleteModal = false;
-    public ?int $machineToDelete = null;
+    public int $perPage = 10;
+
+    /** Columnas por las que se puede ordenar el listado. */
+    private const SORTABLE = ['name', 'brand', 'area_id', 'employees', 'setup_time', 'active', 'created_at'];
 
     public function updatingSearch(): void
     {
@@ -34,63 +37,75 @@ class MachineList extends Component
         $this->resetPage();
     }
 
+    public function updatingPerPage(): void
+    {
+        $this->resetPage();
+    }
+
     public function sortBy(string $field): void
     {
-        if ($this->sortBy === $field) {
+        if (!in_array($field, self::SORTABLE, true)) {
+            return;
+        }
+
+        if ($this->sortField === $field) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
-            $this->sortBy = $field;
+            $this->sortField = $field;
             $this->sortDirection = 'asc';
         }
         $this->resetPage();
     }
 
-    public function confirmDelete(int $machineId): void
+    public function clearFilters(): void
     {
-        $this->machineToDelete = $machineId;
-        $this->showDeleteModal = true;
+        $this->search = '';
+        $this->filterArea = '';
+        $this->filterStatus = '';
+        $this->resetPage();
     }
 
-    public function deleteMachine(): void
+    /**
+     * El modal del catálogo puede renombrar o desactivar un estado, y la tabla
+     * lo muestra por renglón: basta recibir el evento para volver a pintarla.
+     */
+    #[On('production-statuses-updated')]
+    public function refreshAfterStatusChange(): void
     {
-        if ($this->machineToDelete) {
-            Machine::find($this->machineToDelete)->delete();
-            session()->flash('flash.banner', 'Máquina eliminada correctamente.');
-            session()->flash('flash.bannerStyle', 'success');
+        //
+    }
+
+    public function deleteMachine(int $id): void
+    {
+        $machine = Machine::find($id);
+
+        if (!$machine) {
+            session()->flash('error', 'No se encontró la máquina que quieres eliminar.');
+            return;
         }
-        $this->showDeleteModal = false;
-        $this->machineToDelete = null;
-    }
 
-    public function cancelDelete(): void
-    {
-        $this->showDeleteModal = false;
-        $this->machineToDelete = null;
+        // Soft delete: los estándares que la mencionan siguen siendo legibles.
+        $machine->delete();
+
+        session()->flash('message', 'Máquina ' . $machine->name . ' eliminada correctamente.');
     }
 
     public function render()
     {
-        $areas = Area::orderBy('name')->get();
-
-        $query = Machine::with('area')
-            ->when($this->search, function ($query) {
-                $query->search($this->search);
-            })
-            ->when($this->filterArea, function ($query) {
-                $query->byArea($this->filterArea);
-            })
+        // productionStatus: la tabla lo muestra por renglón; sin esto es un N+1.
+        $machines = Machine::with(['area', 'productionStatus'])
+            ->when($this->search, fn ($query) => $query->search($this->search))
+            ->when($this->filterArea, fn ($query) => $query->byArea($this->filterArea))
             ->when($this->filterStatus !== '', function ($query) {
-                if ($this->filterStatus === '1') {
-                    $query->active();
-                } else {
-                    $query->inactive();
-                }
+                $this->filterStatus === '1' ? $query->active() : $query->inactive();
             })
-            ->orderBy($this->sortBy, $this->sortDirection);
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->paginate($this->perPage);
 
-        $machines = $query->paginate(10);
-        $stats = Machine::getStats();
-
-        return view('livewire.admin.machines.machine-list', compact('machines', 'areas', 'stats'));
+        return view('livewire.admin.machines.machine-list', [
+            'machines' => $machines,
+            'areas' => Area::orderBy('name')->get(),
+            'stats' => Machine::getStats(),
+        ]);
     }
 }

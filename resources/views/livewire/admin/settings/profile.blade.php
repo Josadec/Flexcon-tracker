@@ -8,19 +8,20 @@ use Livewire\Volt\Component;
 
 new class extends Component {
     public string $name = '';
+    public string $last_name = '';
     public string $email = '';
 
-    /**
-     * Mount the component.
-     */
     public function mount(): void
     {
-        $this->name = Auth::user()->name;
-        $this->email = Auth::user()->email;
+        $user = Auth::user();
+
+        $this->name = $user->name;
+        $this->last_name = $user->last_name ?? '';
+        $this->email = $user->email;
     }
 
     /**
-     * Update the profile information for the currently authenticated user.
+     * Actualiza los datos del usuario autenticado.
      */
     public function updateProfileInformation(): void
     {
@@ -28,15 +29,24 @@ new class extends Component {
 
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
-
+            // El apellido existe en la base y se usa en toda la aplicación, pero
+            // esta pantalla no lo dejaba editar: sólo se podía cambiar entrando
+            // como administrador al alta de usuarios.
+            'last_name' => ['nullable', 'string', 'max:255'],
             'email' => [
                 'required',
                 'string',
                 'lowercase',
                 'email',
                 'max:255',
-                Rule::unique(User::class)->ignore($user->id)
+                Rule::unique(User::class)->ignore($user->id),
             ],
+        ], [
+            'name.required' => 'El nombre es obligatorio.',
+            'email.required' => 'El correo es obligatorio.',
+            'email.email' => 'Escribe un correo válido.',
+            'email.lowercase' => 'El correo debe ir en minúsculas.',
+            'email.unique' => 'Ese correo ya está registrado por otra persona.',
         ]);
 
         $user->fill($validated);
@@ -50,9 +60,6 @@ new class extends Component {
         $this->dispatch('profile-updated', name: $user->name);
     }
 
-    /**
-     * Send an email verification notification to the current user.
-     */
     public function resendVerificationNotification(): void
     {
         $user = Auth::user();
@@ -67,48 +74,84 @@ new class extends Component {
 
         Session::flash('status', 'verification-link-sent');
     }
+
+    public function with(): array
+    {
+        return ['user' => Auth::user()];
+    }
 }; ?>
 
-<section class="w-full">
-    @include('partials.settings-heading')
+<x-settings.layout active="profile" heading="Perfil"
+    subheading="Tu nombre y tu correo. Es lo que ve el resto del equipo cuando firmas una pesada, una inspección o un empaque.">
 
-    <x-settings.layout :heading="__('Profile')" :subheading="__('Update your name and email address')">
-        <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
-            <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus autocomplete="name" />
+    @php
+        $verificaCorreo = $user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail;
+        $sinVerificar = $verificaCorreo && ! $user->hasVerifiedEmail();
+    @endphp
 
-            <div>
-                <flux:input wire:model="email" :label="__('Email')" type="email" required autocomplete="email" />
+    <form wire:submit="updateProfileInformation" class="space-y-5">
+        <x-ui.section title="Datos personales" hint="Tu nombre aparece junto a cada registro que capturas.">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <x-ui.field label="Nombre" required :error="$errors->first('name')">
+                    <input type="text" wire:model="name" autocomplete="name" autofocus class="w-full">
+                </x-ui.field>
 
-                @if (auth()->user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail &&! auth()->user()->hasVerifiedEmail())
-                    <div>
-                        <flux:text class="mt-4">
-                            {{ __('Your email address is unverified.') }}
-
-                            <flux:link class="text-sm cursor-pointer" wire:click.prevent="resendVerificationNotification">
-                                {{ __('Click here to re-send the verification email.') }}
-                            </flux:link>
-                        </flux:text>
-
-                        @if (session('status') === 'verification-link-sent')
-                            <flux:text class="mt-2 font-medium !dark:text-green-400 !text-green-600">
-                                {{ __('A new verification link has been sent to your email address.') }}
-                            </flux:text>
-                        @endif
-                    </div>
-                @endif
+                <x-ui.field label="Apellido" optional :error="$errors->first('last_name')">
+                    <input type="text" wire:model="last_name" autocomplete="family-name" class="w-full">
+                </x-ui.field>
             </div>
 
-            <div class="flex items-center gap-4">
-                <div class="flex items-center justify-end">
-                    <flux:button variant="primary" type="submit" class="w-full">{{ __('Save') }}</flux:button>
-                </div>
+            <x-ui.field label="Correo electrónico" required class="mt-4"
+                hint="Con este correo entras al sistema."
+                :error="$errors->first('email')">
+                <input type="email" wire:model="email" autocomplete="email" class="w-full">
+            </x-ui.field>
 
-                <x-action-message class="me-3" on="profile-updated">
-                    {{ __('Saved.') }}
-                </x-action-message>
-            </div>
-        </form>
+            @if ($sinVerificar)
+                <x-ui.note tone="warn" title="Tu correo no está verificado" class="mt-4">
+                    <p>Verifícalo para no perder el acceso si olvidas la contraseña.</p>
+                    <button type="button" wire:click.prevent="resendVerificationNotification"
+                        class="mt-2 font-semibold underline underline-offset-2">
+                        Reenviar el correo de verificación
+                    </button>
 
-        <livewire:admin.settings.delete-user-form />
-    </x-settings.layout>
-</section>
+                    @if (session('status') === 'verification-link-sent')
+                        <p class="mt-2 font-semibold">Listo: enviamos un enlace nuevo a tu correo.</p>
+                    @endif
+                </x-ui.note>
+            @elseif ($verificaCorreo)
+                <p class="mt-3 flex items-center gap-1.5 text-xs font-medium text-green-700 dark:text-green-300">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Correo verificado
+                </p>
+            @endif
+
+            <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                Si cambias el correo tendrás que volver a verificarlo.
+            </p>
+        </x-ui.section>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <x-ui.btn variant="primary" type="submit">Guardar cambios</x-ui.btn>
+            <x-action-message on="profile-updated"
+                class="font-semibold text-green-700 dark:text-green-300">
+                Guardado.
+            </x-action-message>
+        </div>
+    </form>
+
+    {{-- Datos de la cuenta que no se editan aquí --}}
+    <x-ui.section title="Tu cuenta" hint="Estos datos los administra el área de sistemas; aquí sólo se consultan.">
+        <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+            <x-ui.kv label="Usuario" :value="$user->account ?: '—'" />
+            <x-ui.kv label="Permisos"
+                :value="$user->getRoleNames()->isNotEmpty() ? $user->getRoleNames()->implode(', ') : 'Sin rol asignado'"
+                help="Determinan a qué áreas del sistema entras." />
+            <x-ui.kv label="Cuenta creada" :value="$user->created_at?->format('d/m/Y') ?? '—'" />
+        </dl>
+    </x-ui.section>
+
+    <livewire:admin.settings.delete-user-form />
+</x-settings.layout>

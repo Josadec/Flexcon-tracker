@@ -1,154 +1,144 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Permisos</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestión de permisos del sistema</p>
-        </div>
-        <a href="{{ route('admin.permissions.create') }}" 
-           class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
-            Nuevo Permiso
-        </a>
-    </div>
+<x-ui.page eyebrow="Administración" title="Permisos"
+    subtitle="Catálogo de acciones que se pueden repartir entre los roles. Un permiso sólo sirve cuando algún rol lo tiene.">
 
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Permisos</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $totalPermissions }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Permisos Asignados</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ \Spatie\Permission\Models\Permission::whereHas('roles')->count() }}</div>
-        </div>
-    </div>
+    <x-slot:actions>
+        <x-ui.btn variant="secondary" href="{{ route('admin.roles.index') }}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            Ver roles
+        </x-ui.btn>
+        <x-ui.btn variant="primary" href="{{ route('admin.permissions.create') }}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Nuevo permiso
+        </x-ui.btn>
+    </x-slot:actions>
 
-    <!-- Filters -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Buscar</label>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
-                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
+    {{-- Resumen --}}
+    <x-ui.stats cols="4">
+        <x-ui.stat label="Total de permisos" :value="$totalPermissions" />
+        <x-ui.stat label="Grupos" :value="$groups->count()" tone="info"
+            help="Familias según el prefijo del nombre (admin, usuarios, catalogos...)." />
+        <x-ui.stat label="Roles" :value="$totalRoles" />
+        <x-ui.stat label="Sin usar" :value="$orphanPermissions" :tone="$orphanPermissions > 0 ? 'warn' : 'neutral'"
+            help="Permisos que ningún rol tiene asignados. Son los únicos que se pueden eliminar." />
+    </x-ui.stats>
+
+    @if (session('message'))
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
+    @endif
+    @if (session('error'))
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
+    @endif
+
+    {{-- Filtros --}}
+    <x-ui.section title="Buscar" hint="Filtra por nombre del permiso o acota por grupo.">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_9rem]">
+            <x-ui.field label="Texto a buscar">
+                <div class="relative">
+                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </span>
+                    <input type="text" wire:model.live.debounce.300ms="search"
+                        placeholder="Ej: usuarios.edit..." class="w-full pl-10">
                 </div>
-                <input 
-                    type="text" 
-                    wire:model.live.debounce.300ms="search" 
-                    placeholder="Buscar por nombre de permiso..."
-                    class="block w-full pl-10 pr-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-            </div>
-        </div>
-        @if($search)
-            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Resultados filtrados</span>
-                <button 
-                    wire:click="$set('search', '')" 
-                    class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
-                >
-                    Limpiar filtros
-                </button>
-            </div>
-        @endif
-    </div>
+            </x-ui.field>
 
-    <!-- Table -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('name')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Nombre
-                                @if($sortField === 'name')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                    </svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Roles Asignados</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('created_at')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Creado
-                                @if($sortField === 'created_at')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                    </svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse($permissions as $permission)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0 h-10 w-10">
-                                        <div class="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 flex items-center justify-center">
-                                            <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                            {{ $permission->name }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-blue-200 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                                    {{ $permission->roles_count }} roles
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {{ $permission->created_at->format('d/m/Y') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('admin.permissions.edit', $permission) }}" 
-                                       class="inline-flex items-center justify-center w-8 h-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-2 border-transparent hover:border-blue-300 dark:hover:border-blue-700 rounded-md transition-colors" 
-                                       title="Editar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </a>
-                                    <button 
-                                        wire:click="deletePermission({{ $permission->id }})"
-                                        wire:confirm="¿Estás seguro de que deseas eliminar este permiso?"
-                                        class="inline-flex items-center justify-center w-8 h-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-2 border-transparent hover:border-red-300 dark:hover:border-red-700 rounded-md transition-colors" 
-                                        title="Eliminar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="px-6 py-16 text-center">
-                                <div class="text-sm text-gray-500 dark:text-gray-400">No se encontraron permisos</div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <x-ui.field label="Grupo">
+                <select wire:model.live="filterGroup" class="w-full">
+                    <option value="">Todos</option>
+                    @foreach ($groups as $group)
+                        <option value="{{ $group }}">{{ $group }}</option>
+                    @endforeach
+                </select>
+            </x-ui.field>
+
+            <x-ui.field label="Por página">
+                <select wire:model.live="perPage" class="w-full">
+                    @foreach ([15, 25, 50, 100] as $n)
+                        <option value="{{ $n }}">{{ $n }}</option>
+                    @endforeach
+                </select>
+            </x-ui.field>
         </div>
-        @if($permissions->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                {{ $permissions->links() }}
+
+        @if ($search || $filterGroup)
+            <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Mostrando resultados filtrados.</span>
+                <x-ui.btn variant="ghost" size="sm" wire:click="clearFilters">Limpiar filtros</x-ui.btn>
             </div>
         @endif
-    </div>
-</div>
+    </x-ui.section>
+
+    {{-- Listado --}}
+    <x-ui.table>
+        <x-slot:head>
+            <tr>
+                <x-ui.th sort="name" :field="$sortField" :direction="$sortDirection">Permiso</x-ui.th>
+                <x-ui.th class="w-40">Grupo</x-ui.th>
+                <x-ui.th class="w-36">Roles</x-ui.th>
+                <x-ui.th sort="created_at" :field="$sortField" :direction="$sortDirection" class="w-32">Alta</x-ui.th>
+                <x-ui.th align="right" class="w-28">Acciones</x-ui.th>
+            </tr>
+        </x-slot:head>
+
+        @forelse ($permissions as $permission)
+            @php
+                $partes = explode('.', $permission->name);
+                $grupo = count($partes) > 1 ? $partes[0] : null;
+                $accion = count($partes) > 1 ? implode('.', array_slice($partes, 1)) : $permission->name;
+            @endphp
+            <tr wire:key="permission-{{ $permission->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="px-4 py-3">
+                    <span class="block font-mono text-sm font-semibold text-slate-900 dark:text-white">{{ $permission->name }}</span>
+                    <span class="block text-xs text-slate-500 dark:text-slate-400">{{ $accion }}</span>
+                </td>
+                <td class="whitespace-nowrap px-4 py-3">
+                    @if ($grupo)
+                        <x-ui.badge tone="neutral">{{ $grupo }}</x-ui.badge>
+                    @else
+                        <span class="text-slate-400 dark:text-slate-500">Sin grupo</span>
+                    @endif
+                </td>
+                <td class="whitespace-nowrap px-4 py-3">
+                    @if ($permission->roles_count > 0)
+                        <x-ui.badge tone="info">
+                            {{ $permission->roles_count }} {{ \Illuminate\Support\Str::plural('rol', $permission->roles_count) }}
+                        </x-ui.badge>
+                    @else
+                        <x-ui.badge tone="warn" dot>Sin usar</x-ui.badge>
+                    @endif
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
+                    {{ $permission->created_at?->format('d/m/Y') ?? '—' }}
+                </td>
+                <td class="px-4 py-3">
+                    {{-- Eliminar sólo aparece si ningún rol lo usa: así el botón
+                         visible siempre es un botón que funciona. --}}
+                    <x-ui.row-actions label="el permiso {{ $permission->name }}"
+                        :edit="route('admin.permissions.edit', $permission)"
+                        :delete="$permission->roles_count === 0 ? 'deletePermission('.$permission->id.')' : null"
+                        deleteConfirm="¿Eliminar el permiso «{{ $permission->name }}»? Esta acción no se puede deshacer." />
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="5">
+                    <x-ui.empty icon="search" title="No se encontraron permisos"
+                        hint="Ajusta la búsqueda o el grupo, o crea un permiso nuevo.">
+                        <x-slot:action>
+                            <x-ui.btn variant="primary" href="{{ route('admin.permissions.create') }}">Nuevo permiso</x-ui.btn>
+                        </x-slot:action>
+                    </x-ui.empty>
+                </td>
+            </tr>
+        @endforelse
+
+        @if ($permissions->hasPages())
+            <x-slot:foot>{{ $permissions->links() }}</x-slot:foot>
+        @endif
+    </x-ui.table>
+
+    <x-ui.note tone="muted">
+        Un permiso asignado a algún rol no se puede eliminar. Quítalo primero de esos roles desde
+        <a href="{{ route('admin.roles.index') }}" wire:navigate class="font-bold underline">Roles</a>.
+    </x-ui.note>
+</x-ui.page>

@@ -98,8 +98,7 @@ class EmployeeEdit extends Component
 
         $this->employee->update($data);
 
-        session()->flash('flash.banner', 'Empleado actualizado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Empleado actualizado correctamente.');
 
         return redirect()->route('admin.employees.show', $this->employee);
     }

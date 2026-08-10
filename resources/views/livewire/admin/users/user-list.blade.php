@@ -1,277 +1,264 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between flex-wrap gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Usuarios</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestión de usuarios del sistema</p>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-            <button wire:click="downloadTemplate"
-                class="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
-                title="Descargar plantilla CSV">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                Plantilla
-            </button>
-            <button wire:click="openImportModal"
-                class="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 8l-4-4m0 0L8 8m4-4v12"/>
-                </svg>
+<x-ui.page eyebrow="Administración" title="Usuarios"
+    subtitle="Cuentas de acceso al sistema: alta, rol y área a su cargo. Los empleados de planta se administran en Empleados.">
+
+    {{-- Sólo el alta es acción principal; importar, exportar y la plantilla son
+         tareas ocasionales y competían con ella al mismo peso visual. --}}
+    <x-slot:actions>
+        <x-ui.menu label="Más acciones de usuarios">
+            <x-ui.menu.item wire:click="openImportModal">
+                <svg class="size-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 8l-4-4m0 0L8 8m4-4v12"/></svg>
                 Importar CSV
-            </button>
-            <button wire:click="exportCsv"
-                class="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M8 12l4 4m0 0l4-4m-4 4V4"/>
-                </svg>
+            </x-ui.menu.item>
+            <x-ui.menu.item wire:click="exportCsv">
+                <svg class="size-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M8 12l4 4m0 0l4-4m-4 4V4"/></svg>
                 Exportar CSV
-            </button>
-            <a href="{{ route('admin.users.create') }}"
-               class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Nuevo Usuario
-            </a>
-        </div>
-    </div>
+            </x-ui.menu.item>
+            <x-ui.menu.item wire:click="downloadTemplate">
+                <svg class="size-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Descargar plantilla CSV
+            </x-ui.menu.item>
+        </x-ui.menu>
 
-    {{-- Modal Import CSV --}}
-    @if($showImportModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" wire:click.self="closeImportModal">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Importar Usuarios desde CSV</h3>
-                    <button wire:click="closeImportModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <div class="p-4 overflow-y-auto space-y-4">
-                    <div class="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-800 dark:text-blue-200">
-                        <p class="font-medium">Formato requerido:</p>
-                        <p class="mt-1">Columnas obligatorias: <code class="font-mono text-xs">name, email, password, role_name</code></p>
-                        <p class="mt-1">Opcionales: <code class="font-mono text-xs">last_name, account, area_name</code></p>
-                        <p class="mt-1"><strong>Rol</strong> y <strong>Área</strong> se referencian por nombre exacto. El área sólo se usa si el rol es <strong>Supervisor</strong>. Descarga la plantilla si tienes dudas.</p>
-                    </div>
+        <x-ui.btn variant="primary" href="{{ route('admin.users.create') }}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Nuevo usuario
+        </x-ui.btn>
+    </x-slot:actions>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Archivo CSV</label>
-                        <input type="file" wire:model="importFile" accept=".csv,text/csv" class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-                        @error('importFile') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                        <div wire:loading wire:target="importFile" class="mt-2 text-xs text-gray-500">Subiendo archivo...</div>
-                    </div>
+    {{-- Resumen. Las tres primeras describen esta pantalla (sin empleados de
+         planta); la última existe para dejar claro dónde vive el resto. --}}
+    <x-ui.stats cols="4">
+        <x-ui.stat label="Usuarios del sistema" :value="$totalUsers"
+            help="No incluye a los empleados de planta, que se administran en el módulo Empleados." />
+        <x-ui.stat label="Con rol" :value="$usersWithRole" tone="good"
+            help="Usuarios que ya tienen un rol asignado y por lo tanto pueden entrar a su módulo." />
+        <x-ui.stat label="Sin rol" :value="$usersWithoutRole" :tone="$usersWithoutRole > 0 ? 'warn' : 'neutral'"
+            help="Sin rol, el usuario entra al sistema pero no ve ningún módulo." />
+        <x-ui.stat label="Empleados de planta" :value="$employeeCount" tone="info"
+            help="Se dan de alta y se editan en el módulo Empleados. Aquí sólo aparecen si cambias el ámbito." />
+    </x-ui.stats>
 
-                    @if(!empty($importResults))
-                        <div class="rounded-md border p-3 text-sm
-                            {{ ($importResults['failed'] ?? 0) > 0 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200' }}">
-                            <p class="font-medium">Resultado:</p>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                                <div><span class="font-semibold">{{ $importResults['created'] ?? 0 }}</span> creados</div>
-                                <div><span class="font-semibold">{{ $importResults['updated'] ?? 0 }}</span> actualizados</div>
-                                <div><span class="font-semibold">{{ $importResults['skipped'] ?? 0 }}</span> sin cambios</div>
-                                <div><span class="font-semibold">{{ $importResults['failed'] ?? 0 }}</span> fallaron</div>
-                            </div>
-                            @if(!empty($importResults['errors']))
-                                <details class="mt-2">
-                                    <summary class="cursor-pointer text-xs font-medium">Ver errores ({{ count($importResults['errors']) }})</summary>
-                                    <ul class="mt-2 list-disc list-inside text-xs space-y-0.5 max-h-40 overflow-y-auto">
-                                        @foreach($importResults['errors'] as $err)
-                                            <li>{{ $err }}</li>
-                                        @endforeach
-                                    </ul>
-                                </details>
-                            @endif
-                        </div>
-                    @endif
-                </div>
-                <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                    <button wire:click="closeImportModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
-                        Cerrar
-                    </button>
-                    <button wire:click="importCsv" wire:loading.attr="disabled" wire:target="importCsv,importFile" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50">
-                        <span wire:loading.remove wire:target="importCsv">Procesar</span>
-                        <span wire:loading wire:target="importCsv">Procesando...</span>
-                    </button>
-                </div>
-            </div>
-        </div>
+    @if (session('message'))
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
+    @endif
+    @if (session('error'))
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
     @endif
 
-    <!-- Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $totalUsers }}</div>
-        </div>
-        @foreach($usersByRole as $roleData)
-            <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ $roleData->name }}</div>
-                <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $roleData->users_count }}</div>
-            </div>
-        @endforeach
-    </div>
-
-    <!-- Filters -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Buscar</label>
+    {{-- Filtros --}}
+    <x-ui.section title="Buscar" hint="Filtra por nombre, correo o cuenta, y acota por ámbito, rol o departamento.">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
+            <x-ui.field label="Texto a buscar" class="lg:col-span-2">
                 <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                    </div>
-                    <input 
-                        type="text" 
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="Nombre, email o cuenta..."
-                        class="block w-full pl-10 pr-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    />
+                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </span>
+                    <input type="text" wire:model.live.debounce.300ms="search"
+                        placeholder="Nombre, correo o cuenta..." class="w-full pl-10">
                 </div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rol</label>
-                <select wire:model.live="roleFilter" class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            </x-ui.field>
+
+            <x-ui.field label="Ámbito" hint="Los empleados viven en su módulo.">
+                <select wire:model.live="typeFilter" class="w-full">
+                    <option value="staff">Del sistema</option>
+                    <option value="employee">Empleados de planta</option>
+                    <option value="all">Todos</option>
+                </select>
+            </x-ui.field>
+
+            <x-ui.field label="Rol">
+                <select wire:model.live="roleFilter" class="w-full">
                     <option value="">Todos</option>
-                    @foreach($roles as $role)
-                        <option value="{{ $role->name }}">{{ $role->name }}</option>
+                    @foreach ($roles as $role)
+                        <option value="{{ $role->name }}">{{ $role->name }} ({{ $role->users_count }})</option>
                     @endforeach
                 </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Departamento</label>
-                <select wire:model.live="departmentFilter" class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            </x-ui.field>
+
+            <x-ui.field label="Departamento" hint="Por el área que supervisa.">
+                <select wire:model.live="departmentFilter" class="w-full">
                     <option value="">Todos</option>
-                    @foreach($departments as $department)
+                    @foreach ($departments as $department)
                         <option value="{{ $department->id }}">{{ $department->name }}</option>
                     @endforeach
                 </select>
-            </div>
-        </div>
-        @if($search || $roleFilter || $departmentFilter)
-            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Resultados filtrados</span>
-                <button wire:click="clearFilters" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
-                    Limpiar filtros
-                </button>
-            </div>
-        @endif
-    </div>
+            </x-ui.field>
 
-    <!-- Table -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('name')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Usuario
-                                @if($sortField === 'name')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                    </svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('email')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Email
-                                @if($sortField === 'email')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                    </svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Rol</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Área</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('created_at')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Registro
-                                @if($sortField === 'created_at')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                    </svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse($users as $user)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 text-sm font-medium">
-                                        {{ $user->initials }}
-                                    </div>
-                                    <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $user->name }} {{ $user->last_name }}</div>
-                                        @if($user->account)
-                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $user->account }}</div>
-                                        @endif
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ $user->email }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                @if($user->roles->isNotEmpty())
-                                    <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                        {{ $user->roles->first()->name }}
-                                    </span>
-                                @else
-                                    <span class="text-xs text-gray-400">Sin rol</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                                @if($user->areas->isNotEmpty())
-                                    @foreach($user->areas as $area)
-                                        <div class="font-medium">{{ $area->name }}</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ $area->department->name }}</div>
-                                    @endforeach
-                                @else
-                                    <span class="text-gray-400">—</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {{ $user->created_at->format('d/m/Y') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('admin.users.edit', $user) }}" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-2 border-transparent hover:border-blue-300 dark:hover:border-blue-700 rounded-md transition-colors" title="Editar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </a>
-                                    @if($user->id !== auth()->id())
-                                        <button wire:click="deleteUser({{ $user->id }})" wire:confirm="¿Estás seguro?" class="inline-flex items-center justify-center w-8 h-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-2 border-transparent hover:border-red-300 dark:hover:border-red-700 rounded-md transition-colors" title="Eliminar">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                            </svg>
-                                        </button>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-16 text-center">
-                                <div class="text-sm text-gray-500 dark:text-gray-400">No se encontraron usuarios</div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <x-ui.field label="Por página">
+                <select wire:model.live="perPage" class="w-full">
+                    @foreach ([5, 10, 25, 50] as $n)
+                        <option value="{{ $n }}">{{ $n }}</option>
+                    @endforeach
+                </select>
+            </x-ui.field>
         </div>
-        @if($users->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                {{ $users->links() }}
+
+        @if ($search || $roleFilter || $departmentFilter || $typeFilter !== 'staff')
+            <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Mostrando resultados filtrados.</span>
+                <x-ui.btn variant="ghost" size="sm" wire:click="clearFilters">Limpiar filtros</x-ui.btn>
             </div>
         @endif
-    </div>
-</div>
+    </x-ui.section>
+
+    @if ($typeFilter !== 'staff')
+        <x-ui.note tone="info">
+            Estás viendo empleados de planta. Su número de empleado, turno, área de trabajo y estado se editan en
+            <a href="{{ route('admin.employees.index') }}" wire:navigate class="font-bold underline">Empleados</a>;
+            aquí sólo puedes cambiar sus datos de acceso y su rol.
+        </x-ui.note>
+    @endif
+
+    {{-- Listado --}}
+    <x-ui.table>
+        <x-slot:head>
+            <tr>
+                <x-ui.th sort="name" :field="$sortField" :direction="$sortDirection">Usuario</x-ui.th>
+                <x-ui.th sort="email" :field="$sortField" :direction="$sortDirection">Correo</x-ui.th>
+                <x-ui.th>Rol</x-ui.th>
+                <x-ui.th>Área</x-ui.th>
+                <x-ui.th sort="created_at" :field="$sortField" :direction="$sortDirection">Alta</x-ui.th>
+                <x-ui.th align="right">Acciones</x-ui.th>
+            </tr>
+        </x-slot:head>
+
+        @forelse ($users as $user)
+            <tr wire:key="user-{{ $user->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="whitespace-nowrap px-4 py-3">
+                    <div class="flex items-center gap-3">
+                        <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                            aria-hidden="true">{{ $user->initials }}</span>
+                        <span class="min-w-0">
+                            <span class="block font-semibold text-slate-900 dark:text-white">
+                                {{ $user->full_name }}
+                                @if ($user->id === auth()->id())
+                                    <x-ui.badge tone="info" class="ml-1.5">Tú</x-ui.badge>
+                                @endif
+                            </span>
+                            @if ($user->account)
+                                <span class="block text-xs text-slate-500 dark:text-slate-400">{{ $user->account }}</span>
+                            @endif
+                        </span>
+                    </div>
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">{{ $user->email }}</td>
+                <td class="px-4 py-3">
+                    @if ($user->roles->isNotEmpty())
+                        @php
+                            $roleName = $user->roles->first()->name;
+                            $roleTone = match ($roleName) {
+                                'admin' => 'accent',
+                                'employee' => 'neutral',
+                                default => 'info',
+                            };
+                        @endphp
+                        <x-ui.badge :tone="$roleTone">{{ $roleName }}</x-ui.badge>
+                    @else
+                        <x-ui.badge tone="warn" dot>Sin rol</x-ui.badge>
+                    @endif
+                </td>
+                <td class="px-4 py-3">
+                    @if ($user->areas->isNotEmpty())
+                        @foreach ($user->areas as $area)
+                            <div class="font-medium text-slate-900 dark:text-white">{{ $area->name }}</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400">{{ $area->department?->name ?? '—' }}</div>
+                        @endforeach
+                    @else
+                        <span class="text-slate-400 dark:text-slate-500">—</span>
+                    @endif
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
+                    {{ $user->created_at?->format('d/m/Y') ?? '—' }}
+                </td>
+                <td class="px-4 py-3">
+                    <x-ui.row-actions label="a {{ $user->full_name }}"
+                        :show="route('admin.users.show', $user)"
+                        :edit="route('admin.users.edit', $user)"
+                        :delete="$user->id === auth()->id() ? null : 'deleteUser('.$user->id.')'"
+                        deleteConfirm="¿Eliminar a «{{ $user->full_name }}»? Se liberan sus áreas y se borra su acceso. Esta acción no se puede deshacer." />
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="6">
+                    <x-ui.empty icon="search" title="No se encontraron usuarios"
+                        hint="Ajusta la búsqueda o los filtros de rol y departamento, o da de alta un usuario nuevo.">
+                        <x-slot:action>
+                            <x-ui.btn variant="primary" href="{{ route('admin.users.create') }}">Nuevo usuario</x-ui.btn>
+                        </x-slot:action>
+                    </x-ui.empty>
+                </td>
+            </tr>
+        @endforelse
+
+        @if ($users->hasPages())
+            <x-slot:foot>{{ $users->links() }}</x-slot:foot>
+        @endif
+    </x-ui.table>
+
+    {{-- Importación por CSV --}}
+    @if ($showImportModal)
+        <x-ui-modal wire:key="modal-import-users" title="Importar usuarios desde CSV"
+            subtitle="Da de alta o actualiza muchos usuarios de una sola vez."
+            close="closeImportModal" maxWidth="3xl">
+
+            <x-ui.section title="1. Prepara el archivo" hint="Si no estás seguro del formato, descarga la plantilla desde el listado.">
+                <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+                    <x-ui.kv label="Columnas obligatorias" value="name, email, password, role_name" />
+                    <x-ui.kv label="Columnas opcionales" value="last_name, account, area_name" />
+                    <x-ui.kv label="Rol y área" value="Se referencian por su nombre exacto" />
+                </dl>
+                <x-ui.note tone="info" class="mt-4">
+                    El <strong>correo</strong> identifica al usuario: si ya existe, se <strong>actualiza</strong> en
+                    lugar de duplicarse. La contraseña sólo es obligatoria al crear. El <strong>área</strong> sólo se
+                    aplica cuando el rol es <strong>Supervisor</strong>.
+                </x-ui.note>
+            </x-ui.section>
+
+            <x-ui.section title="2. Sube el archivo">
+                <x-ui.field label="Archivo CSV" required :error="$errors->first('importFile')">
+                    <input type="file" wire:model="importFile" accept=".csv,text/csv"
+                        class="block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-sky-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-sky-700 hover:file:bg-sky-100 dark:text-slate-300 dark:file:bg-sky-900/40 dark:file:text-sky-300">
+                </x-ui.field>
+                <p wire:loading wire:target="importFile" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Subiendo archivo...</p>
+            </x-ui.section>
+
+            @if (!empty($importResults))
+                <x-ui.section title="3. Resultado de la importación">
+                    <x-ui.stats cols="4">
+                        <x-ui.stat label="Creados" :value="$importResults['created'] ?? 0" tone="good" />
+                        <x-ui.stat label="Actualizados" :value="$importResults['updated'] ?? 0" tone="info" />
+                        <x-ui.stat label="Sin cambios" :value="$importResults['skipped'] ?? 0" />
+                        <x-ui.stat label="Fallaron" :value="$importResults['failed'] ?? 0"
+                            :tone="($importResults['failed'] ?? 0) > 0 ? 'bad' : 'neutral'" />
+                    </x-ui.stats>
+
+                    @if (!empty($importResults['errors']))
+                        <details class="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/30">
+                            <summary class="cursor-pointer text-sm font-semibold text-amber-900 dark:text-amber-200">
+                                Ver los {{ count($importResults['errors']) }} renglones que fallaron
+                            </summary>
+                            <ul class="mt-3 max-h-48 list-inside list-disc space-y-1 overflow-y-auto text-xs text-amber-800 dark:text-amber-200">
+                                @foreach ($importResults['errors'] as $err)
+                                    <li>{{ $err }}</li>
+                                @endforeach
+                            </ul>
+                        </details>
+                    @endif
+                </x-ui.section>
+            @endif
+
+            <x-slot:note>
+                Los usuarios que ya existan se actualizan; ninguno se elimina. Revisa el resultado antes de cerrar.
+            </x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeImportModal">Cerrar</x-ui.btn>
+                <x-ui.btn variant="primary" wire:click="importCsv"
+                    wire:loading.attr="disabled" wire:target="importCsv,importFile">
+                    <span wire:loading.remove wire:target="importCsv">Procesar archivo</span>
+                    <span wire:loading wire:target="importCsv">Procesando...</span>
+                </x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
+    @endif
+</x-ui.page>

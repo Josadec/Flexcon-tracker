@@ -15,13 +15,26 @@ class Holiday extends Model
         'description',
     ];
 
+    protected $casts = [
+        'date' => 'date',
+    ];
+
     /**
-     * Scope a query to search holidays by name or description.
+     * Buscar por nombre o descripción.
+     *
+     * Las dos condiciones van agrupadas: sueltas, el `orWhere` se escapaba de
+     * cualquier otro filtro de la consulta y devolvía festivos de más.
      */
     public function scopeSearch($query, $term)
     {
-        return $query->where('name', 'like', "%{$term}%")
-                     ->orWhere('description', 'like', "%{$term}%");
+        if (blank($term)) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($term) {
+            $q->where('name', 'like', "%{$term}%")
+              ->orWhere('description', 'like', "%{$term}%");
+        });
     }
 
     public function scopeDate($query, $date)

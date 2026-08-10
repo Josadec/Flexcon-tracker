@@ -30,8 +30,7 @@ class DepartmentCreate extends Component
             'comments' => $this->comments,
         ]);
 
-        session()->flash('flash.banner', 'Departamento creado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Departamento creado correctamente.');
 
         $this->redirect(route('admin.departments.index'), navigate: true);
     }

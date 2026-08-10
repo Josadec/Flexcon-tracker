@@ -101,8 +101,7 @@ class UserEdit extends Component
             Area::find($this->area_id)?->update(['user_id' => $this->user->id]);
         }
 
-        session()->flash('flash.banner', 'Usuario actualizado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Usuario actualizado correctamente.');
 
         $this->redirect(route('admin.users.index'));
     }

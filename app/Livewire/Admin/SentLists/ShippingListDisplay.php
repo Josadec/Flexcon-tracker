@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\SentLists;
 
 use App\Models\SentList;
+use App\Models\StatusWO;
 use App\Models\WorkOrder;
 use App\Models\Lot;
 use App\Models\Kit;
@@ -15,8 +16,10 @@ use App\Models\LotCompletionLog;
 use App\Models\Weighing;
 use App\Models\User;
 use App\Mail\EmpaqueTerminadoCrimpViajero;
+use App\Services\ReopeningService;
 use Livewire\Component;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Url;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
@@ -31,6 +34,17 @@ class ShippingListDisplay extends Component
      * Role → department mapping.
      * admin has access to ALL departments.
      */
+    /**
+     * Tope de órdenes por vista.
+     *
+     * El tablero se refresca entero cada 30 segundos y dibuja cada orden dos
+     * veces (tabla de escritorio y tarjetas de móvil). Sin tope, el coste de
+     * cada refresco crecía para siempre. Con el filtro de terminados de la
+     * Fase 2, 60 órdenes abiertas ya es una semana muy cargada; si se llega al
+     * tope, la pantalla lo dice y se acota con el buscador.
+     */
+    private const MAX_WORK_ORDERS = 60;
+
     private const ROLE_DEPARTMENT_MAP = [
         'Materiales' => ['materials'],
         'Produccion' => ['production'],
@@ -46,6 +60,12 @@ class ShippingListDisplay extends Component
         $user = Auth::user();
         if (!$user) return false;
         if ($user->hasRole('admin')) return true;
+
+        // Administración corrige lo que ya se cerró, y para eso tiene que poder
+        // entrar a las pantallas de cualquier área. Es un rol transversal, no
+        // un departamento: lo que puede hacer de más está acotado por el
+        // permiso, y cada corrección queda auditada.
+        if ($user->can(ReopeningService::PERMISSION)) return true;
 
         foreach (self::ROLE_DEPARTMENT_MAP as $role => $departments) {
             if ($user->hasRole($role) && in_array($department, $departments)) {
@@ -76,6 +96,26 @@ class ShippingListDisplay extends Component
     public $focusedSentListId = null;  // Filtro por SentList completa
     public $focusedSentListLabel = null;
 
+    /**
+     * Mostrar también los viajeros ya terminados.
+     *
+     * Apagado por defecto: el tablero enseña lo que falta por hacer. Se guarda
+     * en la URL para que quien lo encienda pueda compartir o recargar la
+     * pantalla sin perderlo.
+     */
+    #[Url(as: 'terminados', except: false)]
+    public bool $showFinished = false;
+
+    /** Confirmación de reapertura: motivo obligatorio y cascada anunciada. */
+    public bool $showReopenModal = false;
+    public string $reopenReason = '';
+    public array $reopenCascade = [];
+
+    public function toggleFinished(): void
+    {
+        $this->showFinished = ! $this->showFinished;
+    }
+
     // Modal de lotes
     public $showLotModal = false;
     public $selectedWorkOrderId = null;
@@ -85,15 +125,6 @@ class ShippingListDisplay extends Component
     // Modal de historial de ciclos
     public $showCycleHistoryModal = false;
     public $selectedLotForCycleHistory = null;
-
-    // Modal de estado de departamentos
-    public $showDepartmentStatusModal = false;
-    public $selectedWoForStatus = null;
-    public $departmentStatuses = [
-        'materials' => 'pending',
-        'inspection' => 'pending',
-        'production' => 'pending',
-    ];
 
     // Modal de inspeccion por lote
     public $showInspectionModal = false;
@@ -217,6 +248,8 @@ class ShippingListDisplay extends Component
     public $prodIsCrimp = false;
     public $prodKits = [];
     public $prodKitId = null;
+    public $prodWeighingsList = [];   // historial editable de pesadas del lote
+    public $prodEditingId = null;     // pesada que se está corrigiendo
 
     // Modal de Pesada (Calidad) por lote
     public $showQualityModal = false;
@@ -547,31 +580,6 @@ class ShippingListDisplay extends Component
         session()->flash('message', 'Lotes actualizados correctamente.');
         $this->closeLotModal();
         $this->dispatch('refresh-display');
-    }
-
-    public function openDepartmentStatusModal($workOrderId, $department)
-    {
-        $this->selectedWoForStatus = $workOrderId;
-        $this->showDepartmentStatusModal = true;
-    }
-
-    public function closeDepartmentStatusModal()
-    {
-        $this->showDepartmentStatusModal = false;
-        $this->selectedWoForStatus = null;
-    }
-
-    public function updateDepartmentStatus($department, $status)
-    {
-        $this->departmentStatuses[$department] = $status;
-    }
-
-    public function saveDepartmentStatuses()
-    {
-        // Por ahora solo cerramos el modal
-        // Cuando tengas la lógica, aquí guardarás en la BD
-        session()->flash('message', 'Estados actualizados correctamente (estático por ahora).');
-        $this->closeDepartmentStatusModal();
     }
 
     /**
@@ -1882,11 +1890,26 @@ class ShippingListDisplay extends Component
             return;
         }
 
-        $this->selectedLotForPackaging->update([
+        $lot = $this->selectedLotForPackaging;
+
+        $updates = [
             'viajero_received' => true,
             'viajero_received_at' => now(),
             'viajero_received_by' => auth()->id(),
-        ]);
+        ];
+
+        // Mismo gate que markViajeroReceived(): en las decisiones "completar"
+        // de CRIMP la entrada a la cola de despacho se difiere hasta este paso.
+        // Este método no lo tenía, así que un viajero CRIMP recibido por aquí
+        // no llegaba nunca a la cola.
+        if ($lot->isCompletionClosure()) {
+            $updates['ready_for_shipping']    = true;
+            $updates['ready_for_shipping_at'] = now();
+            $updates['quantity_packed_final'] = $lot->getPackagedPiecesTotal();
+            $updates['closed_by_type']        = $lot->closure_decision;
+        }
+
+        $lot->update($updates);
 
         session()->flash('message', 'Viajero recibido correctamente. Pendiente decisión de Control de Materiales.');
         $this->openPackagingModal($this->selectedLotForPackaging->id);
@@ -2214,12 +2237,15 @@ class ShippingListDisplay extends Component
     }
 
     /**
-     * Reopen a lot: clear its closure decision and reset status.
+     * Reabre un viajero cerrado.
+     *
+     * Toda la lógica vive en ReopeningService: permiso de Administración,
+     * motivo obligatorio, cascada hacia el packing slip y la factura cuando el
+     * viajero ya está facturado, y auditoría. Antes esto era una de seis
+     * implementaciones que ya divergían entre sí.
      */
     public function reopenLot()
     {
-        if (!$this->guardDepartment('materials')) return;
-
         if (!$this->selectedLotForDecision) {
             session()->flash('error', 'Lote no encontrado.');
             return;
@@ -2227,37 +2253,49 @@ class ShippingListDisplay extends Component
 
         $lot = $this->selectedLotForDecision;
 
-        $updates = [
-            'closure_decision' => null,
-            'closure_decided_by' => null,
-            'closure_decided_at' => null,
-            'surplus_delivered' => false,
-            'surplus_delivered_at' => null,
-            'surplus_delivered_by' => null,
-            'surplus_received' => false,
-            'surplus_received_at' => null,
-            'surplus_received_by' => null,
-            'status' => Lot::STATUS_IN_PROGRESS,
-            'packaging_status' => 'pending',
-        ];
+        try {
+            app(ReopeningService::class)->reopenLot($lot, $this->reopenReason);
+        } catch (\RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
 
-        // Evitar viajero "fantasma": un D2 ya recibido (ready_for_shipping=true) que se
-        // reabre debe salir de la cola. Solo si aún NO tiene Packing Slip (no facturado).
-        if (!$lot->packingSlipItem()->exists()) {
-            $updates['ready_for_shipping']    = false;
-            $updates['ready_for_shipping_at'] = null;
-            $updates['quantity_packed_final'] = null;
-            $updates['closed_by_type']        = null;
-            $updates['viajero_received']      = false;
-            $updates['viajero_received_at']   = null;
-            $updates['viajero_received_by']   = null;
+            return;
         }
 
-        $lot->update($updates);
-
+        $this->closeReopenModal();
         session()->flash('message', 'Lote ' . $lot->lot_number . ' reabierto exitosamente.');
         $this->openDecisionModal($lot->id);
         $this->dispatch('refresh-display');
+    }
+
+    /**
+     * Abre la confirmación de reapertura.
+     *
+     * La cascada se calcula ANTES de tocar nada: quien decide tiene que ver que
+     * reabrir este viajero puede implicar reabrir su packing slip y su factura.
+     */
+    public function openReopenModal(): void
+    {
+        if (!$this->selectedLotForDecision) {
+            session()->flash('error', 'Lote no encontrado.');
+            return;
+        }
+
+        if (!app(ReopeningService::class)->allows(auth()->user())) {
+            session()->flash('error', 'Sólo Administración puede reabrir un documento cerrado.');
+            return;
+        }
+
+        $this->reopenReason = '';
+        $this->reopenCascade = app(ReopeningService::class)
+            ->cascadeFor($this->selectedLotForDecision->loadMissing('packingSlipItem.packingSlip.invoice'));
+        $this->showReopenModal = true;
+    }
+
+    public function closeReopenModal(): void
+    {
+        $this->showReopenModal = false;
+        $this->reopenReason = '';
+        $this->reopenCascade = [];
     }
 
     /**
@@ -2437,7 +2475,7 @@ class ShippingListDisplay extends Component
     {
         if (!$this->guardDepartment('production')) return;
 
-        $lot = Lot::with(['workOrder.purchaseOrder.part', 'kits'])->find($lotId);
+        $lot = Lot::with(['workOrder.purchaseOrder.part', 'kits', 'weighings.weighedBy'])->find($lotId);
 
         if (!$lot) {
             session()->flash('error', 'Lote no encontrado.');
@@ -2453,14 +2491,21 @@ class ShippingListDisplay extends Component
         $this->selectedLotForProduction = $lot;
         $this->prodQuantity = $lot->quantity;
 
-        // Calcular piezas ya pesadas (solo pesadas de lote, sin kit)
-        $alreadyWeighed = \App\Models\Weighing::where('lot_id', $lot->id)
-            ->whereNull('kit_id')
-            ->selectRaw('COALESCE(SUM(good_pieces), 0) as total')
-            ->value('total');
-        $this->prodAlreadyWeighed = (int) $alreadyWeighed;
+        // Pesadas a nivel lote (sin kit): son las que este modal registra y corrige.
+        $lotWeighings = $lot->weighings->whereNull('kit_id');
+
+        $this->prodAlreadyWeighed = (int) $lotWeighings->sum('good_pieces');
         $this->prodRemainingPieces = $lot->quantity - $this->prodAlreadyWeighed;
 
+        $this->prodWeighingsList = $lotWeighings->map(fn ($w) => [
+            'id'          => $w->id,
+            'good_pieces' => (int) $w->good_pieces,
+            'weighed_at'  => $w->weighed_at?->format('d/m/Y H:i') ?? '—',
+            'weighed_by'  => $w->weighedBy->name ?? 'N/A',
+            'comments'    => $w->comments,
+        ])->values()->toArray();
+
+        $this->prodEditingId = null;
         $this->prodWeighedPieces = 0;
         $this->prodWeighedAt = now()->format('Y-m-d\TH:i');
         $this->prodComments = '';
@@ -2480,7 +2525,95 @@ class ShippingListDisplay extends Component
         $this->prodIsCrimp = false;
         $this->prodKits = [];
         $this->prodKitId = null;
+        $this->prodWeighingsList = [];
+        $this->prodEditingId = null;
         $this->resetErrorBag();
+    }
+
+    /**
+     * Busca una pesada de producción DEL lote abierto. Nunca termina en un
+     * `return` mudo: si algo no cuadra, el usuario ve el motivo.
+     */
+    private function findProductionWeighing($weighingId): ?Weighing
+    {
+        if (!$this->selectedLotForProduction) {
+            session()->flash('error', 'Vuelve a abrir el lote e inténtalo de nuevo.');
+            return null;
+        }
+
+        $w = Weighing::where('lot_id', $this->selectedLotForProduction->id)
+            ->whereNull('kit_id')
+            ->find($weighingId);
+
+        if (!$w) {
+            session()->flash('error', 'Esa pesada ya no existe. Se actualizó el detalle.');
+            $this->openProductionModal($this->selectedLotForProduction->id);
+            return null;
+        }
+
+        return $w;
+    }
+
+    /**
+     * Cargar una pesada existente en el formulario para corregirla.
+     */
+    public function editProductionWeighing($weighingId)
+    {
+        if (!$this->guardDepartment('production')) return;
+
+        $w = $this->findProductionWeighing($weighingId);
+        if (!$w) return;
+
+        $this->prodEditingId     = $w->id;
+        $this->prodWeighedPieces = (int) $w->good_pieces;
+        $this->prodWeighedAt     = $w->weighed_at->format('Y-m-d\TH:i');
+        $this->prodComments      = $w->comments ?? '';
+
+        // Se devuelven sus piezas al pendiente para poder redistribuirlas.
+        $this->prodRemainingPieces += (int) $w->good_pieces;
+        $this->resetErrorBag();
+    }
+
+    public function cancelEditProduction()
+    {
+        $this->prodEditingId = null;
+        $this->prodWeighedPieces = 0;
+        $this->prodWeighedAt = now()->format('Y-m-d\TH:i');
+        $this->prodComments = '';
+
+        if ($this->selectedLotForProduction) {
+            $this->prodRemainingPieces = $this->prodQuantity - $this->prodAlreadyWeighed;
+        }
+
+        $this->resetErrorBag();
+    }
+
+    /**
+     * Eliminar una pesada de producción.
+     *
+     * No se puede dejar al lote con menos producción que las piezas que
+     * Calidad ya verificó: primero hay que borrar las pesadas de calidad.
+     */
+    public function deleteProductionWeighing($weighingId)
+    {
+        if (!$this->guardDepartment('production')) return;
+
+        $w = $this->findProductionWeighing($weighingId);
+        if (!$w) return;
+
+        $lot = $this->selectedLotForProduction->fresh();
+
+        if ($lot && !$lot->canDeleteProductionWeighing($w)) {
+            session()->flash('error', $lot->getProductionWeighingDeleteBlockReason($w));
+            return;
+        }
+
+        $lotId = $this->selectedLotForProduction->id;
+        $w->delete();
+
+        session()->flash('message', 'Pesada de producción eliminada.');
+        $this->openProductionModal($lotId);
+        $this->dispatch('refresh-display');
     }
 
     public function saveProduction()
@@ -2513,19 +2646,52 @@ class ShippingListDisplay extends Component
             return;
         }
 
-        \App\Models\Weighing::create([
-            'lot_id' => $this->selectedLotForProduction->id,
-            'kit_id' => null,
-            'quantity' => $this->selectedLotForProduction->quantity,
-            'good_pieces' => $this->prodWeighedPieces,
-            'bad_pieces' => 0,
-            'weighed_at' => $this->prodWeighedAt,
-            'weighed_by' => auth()->id(),
-            'comments' => $this->prodComments ?: null,
-        ]);
+        $lotId = $this->selectedLotForProduction->id;
 
-        session()->flash('message', 'Pesada registrada correctamente.');
-        $this->closeProductionModal();
+        if ($this->prodEditingId) {
+            $w = $this->findProductionWeighing($this->prodEditingId);
+            if (!$w) return;
+
+            // Misma invariante que al borrar: bajar la cantidad no puede dejar
+            // al lote con menos producción que lo que Calidad ya verificó.
+            $verified  = $lot->getQualityVerifiedPieces();
+            $resultante = $lot->getProductionTotalWeighed()
+                - ((int) $w->good_pieces + (int) $w->bad_pieces)
+                + (int) $this->prodWeighedPieces;
+
+            if ($resultante < $verified) {
+                $this->addError('prodWeighedPieces',
+                    'Calidad ya verificó ' . number_format($verified) . ' piezas de este lote. '
+                    . 'Con este cambio quedarían ' . number_format($resultante) . ' pesadas por Producción. '
+                    . 'Elimina primero las pesadas de calidad correspondientes.');
+                return;
+            }
+
+            $w->update([
+                'good_pieces' => $this->prodWeighedPieces,
+                'weighed_at'  => $this->prodWeighedAt,
+                'comments'    => $this->prodComments ?: null,
+            ]);
+
+            session()->flash('message', 'Pesada de producción actualizada correctamente.');
+        } else {
+            Weighing::create([
+                'lot_id' => $lotId,
+                'kit_id' => null,
+                'quantity' => $this->selectedLotForProduction->quantity,
+                'good_pieces' => $this->prodWeighedPieces,
+                'bad_pieces' => 0,
+                'weighed_at' => $this->prodWeighedAt,
+                'weighed_by' => auth()->id(),
+                'comments' => $this->prodComments ?: null,
+            ]);
+
+            session()->flash('message', 'Pesada registrada correctamente.');
+        }
+
+        // El modal se queda abierto con el historial al día: así se pueden
+        // corregir varias pesadas seguidas sin reabrir el lote.
+        $this->openProductionModal($lotId);
         $this->dispatch('refresh-display');
     }
 
@@ -2652,14 +2818,11 @@ class ShippingListDisplay extends Component
         ];
 
         if ($this->qualEditingId) {
-            $qw = QualityWeighing::find($this->qualEditingId);
-            if ($qw) {
-                $qw->update($data);
-                $message = 'Pesada de calidad actualizada correctamente.';
-            } else {
-                session()->flash('error', 'Pesada no encontrada.');
-                return;
-            }
+            $qw = $this->findQualityWeighing($this->qualEditingId);
+            if (!$qw) return;
+
+            $qw->update($data);
+            $message = 'Pesada de calidad actualizada correctamente.';
         } else {
             $qw = QualityWeighing::create($data);
             $message = 'Pesada de calidad registrada correctamente.';
@@ -2674,15 +2837,35 @@ class ShippingListDisplay extends Component
         $this->dispatch('refresh-display');
     }
 
+    /**
+     * Busca una pesada de calidad DEL lote abierto en el modal.
+     */
+    private function findQualityWeighing($qualityWeighingId): ?QualityWeighing
+    {
+        if (!$this->selectedLotForQuality) {
+            session()->flash('error', 'Vuelve a abrir el lote e inténtalo de nuevo.');
+            return null;
+        }
+
+        $qw = QualityWeighing::where('lot_id', $this->selectedLotForQuality->id)
+            ->whereNull('kit_id')
+            ->find($qualityWeighingId);
+
+        if (!$qw) {
+            session()->flash('error', 'Esa pesada ya no existe. Se actualizó el detalle.');
+            $this->openQualityModal($this->selectedLotForQuality->id);
+            return null;
+        }
+
+        return $qw;
+    }
+
     public function editQualityWeighing($qualityWeighingId)
     {
         if (!$this->guardDepartment('quality')) return;
 
-        $qw = QualityWeighing::find($qualityWeighingId);
-        if (!$qw) {
-            session()->flash('error', 'Pesada no encontrada.');
-            return;
-        }
+        $qw = $this->findQualityWeighing($qualityWeighingId);
+        if (!$qw) return;
 
         $this->qualEditingId = $qw->id;
         $this->qualGoodPieces = $qw->good_pieces;
@@ -2710,16 +2893,15 @@ class ShippingListDisplay extends Component
     {
         if (!$this->guardDepartment('quality')) return;
 
-        $qw = QualityWeighing::find($qualityWeighingId);
-        if ($qw) {
-            $qw->delete();
-            // Refresh the modal data
-            if ($this->selectedLotForQuality) {
-                $this->openQualityModal($this->selectedLotForQuality->id);
-            }
-            session()->flash('message', 'Pesada de calidad eliminada.');
-            $this->dispatch('refresh-display');
-        }
+        $qw = $this->findQualityWeighing($qualityWeighingId);
+        if (!$qw) return;
+
+        $lotId = $this->selectedLotForQuality->id;
+        $qw->delete();
+
+        session()->flash('message', 'Pesada de calidad eliminada.');
+        $this->openQualityModal($lotId);
+        $this->dispatch('refresh-display');
     }
 
     // ===============================================
@@ -2976,11 +3158,17 @@ class ShippingListDisplay extends Component
         // ¿Estamos en vista enfocada? (por WO o por SentList)
         $isFocusedView = $this->focusedWorkOrderId || $this->focusedSentListId;
 
+        // El tablero es la mesa de trabajo del piso: enseña lo que falta por
+        // hacer, no el archivo. Un viajero terminado se esconde salvo que se
+        // pida verlo con "Ver terminados".
+        $verTerminados = $isFocusedView || $this->showFinished;
+
         // Obtener Work Orders
         $query = WorkOrder::with([
             'purchaseOrder.part.standards' => function ($query) {
                 $query->active();
             },
+            'lots' => fn ($q) => $verTerminados ? $q : $q->open(),
             'lots.weighings',
             'lots.qualityWeighings',
             'lots.packagingRecords',
@@ -2991,13 +3179,22 @@ class ShippingListDisplay extends Component
             'sentList'
         ]);
 
-        // En vista general: solo WOs con al menos un lote y que NO estén completados.
-        // Un WO marcado como "Completed" desaparece de la lista; al reabrirlo (Open)
-        // vuelve a aparecer. En vista enfocada se muestran todos.
+        // En vista general se esconden las órdenes cerradas y canceladas. Antes
+        // sólo se excluían las "Completed" —las canceladas seguían ocupando
+        // sitio—, y el nombre del estado se comparaba a mano contra un catálogo
+        // que se puede renombrar desde la pantalla de Estados.
         if (!$isFocusedView) {
-            $query->whereHas('lots');
-            $query->whereDoesntHave('status', function ($q) {
-                $q->where('name', 'Completed');
+            $query->whereNotIn('status_id', StatusWO::closedIds());
+
+            // Una orden se queda visible mientras le falten piezas, aunque hoy
+            // no tenga ningún viajero abierto: es el lunes por la mañana, y
+            // alguien tiene que ver que faltan piezas para abrir los viajeros
+            // de la semana. Sin esto, el tablero amanecería vacío.
+            $query->where(function ($q) {
+                $q->whereHas('lots', fn ($l) => $l->open())
+                    ->orWhereHas('purchaseOrder', fn ($po) => $po->whereColumn(
+                        'purchase_orders.quantity', '>', 'work_orders.sent_pieces'
+                    ));
             });
         }
 
@@ -3035,12 +3232,20 @@ class ShippingListDisplay extends Component
             });
         }
 
-        $workOrders = $query->orderBy('wo_number')->get();
+        // Paginado: sin esto el tablero traía TODAS las órdenes abiertas en cada
+        // refresco, y el conjunto sólo crecía. En vista enfocada no hace falta:
+        // es una orden o una lista.
+        $workOrders = $isFocusedView
+            ? $query->orderBy('wo_number')->get()
+            : $query->orderBy('wo_number')->limit(self::MAX_WORK_ORDERS)->get();
 
         // Resolver el tipo de estación de un WO (PO.workstation_type tiene prioridad, fallback al Standard).
         $resolveWorkstation = function ($wo) {
             $woType = $wo->purchaseOrder->workstation_type ?? null;
-            $mode = $woType ?: optional($wo->purchaseOrder->part->standards()->active()->first())->getAssemblyMode();
+            // `part.standards` ya viene cargado con el scope `active()`: usar la
+            // colección en vez de `->standards()->active()->first()` evita una
+            // consulta por cada orden del tablero.
+            $mode = $woType ?: optional($wo->purchaseOrder?->part?->standards?->first())->getAssemblyMode();
             return match($mode) {
                 'manual', 'table' => 'Mesa',
                 'machine'         => 'Máquina',
@@ -3113,9 +3318,25 @@ class ShippingListDisplay extends Component
             }
         }
 
+        // Cuántos viajeros terminados se están escondiendo, por orden. Es lo
+        // que permite decir "3 viajeros terminados" sin traerlos a la tabla.
+        $finishedCounts = $verTerminados
+            ? []
+            : Lot::finished()
+                ->whereIn('work_order_id', $workOrders->pluck('id'))
+                ->selectRaw('work_order_id, COUNT(*) as total')
+                ->groupBy('work_order_id')
+                ->pluck('total', 'work_order_id')
+                ->all();
+
         return view('livewire.admin.sent-lists.shipping-list-display', [
             'workOrdersGrouped' => $workOrdersGrouped,
             'lifecycleSummary'  => $lifecycleSummary,
+            'finishedCounts'    => $finishedCounts,
+            'showingFinished'   => $verTerminados,
+            'totalFinishedHidden' => array_sum($finishedCounts),
+            'reachedLimit'      => ! $isFocusedView && $workOrders->count() >= self::MAX_WORK_ORDERS,
+            'maxWorkOrders'     => self::MAX_WORK_ORDERS,
             'canMaterials'  => $this->canAccessDepartment('materials'),
             'canProduction' => $this->canAccessDepartment('production'),
             'canQuality'    => $this->canAccessDepartment('quality'),

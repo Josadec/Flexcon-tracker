@@ -1,153 +1,138 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Días Festivos</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestión de días festivos del sistema</p>
-        </div>
-        <a href="{{ route('admin.holidays.create') }}"
-           class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
-            Nuevo Día Festivo
-        </a>
-    </div>
+@php $hoy = now()->startOfDay(); @endphp
 
-    <!-- Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $totalHolidays }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Próximos</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $upcomingHolidays }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Pasados</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $pastHolidays }}</div>
-        </div>
-    </div>
+<x-ui.page eyebrow="Administración" title="Días festivos"
+    subtitle="Días en que no se produce. El cálculo de capacidad los descuenta de los días hábiles del período.">
 
-    <!-- Filters -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Buscar</label>
+    <x-slot:actions>
+        <x-ui.btn variant="primary" href="{{ route('admin.holidays.create') }}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Nuevo día festivo
+        </x-ui.btn>
+    </x-slot:actions>
+
+    {{-- Resumen --}}
+    <x-ui.stats cols="4">
+        <x-ui.stat label="Total registrados" :value="$totalHolidays" />
+        <x-ui.stat label="Próximos" :value="$upcomingHolidays" tone="info"
+            help="De hoy en adelante. Son los que afectan la planeación." />
+        <x-ui.stat label="Pasados" :value="$pastHolidays" />
+        <x-ui.stat label="De {{ $hoy->year }}" :value="$thisYearHolidays" tone="accent"
+            help="Festivos capturados dentro del año en curso." />
+    </x-ui.stats>
+
+    @if (session('message'))
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
+    @endif
+    @if (session('error'))
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
+    @endif
+
+    @if ($upcomingHolidays === 0 && $totalHolidays > 0)
+        <x-ui.note tone="warn">
+            No hay ningún día festivo de hoy en adelante. Mientras no captures los del año en curso, el cálculo de
+            capacidad tomará esos días como hábiles.
+        </x-ui.note>
+    @endif
+
+    {{-- Filtros --}}
+    <x-ui.section title="Buscar" hint="Filtra por nombre o descripción, y acota por período.">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_9rem]">
+            <x-ui.field label="Texto a buscar">
                 <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                    </div>
-                    <input
-                        type="text"
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="Nombre o descripción..."
-                        class="block w-full pl-10 pr-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    />
+                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </span>
+                    <input type="text" wire:model.live.debounce.300ms="search"
+                        placeholder="Nombre o descripción..." class="w-full pl-10">
                 </div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Por página</label>
-                <select wire:model.live="perPage" class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                </select>
-            </div>
-        </div>
-        @if($search)
-            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Resultados filtrados</span>
-                <button wire:click="$set('search', '')" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
-                    Limpiar filtros
-                </button>
-            </div>
-        @endif
-    </div>
+            </x-ui.field>
 
-    <!-- Table -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('name')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Nombre
-                                @if($sortField === 'name')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                    </svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('date')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                Fecha
-                                @if($sortField === 'date')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                    </svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Descripción</th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse($holidays as $holiday)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $holiday->name }}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                {{ \Carbon\Carbon::parse($holiday->date)->format('d/m/Y') }}
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
-                                    {{ $holiday->description ? Str::limit($holiday->description, 50) : '—' }}
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('admin.holidays.show', $holiday) }}" class="inline-flex items-center justify-center w-8 h-8 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded-md transition-colors" title="Ver">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                        </svg>
-                                    </a>
-                                    <a href="{{ route('admin.holidays.edit', $holiday) }}" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-2 border-transparent hover:border-blue-300 dark:hover:border-blue-700 rounded-md transition-colors" title="Editar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </a>
-                                    <button wire:click="deleteHoliday({{ $holiday->id }})" wire:confirm="¿Estás seguro de eliminar este día festivo?" class="inline-flex items-center justify-center w-8 h-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-2 border-transparent hover:border-red-300 dark:hover:border-red-700 rounded-md transition-colors" title="Eliminar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="px-6 py-16 text-center">
-                                <div class="text-sm text-gray-500 dark:text-gray-400">No se encontraron días festivos</div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <x-ui.field label="Período">
+                <select wire:model.live="filterWhen" class="w-full">
+                    <option value="all">Todos</option>
+                    <option value="upcoming">Próximos</option>
+                    <option value="past">Pasados</option>
+                </select>
+            </x-ui.field>
+
+            <x-ui.field label="Por página">
+                <select wire:model.live="perPage" class="w-full">
+                    @foreach ([5, 10, 25, 50] as $n)
+                        <option value="{{ $n }}">{{ $n }}</option>
+                    @endforeach
+                </select>
+            </x-ui.field>
         </div>
-        @if($holidays->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                {{ $holidays->links() }}
+
+        @if ($search || $filterWhen !== 'all')
+            <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Mostrando resultados filtrados.</span>
+                <x-ui.btn variant="ghost" size="sm" wire:click="clearFilters">Limpiar filtros</x-ui.btn>
             </div>
         @endif
-    </div>
-</div>
+    </x-ui.section>
+
+    {{-- Listado --}}
+    <x-ui.table>
+        <x-slot:head>
+            <tr>
+                <x-ui.th sort="date" :field="$sortField" :direction="$sortDirection" class="w-44">Fecha</x-ui.th>
+                <x-ui.th sort="name" :field="$sortField" :direction="$sortDirection">Día festivo</x-ui.th>
+                <x-ui.th>Descripción</x-ui.th>
+                <x-ui.th class="w-32">Cuándo</x-ui.th>
+                <x-ui.th align="right" class="w-32">Acciones</x-ui.th>
+            </tr>
+        </x-slot:head>
+
+        @forelse ($holidays as $holiday)
+            @php
+                $esHoy = $holiday->date->isSameDay($hoy);
+                $pasado = $holiday->date->lt($hoy);
+            @endphp
+            <tr wire:key="holiday-{{ $holiday->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="whitespace-nowrap px-4 py-3">
+                    <span class="block font-semibold tabular-nums text-slate-900 dark:text-white">
+                        {{ $holiday->date->format('d/m/Y') }}
+                    </span>
+                    <span class="block text-xs capitalize text-slate-500 dark:text-slate-400">
+                        {{ $holiday->date->locale('es')->dayName }}
+                    </span>
+                </td>
+                <td class="px-4 py-3 font-semibold text-slate-900 dark:text-white">{{ $holiday->name }}</td>
+                <td class="max-w-md truncate px-4 py-3 text-slate-600 dark:text-slate-300"
+                    title="{{ $holiday->description }}">{{ $holiday->description ?: '—' }}</td>
+                <td class="whitespace-nowrap px-4 py-3">
+                    @if ($esHoy)
+                        <x-ui.badge tone="warn" dot>Hoy</x-ui.badge>
+                    @elseif ($pasado)
+                        <x-ui.badge tone="neutral">Pasado</x-ui.badge>
+                    @else
+                        <x-ui.badge tone="info">En {{ $hoy->diffInDays($holiday->date) }} días</x-ui.badge>
+                    @endif
+                </td>
+                <td class="px-4 py-3">
+                    <x-ui.row-actions label="el día festivo {{ $holiday->name }}"
+                        :show="route('admin.holidays.show', $holiday)"
+                        :edit="route('admin.holidays.edit', $holiday)"
+                        delete="deleteHoliday({{ $holiday->id }})"
+                        deleteConfirm="¿Eliminar «{{ $holiday->name }}» del {{ $holiday->date->format('d/m/Y') }}? Ese día volverá a contar como hábil." />
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="5">
+                    <x-ui.empty icon="search" title="No se encontraron días festivos"
+                        hint="Ajusta la búsqueda o el período, o da de alta un día festivo nuevo.">
+                        <x-slot:action>
+                            <x-ui.btn variant="primary" href="{{ route('admin.holidays.create') }}">Nuevo día festivo</x-ui.btn>
+                        </x-slot:action>
+                    </x-ui.empty>
+                </td>
+            </tr>
+        @endforelse
+
+        @if ($holidays->hasPages())
+            <x-slot:foot>{{ $holidays->links() }}</x-slot:foot>
+        @endif
+    </x-ui.table>
+</x-ui.page>

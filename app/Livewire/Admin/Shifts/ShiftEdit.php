@@ -57,8 +57,7 @@ class ShiftEdit extends Component
             'comments' => $this->comments,
         ]);
 
-        session()->flash('flash.banner', 'Turno actualizado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Turno actualizado correctamente.');
 
         $this->redirect(route('admin.shifts.index'), navigate: true);
     }

@@ -69,6 +69,7 @@ class RoleSeeder extends Seeder
                     ]);
                     break;
 
+
                 case 'employee':
                     // Empleados solo pueden ver su dashboard
                     $role->syncPermissions([

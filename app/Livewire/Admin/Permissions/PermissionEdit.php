@@ -31,8 +31,7 @@ class PermissionEdit extends Component
             'name' => $this->name,
         ]);
 
-        session()->flash('flash.banner', 'Permiso actualizado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Permiso actualizado correctamente.');
 
         $this->redirect(route('admin.permissions.index'), navigate: true);
     }

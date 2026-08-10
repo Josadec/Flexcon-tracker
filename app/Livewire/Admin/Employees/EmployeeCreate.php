@@ -84,8 +84,7 @@ class EmployeeCreate extends Component
         // Asignar rol de empleado
         $user->assignRole('employee');
 
-        session()->flash('flash.banner', 'Empleado creado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Empleado creado correctamente.');
 
         return redirect()->route('admin.employees.index');
     }

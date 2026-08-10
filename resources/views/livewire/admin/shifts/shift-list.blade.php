@@ -1,194 +1,169 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Turnos</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestión de turnos de trabajo</p>
-        </div>
-        <a href="{{ route('admin.shifts.create') }}"
-           class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
-            Nuevo Turno
-        </a>
-    </div>
+@php
+    // Un turno puede cruzar la medianoche: si la salida es menor que la entrada,
+    // se le suma un día para que la duración no salga negativa.
+    $duracion = function ($shift) {
+        if (!$shift->start_time || !$shift->end_time) {
+            return null;
+        }
+        $inicio = $shift->start_time->copy();
+        $fin = $shift->end_time->copy();
+        if ($fin->lessThanOrEqualTo($inicio)) {
+            $fin->addDay();
+        }
+        $minutos = $inicio->diffInMinutes($fin);
 
-    <!-- Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $totalShifts }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Activos</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $activeShifts }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Empleados Asignados</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $employeesAssigned }}</div>
-        </div>
-    </div>
+        return intdiv($minutos, 60) . ' h' . ($minutos % 60 ? ' ' . ($minutos % 60) . ' min' : '');
+    };
+@endphp
 
-    <!-- Filters -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Buscar</label>
+<x-ui.page eyebrow="Administración" title="Turnos"
+    subtitle="Horarios de trabajo de la planta. De aquí cuelgan los empleados, sus descansos y el tiempo extra.">
+
+    <x-slot:actions>
+        <x-ui.btn variant="primary" href="{{ route('admin.shifts.create') }}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Nuevo turno
+        </x-ui.btn>
+    </x-slot:actions>
+
+    {{-- Resumen --}}
+    <x-ui.stats cols="4">
+        <x-ui.stat label="Total de turnos" :value="$totalShifts" />
+        <x-ui.stat label="Activos" :value="$activeShifts" tone="good"
+            help="Sólo los turnos activos se ofrecen al dar de alta un empleado." />
+        <x-ui.stat label="Inactivos" :value="$inactiveShifts" :tone="$inactiveShifts > 0 ? 'warn' : 'neutral'" />
+        <x-ui.stat label="Empleados asignados" :value="$employeesAssigned" tone="info"
+            help="Empleados activos que ya tienen turno." />
+    </x-ui.stats>
+
+    @if (session('message'))
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
+    @endif
+    @if (session('error'))
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
+    @endif
+
+    {{-- Filtros --}}
+    <x-ui.section title="Buscar" hint="Filtra por nombre, horario o comentarios, y acota por estado.">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_9rem]">
+            <x-ui.field label="Texto a buscar">
                 <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                    </div>
-                    <input
-                        type="text"
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="Buscar turnos..."
-                        class="block w-full pl-10 pr-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    />
+                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </span>
+                    <input type="text" wire:model.live.debounce.300ms="search"
+                        placeholder="Nombre, horario o comentarios..." class="w-full pl-10">
                 </div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Por página</label>
-                <select wire:model.live="perPage" class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                </select>
-            </div>
-        </div>
-        @if(session('error'))
-            <div class="mt-4 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
-            </div>
-        @endif
-        @if($search)
-            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Resultados filtrados</span>
-                <button wire:click="$set('search', '')" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
-                    Limpiar filtros
-                </button>
-            </div>
-        @endif
-    </div>
+            </x-ui.field>
 
-    <!-- Table -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('name')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                NOMBRE
-                                @if($sortField === 'name')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                    </svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('start_time')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                HORARIO
-                                @if($sortField === 'start_time')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                    </svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('active')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                ESTADO
-                                @if($sortField === 'active')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                    </svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">EMPLEADOS</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">DESCANSOS</th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">ACCIONES</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse($shifts as $shift)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $shift->name }}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm text-gray-900 dark:text-white">
-                                        {{ \Carbon\Carbon::parse($shift->start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($shift->end_time)->format('H:i') }}
-                                    </span>
-                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                        {{ $shift->formatted_total_hours }}
-                                    </span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                @if($shift->active)
-                                    <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300">Activo</span>
-                                @else
-                                    <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Inactivo</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                @if($shift->employees_count > 0)
-                                    <span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-3 py-1 text-sm font-medium text-blue-700 dark:text-blue-300">
-                                        {{ $shift->employees_count }} empleado{{ $shift->employees_count > 1 ? 's' : '' }}
-                                    </span>
-                                @else
-                                    <span class="text-sm text-gray-400">0 empleados</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                @if($shift->break_times_count > 0)
-                                    <span class="text-sm text-gray-900 dark:text-white">{{ $shift->break_times_count }} descanso{{ $shift->break_times_count > 1 ? 's' : '' }}</span>
-                                @else
-                                    <span class="text-sm text-gray-400">0 descansos</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('admin.shifts.show', $shift) }}" class="inline-flex items-center justify-center w-8 h-8 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded-md transition-colors" title="Ver">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                        </svg>
-                                    </a>
-                                    <a href="{{ route('admin.shifts.edit', $shift) }}" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-2 border-transparent hover:border-blue-300 dark:hover:border-blue-700 rounded-md transition-colors" title="Editar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </a>
-                                    <button wire:click="deleteShift({{ $shift->id }})" wire:confirm="¿Estás seguro de eliminar este turno?" class="inline-flex items-center justify-center w-8 h-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-2 border-transparent hover:border-red-300 dark:hover:border-red-700 rounded-md transition-colors" title="Eliminar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-16 text-center">
-                                <div class="text-sm text-gray-500 dark:text-gray-400">No se encontraron turnos</div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <x-ui.field label="Estado">
+                <select wire:model.live="filterStatus" class="w-full">
+                    <option value="">Todos</option>
+                    <option value="1">Activos</option>
+                    <option value="0">Inactivos</option>
+                </select>
+            </x-ui.field>
+
+            <x-ui.field label="Por página">
+                <select wire:model.live="perPage" class="w-full">
+                    @foreach ([5, 10, 25, 50] as $n)
+                        <option value="{{ $n }}">{{ $n }}</option>
+                    @endforeach
+                </select>
+            </x-ui.field>
         </div>
-        @if($shifts->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                {{ $shifts->links() }}
+
+        @if ($search || $filterStatus !== '')
+            <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Mostrando resultados filtrados.</span>
+                <x-ui.btn variant="ghost" size="sm" wire:click="clearFilters">Limpiar filtros</x-ui.btn>
             </div>
         @endif
-    </div>
-</div>
+    </x-ui.section>
+
+    {{-- Listado --}}
+    <x-ui.table>
+        <x-slot:head>
+            <tr>
+                <x-ui.th sort="name" :field="$sortField" :direction="$sortDirection">Turno</x-ui.th>
+                <x-ui.th sort="start_time" :field="$sortField" :direction="$sortDirection" class="w-52">Horario</x-ui.th>
+                <x-ui.th class="w-36">Empleados</x-ui.th>
+                <x-ui.th class="w-28">Descansos</x-ui.th>
+                <x-ui.th sort="active" :field="$sortField" :direction="$sortDirection" class="w-28">Estado</x-ui.th>
+                <x-ui.th align="right" class="w-32">Acciones</x-ui.th>
+            </tr>
+        </x-slot:head>
+
+        @forelse ($shifts as $shift)
+            @php
+                // canBeDeleted() mira estas tres relaciones; con los conteos ya
+                // cargados se evita una consulta por renglón.
+                $enUso = $shift->all_employees_count + $shift->break_times_count + $shift->over_times_count;
+            @endphp
+            <tr wire:key="shift-{{ $shift->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="px-4 py-3">
+                    <span class="block font-semibold text-slate-900 dark:text-white">{{ $shift->name }}</span>
+                    @if ($shift->comments)
+                        <span class="block max-w-md truncate text-xs text-slate-500 dark:text-slate-400">{{ $shift->comments }}</span>
+                    @endif
+                </td>
+                <td class="whitespace-nowrap px-4 py-3">
+                    <span class="block tabular-nums text-slate-900 dark:text-white">
+                        {{ $shift->start_time?->format('H:i') ?? '—' }} – {{ $shift->end_time?->format('H:i') ?? '—' }}
+                    </span>
+                    @if ($d = $duracion($shift))
+                        <span class="block text-xs text-slate-500 dark:text-slate-400">{{ $d }}</span>
+                    @endif
+                </td>
+                {{-- El texto va completo ("3 empleados", "1 empleado"): es el
+                     contrato que verifica ShiftListEmployeesTest. --}}
+                <td class="whitespace-nowrap px-4 py-3">
+                    <x-ui.badge :tone="$shift->employees_count > 0 ? 'info' : 'neutral'">
+                        {{ $shift->employees_count }} {{ \Illuminate\Support\Str::plural('empleado', $shift->employees_count) }}
+                    </x-ui.badge>
+                </td>
+                <td class="px-4 py-3">
+                    @if ($shift->break_times_count > 0)
+                        <x-ui.badge tone="neutral">{{ $shift->break_times_count }}</x-ui.badge>
+                    @else
+                        <span class="text-slate-400 dark:text-slate-500">—</span>
+                    @endif
+                </td>
+                <td class="px-4 py-3">
+                    @if ($shift->active)
+                        <x-ui.badge tone="good" dot>Activo</x-ui.badge>
+                    @else
+                        <x-ui.badge tone="neutral" dot>Inactivo</x-ui.badge>
+                    @endif
+                </td>
+                <td class="px-4 py-3">
+                    <x-ui.row-actions label="el turno {{ $shift->name }}"
+                        :show="route('admin.shifts.show', $shift)"
+                        :edit="route('admin.shifts.edit', $shift)"
+                        :delete="$enUso === 0 ? 'deleteShift('.$shift->id.')' : null"
+                        deleteConfirm="¿Eliminar el turno «{{ $shift->name }}»? Esta acción no se puede deshacer." />
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="6">
+                    <x-ui.empty icon="search" title="No se encontraron turnos"
+                        hint="Ajusta la búsqueda o el estado, o da de alta un turno nuevo.">
+                        <x-slot:action>
+                            <x-ui.btn variant="primary" href="{{ route('admin.shifts.create') }}">Nuevo turno</x-ui.btn>
+                        </x-slot:action>
+                    </x-ui.empty>
+                </td>
+            </tr>
+        @endforelse
+
+        @if ($shifts->hasPages())
+            <x-slot:foot>{{ $shifts->links() }}</x-slot:foot>
+        @endif
+    </x-ui.table>
+
+    <x-ui.note tone="muted">
+        Un turno con empleados, descansos o tiempo extra no se puede eliminar; desactívalo para que deje de ofrecerse
+        sin perder el histórico.
+    </x-ui.note>
+</x-ui.page>

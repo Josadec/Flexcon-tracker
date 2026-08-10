@@ -56,11 +56,21 @@ class Department extends Model
     }
 
     /**
-     * Buscar departamentos por nombre
+     * Buscar departamentos por nombre o descripción.
+     *
+     * La descripción entra porque es lo que el listado ofrece buscar; con sólo
+     * el nombre, escribir una palabra de la descripción no devolvía nada.
      */
     public function scopeSearch($query, $search)
     {
-        return $query->where('name', 'like', "%{$search}%");
+        if (blank($search)) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('description', 'like', "%{$search}%");
+        });
     }
 
     // ===============================================

@@ -96,6 +96,10 @@ class AuditTrailService
     ): AuditTrail {
         return AuditTrail::create([
             'user_id' => $user->id,
+            // Copia del nombre y el correo: si mañana se da de baja a esta
+            // persona, la entrada tiene que seguir diciendo quién fue.
+            'user_name' => trim($user->name.' '.($user->last_name ?? '')),
+            'user_email' => $user->email,
             'auditable_type' => get_class($model),
             'auditable_id' => $model->id,
             'action' => $action,

@@ -1,79 +1,41 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center gap-4">
-        <a href="{{ route('admin.departments.index') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-            </svg>
-        </a>
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Editar Departamento</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Modifica la información del departamento</p>
+<x-ui.page eyebrow="Administración" :title="'Editar '.$department->name"
+    subtitle="El cambio de nombre se refleja en todas las áreas y reportes que lo mencionan."
+    back="{{ route('admin.departments.index') }}" backLabel="Volver a departamentos">
+
+    <x-slot:actions>
+        <x-ui.btn variant="secondary" href="{{ route('admin.departments.show', $department) }}">Ver detalle</x-ui.btn>
+    </x-slot:actions>
+
+    <form wire:submit="updateDepartment" class="space-y-5">
+        <x-ui.section title="Identificación" hint="El nombre debe ser único: es como se referencia en áreas y reportes.">
+            <x-ui.field label="Nombre" required :error="$errors->first('name')">
+                <input wire:model="name" type="text" class="w-full" required>
+            </x-ui.field>
+
+            <x-ui.field label="Descripción" optional class="mt-4"
+                hint="Qué hace este departamento. Aparece en el listado."
+                :error="$errors->first('description')">
+                <textarea wire:model="description" rows="3" class="w-full"></textarea>
+            </x-ui.field>
+
+            <x-ui.field label="Comentarios" optional class="mt-4"
+                hint="Uso interno. Máximo 255 caracteres." :error="$errors->first('comments')">
+                <textarea wire:model="comments" rows="2" class="w-full"></textarea>
+            </x-ui.field>
+        </x-ui.section>
+
+        <x-ui.section title="Registro" hint="Datos de control, sólo lectura.">
+            <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+                <x-ui.kv label="Áreas en este departamento" :value="$department->areas()->count()"
+                    help="Mientras tenga áreas, el departamento no se puede eliminar." />
+                <x-ui.kv label="Alta" :value="$department->created_at?->format('d/m/Y H:i') ?? '—'" />
+                <x-ui.kv label="Última actualización" :value="$department->updated_at?->format('d/m/Y H:i') ?? '—'" />
+            </dl>
+        </x-ui.section>
+
+        <div class="flex flex-col-reverse gap-2 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-700">
+            <x-ui.btn variant="secondary" href="{{ route('admin.departments.index') }}">Cancelar</x-ui.btn>
+            <x-ui.btn variant="primary" type="submit">Guardar cambios</x-ui.btn>
         </div>
-    </div>
-
-    <!-- Form -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg">
-        <form wire:submit="updateDepartment" class="divide-y divide-gray-200 dark:divide-gray-700">
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Información del Departamento</h3>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Nombre <span class="text-red-500">*</span>
-                        </label>
-                        <input 
-                            wire:model="name" 
-                            type="text" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                            required 
-                        />
-                        @error('name') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Descripción</label>
-                        <textarea 
-                            wire:model="description" 
-                            rows="4" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 resize-none"
-                        ></textarea>
-                        @error('description') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comentarios</label>
-                        <input 
-                            wire:model="comments" 
-                            type="text" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                        />
-                        @error('comments') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="p-6 bg-gray-50 dark:bg-gray-900/50">
-                <div class="flex justify-end gap-3">
-                    <a 
-                        href="{{ route('admin.departments.index') }}" 
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                        Cancelar
-                    </a>
-                    <button 
-                        type="submit" 
-                        class="px-4 py-2 text-sm font-medium bg-blue-900 hover:bg-blue-800 text-white rounded-md"
-                    >
-                        Actualizar Departamento
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
+    </form>
+</x-ui.page>

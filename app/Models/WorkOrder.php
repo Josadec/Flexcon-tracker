@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +14,7 @@ use Illuminate\Support\Carbon;
 
 class WorkOrder extends Model
 {
-    use HasFactory, SoftDeletes;
+    use Auditable, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'wo_number',
@@ -240,20 +242,98 @@ class WorkOrder extends Model
     }
 
     /**
-     * Check if this work order can be deleted.
-     * Now allows deletion always (will cascade delete).
+     * Por qué no se puede borrar esta orden (null si sí se puede).
+     *
+     * Antes esto era `canBeDeleted(): return true` — siempre — y el borrado
+     * arrasaba FÍSICAMENTE lotes, pesadas de producción, pesadas de calidad,
+     * kits y el historial de estados. Con la retención de 5 años que pide el
+     * ISO, eso es evidencia que no se puede reconstruir: una orden que ya
+     * produjo algo se cancela, no se borra.
+     *
+     * Mismo patrón que Lot::getDeleteBlockReason().
      */
-    public function canBeDeleted(): bool
+    public function getDeleteBlockReason(): ?string
     {
-        // Allow deletion always, will cascade to related records
-        return true;
+        // Cuentan también los lotes ya borrados: un borrado físico se llevaría
+        // por delante su historial igual.
+        $lotIds = $this->lots()->withTrashed()->pluck('id');
+
+        if ($lotIds->isEmpty()) {
+            return null;
+        }
+
+        $conHistorial = [];
+
+        if (Weighing::withTrashed()->whereIn('lot_id', $lotIds)->exists()) {
+            $conHistorial[] = 'pesadas de producción';
+        }
+
+        if (QualityWeighing::withTrashed()->whereIn('lot_id', $lotIds)->exists()) {
+            $conHistorial[] = 'pesadas de calidad';
+        }
+
+        if (PackagingRecord::withTrashed()->whereIn('lot_id', $lotIds)->exists()
+            || PackagingPieceWeighing::withTrashed()->whereIn('lot_id', $lotIds)->exists()
+            || PackagingCrimpWeighing::withTrashed()->whereIn('lot_id', $lotIds)->exists()) {
+            $conHistorial[] = 'registros de empaque';
+        }
+
+        if (PackingSlipItem::whereIn('lot_id', $lotIds)->exists()) {
+            $conHistorial[] = 'piezas en un packing slip';
+        }
+
+        if (Lot::withTrashed()->whereIn('id', $lotIds)->whereNotNull('closure_decision')->exists()) {
+            $conHistorial[] = 'decisiones de cierre';
+        }
+
+        if (empty($conHistorial)) {
+            return null;
+        }
+
+        $ultimo = array_pop($conHistorial);
+        $lista = $conHistorial ? implode(', ', $conHistorial).' y '.$ultimo : $ultimo;
+
+        return 'Esta orden ya tiene '.$lista.'. Borrarla eliminaría ese historial, '
+            .'que hay que conservar 5 años; márcala como cancelada en vez de borrarla.';
     }
 
     /**
-     * Force delete this work order and all related records.
+     * Check if this work order can be deleted.
+     */
+    public function canBeDeleted(): bool
+    {
+        return $this->getDeleteBlockReason() === null;
+    }
+
+    /**
+     * Baja de la orden y de sus lotes conservando el historial.
+     *
+     * Es soft delete: desaparece de las pantallas, pero las pesadas y los
+     * registros de empaque siguen colgando de sus lotes y se pueden recuperar.
+     */
+    public function softDeleteWithRelations(): bool
+    {
+        foreach ($this->lots()->get() as $lot) {
+            $lot->delete();
+        }
+
+        return (bool) $this->delete();
+    }
+
+    /**
+     * Borrado físico. Sólo para órdenes sin ninguna evidencia registrada.
+     *
+     * El guard vive aquí, en el modelo, y no sólo en la pantalla: así ningún
+     * llamador futuro puede saltárselo sin darse cuenta.
+     *
+     * @throws \RuntimeException si la orden tiene historial que conservar
      */
     public function forceDeleteWithRelations(): bool
     {
+        if ($motivo = $this->getDeleteBlockReason()) {
+            throw new \RuntimeException($motivo);
+        }
+
         // Force delete related lots and their children — include soft-deleted
         // lots so their child records are cleaned up too.
         foreach ($this->lots()->withTrashed()->get() as $lot) {
@@ -304,4 +384,15 @@ class WorkOrder extends Model
     {
         return $this->hasMany(Kit::class);
     }
+
+    /** Contexto para el historial: la orden de trabajo, su compra y su parte. */
+    protected function auditContext(): array
+    {
+        return [
+            'work_order_id' => $this->getKey(),
+            'purchase_order_id' => $this->purchase_order_id,
+            'part_id' => $this->purchaseOrder?->part_id,
+        ];
+    }
+
 }

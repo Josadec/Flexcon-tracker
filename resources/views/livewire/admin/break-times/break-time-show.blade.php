@@ -1,97 +1,59 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <a href="{{ route('admin.break-times.index') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-            </a>
-            <div>
-                <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $breakTime->name }}</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    {{ \Carbon\Carbon::parse($breakTime->start_break_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($breakTime->end_break_time)->format('H:i') }} · {{ $breakTime->formatted_duration }}
-                </p>
-            </div>
-        </div>
-        <div class="flex gap-3">
-            <a href="{{ route('admin.break-times.edit', $breakTime) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                Editar
-            </a>
-            <a href="{{ route('admin.break-times.index') }}" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
-                Volver
-            </a>
-        </div>
-    </div>
+@php
+    $horario = ($breakTime->start_break_time?->format('H:i') ?? '—') . ' – ' . ($breakTime->end_break_time?->format('H:i') ?? '—');
+@endphp
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Información del descanso -->
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white">Información del descanso</h3>
-            </div>
-            <div class="p-4 space-y-3">
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Nombre</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">{{ $breakTime->name }}</dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Turno</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">
-                        @if($breakTime->shift)
-                            <a href="{{ route('admin.shifts.show', $breakTime->shift) }}" class="text-blue-600 dark:text-blue-400 hover:underline">{{ $breakTime->shift->name }}</a>
-                        @else
-                            —
-                        @endif
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Horario</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">
-                        {{ \Carbon\Carbon::parse($breakTime->start_break_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($breakTime->end_break_time)->format('H:i') }}
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Duración</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">{{ $breakTime->formatted_duration }}</dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Estado</dt>
-                    <dd class="text-sm">
-                        @if($breakTime->active)
-                            <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300">Activo</span>
-                        @else
-                            <span class="px-3 py-1 text-xs font-medium rounded-full border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Inactivo</span>
-                        @endif
-                    </dd>
-                </div>
-                @if($breakTime->comments)
-                    <div>
-                        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Comentarios</dt>
-                        <dd class="text-sm text-gray-900 dark:text-white">{{ $breakTime->comments }}</dd>
-                    </div>
+<x-ui.page eyebrow="Administración" :title="$breakTime->name"
+    :subtitle="'Descanso de '.$horario.($breakTime->shift ? ' · '.$breakTime->shift->name : '')"
+    back="{{ route('admin.break-times.index') }}" backLabel="Volver a descansos">
+
+    <x-slot:actions>
+        <x-ui.btn variant="primary" href="{{ route('admin.break-times.edit', $breakTime) }}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            Editar descanso
+        </x-ui.btn>
+    </x-slot:actions>
+
+    @if (session('message'))
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
+    @endif
+    @if (session('error'))
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
+    @endif
+
+    <x-ui.stats cols="3">
+        <x-ui.stat label="Inicio" :value="$breakTime->start_break_time?->format('H:i') ?? '—'" />
+        <x-ui.stat label="Fin" :value="$breakTime->end_break_time?->format('H:i') ?? '—'" />
+        <x-ui.stat label="Duración" :value="$this->getDuration()" tone="info"
+            help="Tiempo que se descuenta del turno." />
+    </x-ui.stats>
+
+    <x-ui.section title="Información del descanso">
+        <x-slot:aside>
+            @if ($breakTime->active)
+                <x-ui.badge tone="good" dot>Activo</x-ui.badge>
+            @else
+                <x-ui.badge tone="neutral" dot>Inactivo</x-ui.badge>
+            @endif
+        </x-slot:aside>
+
+        <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+            <x-ui.kv label="Nombre" :value="$breakTime->name" />
+            <x-ui.kv label="Turno">
+                @if ($breakTime->shift)
+                    <a href="{{ route('admin.shifts.show', $breakTime->shift) }}" wire:navigate
+                        class="font-bold text-sky-700 hover:underline dark:text-sky-300">{{ $breakTime->shift->name }}</a>
+                @else
+                    <span class="font-normal text-slate-400 dark:text-slate-500">Sin turno</span>
                 @endif
-            </div>
-        </div>
+            </x-ui.kv>
+            <x-ui.kv label="Horario" :value="$horario" />
+            <x-ui.kv label="Comentarios" :value="$breakTime->comments ?: '—'" />
+            <x-ui.kv label="Alta" :value="$breakTime->created_at?->format('d/m/Y H:i') ?? '—'" />
+            <x-ui.kv label="Última actualización" :value="$breakTime->updated_at?->format('d/m/Y H:i') ?? '—'" />
+        </dl>
 
-        <!-- Registro -->
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white">Registro</h3>
-            </div>
-            <div class="p-4 space-y-3">
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Fecha de creación</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">{{ $breakTime->created_at->format('d/m/Y H:i') }}</dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Última actualización</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">{{ $breakTime->updated_at->format('d/m/Y H:i') }}</dd>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+        <x-ui.note tone="muted" class="mt-4">
+            Mientras el descanso esté activo, su duración se descuenta del tiempo productivo del turno.
+        </x-ui.note>
+    </x-ui.section>
+</x-ui.page>

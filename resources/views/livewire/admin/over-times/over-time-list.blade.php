@@ -1,176 +1,165 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Tiempos extra</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestión de tiempos extra programados</p>
-        </div>
-        <a href="{{ route('admin.over-times.create') }}"
-           class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
+@php $hoy = now()->startOfDay(); @endphp
+
+<x-ui.page eyebrow="Administración" title="Tiempo extra"
+    subtitle="Jornadas extraordinarias por turno. Las horas-hombre que generan se suman a la capacidad disponible del período.">
+
+    <x-slot:actions>
+        <x-ui.btn variant="primary" href="{{ route('admin.over-times.create') }}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Nuevo tiempo extra
-        </a>
-    </div>
+        </x-ui.btn>
+    </x-slot:actions>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['total'] }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Horas totales</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['total_hours'] }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Próximos</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['upcoming'] }}</div>
-        </div>
-    </div>
+    {{-- Resumen --}}
+    <x-ui.stats cols="4">
+        <x-ui.stat label="Registros" :value="$stats['total']" />
+        <x-ui.stat label="Programados" :value="$stats['upcoming']" tone="info"
+            help="De hoy en adelante. Son los que aún afectan la planeación." />
+        <x-ui.stat label="Horas-hombre" :value="$stats['total_hours']" unit="h"
+            help="Horas netas × empleados, sumando todos los registros." />
+        <x-ui.stat label="Horas programadas" :value="$stats['upcoming_hours']" unit="h" tone="accent"
+            help="Horas-hombre de los tiempos extra que todavía no ocurren." />
+    </x-ui.stats>
 
-    <!-- Filters -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Buscar</label>
+    @if (session('message'))
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
+    @endif
+    @if (session('error'))
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
+    @endif
+
+    {{-- Filtros --}}
+    <x-ui.section title="Buscar" hint="Filtra por nombre o turno, y acota por período.">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_9rem]">
+            <x-ui.field label="Texto a buscar">
                 <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                    </div>
-                    <input
-                        type="text"
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="Buscar por nombre..."
-                        class="block w-full pl-10 pr-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    />
+                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </span>
+                    <input type="text" wire:model.live.debounce.300ms="search"
+                        placeholder="Nombre o turno..." class="w-full pl-10">
                 </div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Turno</label>
-                <select wire:model.live="filterShift" class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            </x-ui.field>
+
+            <x-ui.field label="Turno">
+                <select wire:model.live="filterShift" class="w-full">
                     <option value="">Todos</option>
-                    @foreach($shifts as $shift)
+                    @foreach ($shifts as $shift)
                         <option value="{{ $shift->id }}">{{ $shift->name }}</option>
                     @endforeach
                 </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Por página</label>
-                <select wire:model.live="perPage" class="block w-full px-3 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                </select>
-            </div>
-        </div>
-        @if($search || $filterShift)
-            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Resultados filtrados</span>
-                <button wire:click="$set('search', ''); $set('filterShift', '')" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 font-medium">
-                    Limpiar filtros
-                </button>
-            </div>
-        @endif
-    </div>
+            </x-ui.field>
 
-    <!-- Table -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('name')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                NOMBRE
-                                @if($sortBy === 'name')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                    </svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                            <button wire:click="sortBy('date')" class="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                FECHA
-                                @if($sortBy === 'date')
-                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                    </svg>
-                                @endif
-                            </button>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">TURNO</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">HORARIO</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">EMPLEADOS</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">HORAS NETAS</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">HORAS TOTALES</th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">ACCIONES</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse($overTimes as $overTime)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ $overTime->name }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                {{ $overTime->date->format('d/m/Y') }}
-                                @if($overTime->isToday())
-                                    <span class="ml-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">Hoy</span>
-                                @elseif($overTime->isFuture())
-                                    <span class="ml-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300">Próximo</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ $overTime->shift->name ?? '—' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                {{ \Carbon\Carbon::parse($overTime->start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($overTime->end_time)->format('H:i') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ $overTime->users_count }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ $overTime->net_hours }} hrs</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2.5 py-0.5 text-xs font-medium rounded-full border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ $overTime->total_hours }} hrs</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('admin.over-times.show', $overTime) }}" class="inline-flex items-center justify-center w-8 h-8 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border-2 border-transparent hover:border-gray-300 rounded-md transition-colors" title="Ver">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                        </svg>
-                                    </a>
-                                    <a href="{{ route('admin.over-times.edit', $overTime) }}" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-2 border-transparent hover:border-blue-300 rounded-md transition-colors" title="Editar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </a>
-                                    <button wire:click="deleteOverTime({{ $overTime->id }})" wire:confirm="¿Estás seguro de eliminar este tiempo extra?" class="inline-flex items-center justify-center w-8 h-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-2 border-transparent hover:border-red-300 rounded-md transition-colors" title="Eliminar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="px-6 py-16 text-center">
-                                <div class="text-sm text-gray-500 dark:text-gray-400">No se encontraron tiempos extra</div>
-                                <a href="{{ route('admin.over-times.create') }}" class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                                    Crear el primero
-                                </a>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <x-ui.field label="Período">
+                <select wire:model.live="filterWhen" class="w-full">
+                    <option value="all">Todos</option>
+                    <option value="upcoming">Programados</option>
+                    <option value="past">Pasados</option>
+                </select>
+            </x-ui.field>
+
+            <x-ui.field label="Por página">
+                <select wire:model.live="perPage" class="w-full">
+                    @foreach ([5, 10, 25, 50] as $n)
+                        <option value="{{ $n }}">{{ $n }}</option>
+                    @endforeach
+                </select>
+            </x-ui.field>
         </div>
-        @if($overTimes->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                {{ $overTimes->links() }}
+
+        @if ($search || $filterShift || $filterWhen !== 'all')
+            <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Mostrando resultados filtrados.</span>
+                <x-ui.btn variant="ghost" size="sm" wire:click="clearFilters">Limpiar filtros</x-ui.btn>
             </div>
         @endif
-    </div>
-</div>
+    </x-ui.section>
+
+    {{-- Listado --}}
+    <x-ui.table>
+        <x-slot:head>
+            <tr>
+                <x-ui.th sort="date" :field="$sortField" :direction="$sortDirection" class="w-40">Fecha</x-ui.th>
+                <x-ui.th sort="name" :field="$sortField" :direction="$sortDirection">Tiempo extra</x-ui.th>
+                <x-ui.th sort="shift_id" :field="$sortField" :direction="$sortDirection">Turno</x-ui.th>
+                <x-ui.th sort="start_time" :field="$sortField" :direction="$sortDirection" class="w-44">Horario</x-ui.th>
+                <x-ui.th class="w-28">Empleados</x-ui.th>
+                <x-ui.th class="w-36">Horas-hombre</x-ui.th>
+                <x-ui.th align="right" class="w-32">Acciones</x-ui.th>
+            </tr>
+        </x-slot:head>
+
+        @forelse ($overTimes as $overTime)
+            @php $pasado = $overTime->date->lt($hoy); @endphp
+            <tr wire:key="overtime-{{ $overTime->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="whitespace-nowrap px-4 py-3">
+                    <span class="block font-semibold tabular-nums text-slate-900 dark:text-white">
+                        {{ $overTime->date->format('d/m/Y') }}
+                    </span>
+                    @if ($overTime->date->isSameDay($hoy))
+                        <x-ui.badge tone="warn" dot class="mt-1">Hoy</x-ui.badge>
+                    @elseif ($pasado)
+                        <span class="block text-xs text-slate-500 dark:text-slate-400">Pasado</span>
+                    @else
+                        <span class="block text-xs text-slate-500 dark:text-slate-400">En {{ $hoy->diffInDays($overTime->date) }} días</span>
+                    @endif
+                </td>
+                <td class="px-4 py-3">
+                    <span class="block font-semibold text-slate-900 dark:text-white">{{ $overTime->name }}</span>
+                    @if ($overTime->comments)
+                        <span class="block max-w-xs truncate text-xs text-slate-500 dark:text-slate-400">{{ $overTime->comments }}</span>
+                    @endif
+                </td>
+                <td class="whitespace-nowrap px-4 py-3">
+                    @if ($overTime->shift)
+                        <a href="{{ route('admin.shifts.show', $overTime->shift) }}" wire:navigate
+                            class="font-medium text-sky-700 hover:underline dark:text-sky-300">{{ $overTime->shift->name }}</a>
+                    @else
+                        <span class="text-slate-400 dark:text-slate-500">Sin turno</span>
+                    @endif
+                </td>
+                <td class="whitespace-nowrap px-4 py-3">
+                    <span class="block tabular-nums text-slate-900 dark:text-white">
+                        {{ $overTime->start_time?->format('H:i') ?? '—' }} – {{ $overTime->end_time?->format('H:i') ?? '—' }}
+                    </span>
+                    <span class="block text-xs text-slate-500 dark:text-slate-400">
+                        {{ $overTime->net_hours }} h netas
+                        @if ($overTime->break_minutes > 0)
+                            · {{ $overTime->break_minutes }} min de descanso
+                        @endif
+                    </span>
+                </td>
+                <td class="px-4 py-3">
+                    <x-ui.badge :tone="$overTime->users_count > 0 ? 'info' : 'warn'">
+                        {{ $overTime->users_count }} {{ \Illuminate\Support\Str::plural('empleado', $overTime->users_count) }}
+                    </x-ui.badge>
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 font-bold tabular-nums text-slate-900 dark:text-white">
+                    {{ $overTime->total_hours }} h
+                </td>
+                <td class="px-4 py-3">
+                    <x-ui.row-actions label="el tiempo extra {{ $overTime->name }}"
+                        :show="route('admin.over-times.show', $overTime)"
+                        :edit="route('admin.over-times.edit', $overTime)"
+                        delete="deleteOverTime({{ $overTime->id }})"
+                        deleteConfirm="¿Eliminar «{{ $overTime->name }}» del {{ $overTime->date->format('d/m/Y') }}? Sus horas dejarán de sumarse a la capacidad." />
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="7">
+                    <x-ui.empty icon="search" title="No se encontraron tiempos extra"
+                        hint="Ajusta la búsqueda o los filtros de turno y período, o programa uno nuevo.">
+                        <x-slot:action>
+                            <x-ui.btn variant="primary" href="{{ route('admin.over-times.create') }}">Nuevo tiempo extra</x-ui.btn>
+                        </x-slot:action>
+                    </x-ui.empty>
+                </td>
+            </tr>
+        @endforelse
+
+        @if ($overTimes->hasPages())
+            <x-slot:foot>{{ $overTimes->links() }}</x-slot:foot>
+        @endif
+    </x-ui.table>
+</x-ui.page>

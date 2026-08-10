@@ -16,7 +16,7 @@
     $utilBar = $util >= 100 ? 'bg-red-500' : ($util >= 80 ? 'bg-amber-500' : 'bg-green-500');
 @endphp
 
-<x-ui.page :title="'Lista preliminar #'.$sentList->id"
+<x-ui.page eyebrow="Producción" :title="'Lista preliminar #'.$sentList->id"
     :subtitle="$sentList->start_date && $sentList->end_date
         ? 'Semana '.$sentList->start_date->weekOfYear.' de '.$sentList->start_date->year.' · '.$sentList->start_date->format('d/m/Y').' – '.$sentList->end_date->format('d/m/Y')
         : 'Sin período de planificación registrado.'"

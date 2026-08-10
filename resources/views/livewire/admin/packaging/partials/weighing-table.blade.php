@@ -23,7 +23,7 @@
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 @foreach ($rows as $row)
-                    <tr>
+                    <tr wire:key="pkg-w-{{ $type }}-{{ $row['id'] }}">
                         <td class="px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ $row['weighed_at'] ?? '-' }}</td>
                         <td class="px-3 py-2 text-gray-700 dark:text-gray-300">{{ $row['crimp_lot'] ?? '—' }}</td>
                         <td class="px-3 py-2 text-right font-medium {{ $accentText }}">{{ number_format($row['quantity']) }}</td>

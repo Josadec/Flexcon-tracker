@@ -1,412 +1,257 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Producción - Pesadas</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Registro de pesadas por lote (viajero)</p>
-        </div>
-        <div class="flex gap-2">
-            <a href="{{ route('admin.sent-lists.display') }}"
-               class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg border-2 border-gray-500 hover:border-gray-600 transition-colors">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Volver a Display
-            </a>
-            <button wire:click="openCreateModal"
-               class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg border-2 border-blue-500 hover:border-blue-600 transition-colors">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Nueva Pesada
-            </button>
-        </div>
-    </div>
+<x-ui.page eyebrow="Producción" title="Pesadas de producción"
+    subtitle="Registro de lo que se fabricó por viajero. De aquí sale lo que Calidad verifica después.">
 
-    <!-- Flash Messages -->
-    @if (session()->has('message'))
-        <div class="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg" role="alert">
-            <div class="flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span class="text-sm font-medium">{{ session('message') }}</span>
-            </div>
-        </div>
+    <x-slot:actions>
+        <x-ui.btn variant="secondary" href="{{ route('admin.production.index') }}">Panel de Producción</x-ui.btn>
+        <x-ui.btn variant="primary" wire:click="openCreateModal">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Registrar pesada
+        </x-ui.btn>
+    </x-slot:actions>
+
+    {{-- Resumen --}}
+    <x-ui.stats cols="4">
+        <x-ui.stat label="Pesadas registradas" :value="number_format($stats['total'])" />
+        <x-ui.stat label="Piezas acumuladas" :value="number_format($stats['piezas'])" tone="info" />
+        <x-ui.stat label="Pesadas de hoy" :value="number_format($stats['hoy'])" tone="accent" />
+        <x-ui.stat label="Piezas de hoy" :value="number_format($stats['piezas_hoy'])" tone="good" />
+    </x-ui.stats>
+
+    @if (session('message'))
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
+    @endif
+    @if (session('error'))
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
     @endif
 
-    @if (session()->has('error'))
-        <div class="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg" role="alert">
-            <div class="flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span class="text-sm font-medium">{{ session('error') }}</span>
-            </div>
-        </div>
-    @endif
+    {{-- Filtros --}}
+    <x-ui.section title="Buscar" hint="Filtra por viajero, orden o número de parte, y acota por fecha de pesada.">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_9rem]">
+            <x-ui.field label="Texto a buscar">
+                <div class="relative">
+                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </span>
+                    <input type="text" wire:model.live.debounce.300ms="search"
+                        placeholder="Viajero, orden o parte..." class="w-full pl-10">
+                </div>
+            </x-ui.field>
 
-    <!-- Search -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <input wire:model.live.debounce.300ms="search" type="text"
-            placeholder="Buscar por lote, WO o parte..."
-            class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-    </div>
+            <x-ui.field label="Pesadas desde">
+                <input type="date" wire:model.live="filterFrom" class="w-full">
+            </x-ui.field>
 
-    <!-- Table -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer" wire:click="sortBy('id')">
-                            ID
-                            @if($sortField === 'id')
-                                <span class="ml-1">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
-                            @endif
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Lote</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">WO</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Parte</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Kit</th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Cantidad</th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Pz Pesadas</th>
-                        <th class="px-6 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer" wire:click="sortBy('weighed_at')">
-                            Fecha Pesada
-                            @if($sortField === 'weighed_at')
-                                <span class="ml-1">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
-                            @endif
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Pesó</th>
-                        <th class="px-6 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse ($weighings as $weighing)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $weighing->id }}</td>
-                            <td class="px-6 py-4 text-sm text-blue-600 dark:text-blue-400 font-medium">
-                                {{ $weighing->lot->lot_number ?? 'N/A' }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                {{ $weighing->lot->workOrder->purchaseOrder->wo ?? 'N/A' }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                {{ $weighing->lot->workOrder->purchaseOrder->part->number ?? 'N/A' }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                @if ($weighing->lot->workOrder->purchaseOrder->part->is_crimp ?? true)
-                                    {{ $weighing->kit->kit_number ?? '-' }}
-                                @else
-                                    <span class="text-gray-400">—</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-sm text-right text-gray-500 dark:text-gray-400">
-                                {{ number_format($weighing->quantity) }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-right font-medium text-blue-600 dark:text-blue-400">
-                                {{ number_format($weighing->good_pieces) }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-center text-gray-700 dark:text-gray-300">
-                                {{ $weighing->weighed_at->format('m/d/Y H:i') }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                {{ $weighing->weighedBy->name ?? 'N/A' }}
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <div class="flex items-center justify-center gap-2">
-                                    <button wire:click="openDetailModal({{ $weighing->id }})"
-                                        class="inline-flex items-center justify-center w-8 h-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-2 border-transparent hover:border-blue-300 dark:hover:border-blue-700 rounded-md transition-colors"
-                                        title="Ver detalle">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                    </button>
-                                    <button wire:click="openEditModal({{ $weighing->id }})"
-                                        class="inline-flex items-center justify-center w-8 h-8 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 border-2 border-transparent hover:border-yellow-300 dark:hover:border-yellow-700 rounded-md transition-colors"
-                                        title="Editar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                        </svg>
-                                    </button>
-                                    <button wire:click="confirmDeletion({{ $weighing->id }})"
-                                        class="inline-flex items-center justify-center w-8 h-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-2 border-transparent hover:border-red-300 dark:hover:border-red-700 rounded-md transition-colors"
-                                        title="Eliminar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="10" class="px-6 py-12 text-center">
-                                <svg class="w-12 h-12 mx-auto mb-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
-                                </svg>
-                                <p class="text-base font-medium text-gray-900 dark:text-white">No hay pesadas registradas</p>
-                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Haz clic en "Nueva Pesada" para registrar una.</p>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <x-ui.field label="Hasta">
+                <input type="date" wire:model.live="filterTo" class="w-full">
+            </x-ui.field>
+
+            <x-ui.field label="Por página">
+                <select wire:model.live="perPage" class="w-full">
+                    @foreach ([15, 25, 50, 100] as $n)
+                        <option value="{{ $n }}">{{ $n }}</option>
+                    @endforeach
+                </select>
+            </x-ui.field>
         </div>
 
-        <!-- Pagination -->
-        @if ($weighings->hasPages())
-            <div class="px-6 py-4 border-t-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                {{ $weighings->links() }}
+        @if ($search || $filterFrom || $filterTo)
+            <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Mostrando resultados filtrados.</span>
+                <x-ui.btn variant="ghost" size="sm" wire:click="clearFilters">Limpiar filtros</x-ui.btn>
             </div>
         @endif
-    </div>
+    </x-ui.section>
 
-    {{-- MODAL CREAR / EDITAR PESADA --}}
+    {{-- Listado --}}
+    <x-ui.table>
+        <x-slot:head>
+            <tr>
+                <x-ui.th sort="weighed_at" :field="$sortField" :direction="$sortDirection" class="w-44">Fecha</x-ui.th>
+                <x-ui.th>Viajero</x-ui.th>
+                <x-ui.th>Parte</x-ui.th>
+                <x-ui.th sort="good_pieces" :field="$sortField" :direction="$sortDirection" class="w-32">Piezas</x-ui.th>
+                <x-ui.th class="w-44">Avance del viajero</x-ui.th>
+                <x-ui.th>Pesó</x-ui.th>
+                <x-ui.th align="right" class="w-32">Acciones</x-ui.th>
+            </tr>
+        </x-slot:head>
+
+        @forelse ($weighings as $weighing)
+            @php
+                $lot = $weighing->lot;
+                $total = (int) ($lot?->quantity ?? 0);
+                $pesado = (int) ($lot?->getProductionTotalWeighed() ?? 0);
+                $porcentaje = $total > 0 ? min(100, (int) round($pesado / $total * 100)) : 0;
+            @endphp
+            <tr wire:key="weighing-{{ $weighing->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="whitespace-nowrap px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">
+                    {{ $weighing->weighed_at?->format('d/m/Y H:i') ?? '—' }}
+                </td>
+                <td class="px-4 py-3">
+                    <span class="block font-semibold text-slate-900 dark:text-white">{{ $lot?->lot_number ?? '—' }}</span>
+                    <span class="block text-xs text-slate-500 dark:text-slate-400">
+                        WO {{ $lot?->workOrder?->purchaseOrder?->wo ?? '—' }}
+                    </span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="block text-slate-700 dark:text-slate-200">{{ $lot?->workOrder?->purchaseOrder?->part?->number ?? '—' }}</span>
+                    @if ($lot?->workOrder?->purchaseOrder?->part?->is_crimp)
+                        <x-ui.badge tone="accent" class="mt-1">CRIMP</x-ui.badge>
+                    @endif
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 font-bold tabular-nums text-slate-900 dark:text-white">
+                    {{ number_format($weighing->good_pieces) }}
+                </td>
+                <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                        <div class="h-1.5 w-full max-w-[6rem] overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                            <div class="h-full rounded-full {{ $porcentaje >= 100 ? 'bg-green-500' : 'bg-sky-500' }}"
+                                style="width: {{ $porcentaje }}%"></div>
+                        </div>
+                        <span class="whitespace-nowrap text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                            {{ number_format($pesado) }} / {{ number_format($total) }}
+                        </span>
+                    </div>
+                </td>
+                <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ $weighing->weighedBy?->name ?? '—' }}</td>
+                <td class="px-4 py-3">
+                    <x-ui.row-actions label="esta pesada"
+                        delete="confirmDeletion({{ $weighing->id }})"
+                        deleteConfirm="¿Eliminar esta pesada de {{ number_format($weighing->good_pieces) }} piezas?">
+                        <x-ui.icon-btn tone="neutral" label="Ver detalle de la pesada"
+                            wire:click="openDetailModal({{ $weighing->id }})">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        </x-ui.icon-btn>
+                        <x-ui.icon-btn tone="primary" label="Editar esta pesada"
+                            wire:click="openEditModal({{ $weighing->id }})">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </x-ui.icon-btn>
+                    </x-ui.row-actions>
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="7">
+                    <x-ui.empty icon="search" title="No se encontraron pesadas"
+                        hint="Ajusta la búsqueda o el rango de fechas, o registra una pesada nueva.">
+                        <x-slot:action>
+                            <x-ui.btn variant="primary" wire:click="openCreateModal">Registrar pesada</x-ui.btn>
+                        </x-slot:action>
+                    </x-ui.empty>
+                </td>
+            </tr>
+        @endforelse
+
+        @if ($weighings->hasPages())
+            <x-slot:foot>{{ $weighings->links() }}</x-slot:foot>
+        @endif
+    </x-ui.table>
+
+    {{-- Alta / edición --}}
     @if ($showFormModal)
-        <div wire:key="modal-weighing-form" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="weighing-form-title" role="dialog" aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeFormModal"></div>
+        <x-ui-modal wire:key="modal-weighing-form"
+            :title="$editingWeighingId ? 'Editar pesada' : 'Registrar pesada'"
+            subtitle="La pesada se guarda contra el viajero completo."
+            close="closeFormModal" maxWidth="2xl">
 
-                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
-                    {{-- Header --}}
-                    <div class="px-6 py-4 border-b-2 border-blue-500 bg-blue-600">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 id="weighing-form-title" class="text-lg font-semibold text-white">
-                                    {{ $editingWeighingId ? 'Editar Pesada' : 'Nueva Pesada' }}
-                                </h3>
-                                <p class="text-sm text-blue-100 mt-1">
-                                    {{ $editingWeighingId ? 'Modificar registro de pesada' : 'Registrar nueva pesada de producción' }}
-                                </p>
-                            </div>
-                            <button wire:click="closeFormModal" class="text-white hover:text-blue-200">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
+            <x-ui.section title="Viajero" hint="Sólo aparecen los viajeros que Calidad ya aprobó para producción.">
+                <x-ui.field label="Viajero" required :error="$errors->first('selectedLotId')">
+                    <select wire:model.live="selectedLotId" class="w-full" required>
+                        <option value="">Seleccionar</option>
+                        @foreach ($selectableLots as $lot)
+                            <option value="{{ $lot->id }}">
+                                {{ $lot->lot_number }} · {{ $lot->workOrder?->purchaseOrder?->part?->number ?? 'Sin parte' }}
+                                ({{ number_format($lot->quantity) }} pz)
+                            </option>
+                        @endforeach
+                    </select>
+                </x-ui.field>
 
-                    {{-- Body --}}
-                    <div class="px-6 py-5 space-y-4">
-                        {{-- Lote --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Lote *</label>
-                            <select wire:model.live="selectedLotId"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">Seleccionar lote...</option>
-                                @foreach ($lots as $lot)
-                                    <option value="{{ $lot->id }}">
-                                        {{ $lot->lot_number }} - WO: {{ $lot->workOrder->purchaseOrder->wo ?? 'N/A' }} | {{ $lot->workOrder->purchaseOrder->part->number ?? '' }} ({{ number_format($lot->quantity) }} pz)
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('selectedLotId')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
+                @if ($selectableLots->isEmpty())
+                    <x-ui.note tone="warn" class="mt-3">
+                        No hay viajeros aprobados por Calidad. Producción sólo puede pesar después de que la
+                        inspección se libere.
+                    </x-ui.note>
+                @endif
+            </x-ui.section>
 
-                        {{-- Cantidad (solo visual) --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cantidad del Lote</label>
-                            <div class="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white text-sm rounded-lg font-semibold">
-                                {{ number_format($formQuantity) }} piezas
-                            </div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Campo informativo - no editable</p>
-                        </div>
+            <x-ui.section title="Pesada">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ui.field label="Piezas pesadas" required hint="Sólo piezas buenas."
+                        :error="$errors->first('formWeighedPieces')">
+                        <input wire:model="formWeighedPieces" type="number" min="1" step="1"
+                            class="w-full text-right tabular-nums" required>
+                    </x-ui.field>
 
-                        {{-- Piezas pesadas --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Piezas Pesadas *</label>
-                            <input wire:model="formWeighedPieces" type="number" min="0"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="0">
-                            @error('formWeighedPieces')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        {{-- Fecha y hora --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fecha y Hora de Pesada *</label>
-                            <input wire:model="formWeighedAt" type="datetime-local"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            @error('formWeighedAt')
-                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        {{-- Comentarios --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comentarios</label>
-                            <textarea wire:model="formComments" rows="2"
-                                class="w-full px-4 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Observaciones (opcional)..."></textarea>
-                        </div>
-                    </div>
-
-                    {{-- Footer --}}
-                    <div class="px-6 py-4 border-t-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-col sm:flex-row gap-3 sm:justify-end">
-                        <button wire:click="closeFormModal"
-                            class="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            Cancelar
-                        </button>
-                        <button wire:click="save"
-                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
-                            {{ $editingWeighingId ? 'Actualizar' : 'Registrar' }} Pesada
-                        </button>
-                    </div>
+                    <x-ui.field label="Fecha y hora" required :error="$errors->first('formWeighedAt')">
+                        <input wire:model="formWeighedAt" type="datetime-local" class="w-full" required>
+                    </x-ui.field>
                 </div>
-            </div>
-        </div>
+
+                @if ($formQuantity > 0)
+                    <x-ui.note tone="muted" class="mt-4">
+                        Cantidad del viajero: <strong>{{ number_format($formQuantity) }}</strong> piezas.
+                    </x-ui.note>
+                @endif
+
+                <x-ui.field label="Comentarios" optional class="mt-4" :error="$errors->first('formComments')">
+                    <textarea wire:model="formComments" rows="2" class="w-full"></textarea>
+                </x-ui.field>
+            </x-ui.section>
+
+            <x-slot:note>
+                Si Calidad ya verificó piezas de este viajero, no se puede bajar la cantidad por debajo de lo verificado.
+            </x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeFormModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="primary" wire:click="save" wire:loading.attr="disabled" wire:target="save">
+                    {{ $editingWeighingId ? 'Guardar cambios' : 'Registrar pesada' }}
+                </x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
     @endif
 
-    {{-- MODAL VER DETALLE --}}
+    {{-- Detalle --}}
     @if ($showDetailModal && $detailWeighing)
-        <div wire:key="modal-weighing-detail" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="weighing-detail-title" role="dialog" aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="closeDetailModal"></div>
+        <x-ui-modal wire:key="modal-weighing-detail" title="Detalle de la pesada"
+            subtitle="Registro de producción a nivel viajero."
+            close="closeDetailModal" maxWidth="2xl">
 
-                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
-                    {{-- Header --}}
-                    <div class="px-6 py-4 border-b-2 border-gray-200 dark:border-gray-700 bg-gray-700">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 id="weighing-detail-title" class="text-lg font-semibold text-white">Detalle de Pesada #{{ $detailWeighing->id }}</h3>
-                                <p class="text-sm text-gray-300 mt-1">
-                                    Lote: {{ $detailWeighing->lot->lot_number ?? 'N/A' }}
-                                </p>
-                            </div>
-                            <button wire:click="closeDetailModal" class="text-white hover:text-gray-300">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
+            <x-ui.section title="Información">
+                <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+                    <x-ui.kv label="Viajero" :value="$detailWeighing->lot?->lot_number ?? '—'" />
+                    <x-ui.kv label="Orden de trabajo" :value="$detailWeighing->lot?->workOrder?->purchaseOrder?->wo ?? '—'" />
+                    <x-ui.kv label="Parte" :value="$detailWeighing->lot?->workOrder?->purchaseOrder?->part?->number ?? '—'" />
+                    <x-ui.kv label="Piezas pesadas" :value="number_format($detailWeighing->good_pieces)" tone="good" />
+                    <x-ui.kv label="Cantidad del viajero" :value="number_format($detailWeighing->quantity)" />
+                    <x-ui.kv label="Fecha y hora" :value="$detailWeighing->weighed_at?->format('d/m/Y H:i') ?? '—'" />
+                    <x-ui.kv label="Registró" :value="$detailWeighing->weighedBy?->name ?? '—'" />
+                    <x-ui.kv label="Comentarios" :value="$detailWeighing->comments ?: '—'" />
+                </dl>
+            </x-ui.section>
 
-                    {{-- Body --}}
-                    <div class="px-6 py-5 space-y-4">
-                        <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400 block">WO:</span>
-                                <span class="text-gray-900 dark:text-white font-medium">
-                                    {{ $detailWeighing->lot->workOrder->purchaseOrder->wo ?? 'N/A' }}
-                                </span>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400 block">Parte:</span>
-                                <span class="text-gray-900 dark:text-white font-medium">
-                                    {{ $detailWeighing->lot->workOrder->purchaseOrder->part->number ?? 'N/A' }}
-                                </span>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400 block">Lote:</span>
-                                <span class="text-blue-600 dark:text-blue-400 font-medium">
-                                    {{ $detailWeighing->lot->lot_number ?? 'N/A' }}
-                                </span>
-                            </div>
-                            @if ($detailWeighing->lot->workOrder->purchaseOrder->part->is_crimp ?? true)
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400 block">Kit:</span>
-                                <span class="text-gray-900 dark:text-white font-medium">
-                                    {{ $detailWeighing->kit->kit_number ?? 'Sin kit' }}
-                                </span>
-                            </div>
-                            @endif
-                        </div>
-
-                        <hr class="border-gray-200 dark:border-gray-700">
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-gray-50 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 p-3 rounded-lg text-center">
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Cantidad del Lote</p>
-                                <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ number_format($detailWeighing->quantity) }}</p>
-                            </div>
-                            <div class="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 p-3 rounded-lg text-center">
-                                <p class="text-xs text-blue-600 dark:text-blue-400 mb-1">Pz Pesadas</p>
-                                <p class="text-lg font-semibold text-blue-700 dark:text-blue-300">{{ number_format($detailWeighing->good_pieces) }}</p>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400 block">Fecha de Pesada:</span>
-                                <span class="text-gray-900 dark:text-white font-medium">
-                                    {{ $detailWeighing->weighed_at->format('d/m/Y H:i') }}
-                                </span>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400 block">Pesó:</span>
-                                <span class="text-gray-900 dark:text-white font-medium">
-                                    {{ $detailWeighing->weighedBy->name ?? 'N/A' }}
-                                </span>
-                            </div>
-                        </div>
-
-                        @if ($detailWeighing->comments)
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400 block text-sm mb-2">Comentarios:</span>
-                                <p class="text-gray-900 dark:text-white text-sm bg-gray-50 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 p-3 rounded-lg">
-                                    {{ $detailWeighing->comments }}
-                                </p>
-                            </div>
-                        @endif
-
-                        <div class="text-xs text-gray-400 dark:text-gray-500">
-                            Creado: {{ $detailWeighing->created_at->format('d/m/Y H:i') }} |
-                            Actualizado: {{ $detailWeighing->updated_at->format('d/m/Y H:i') }}
-                        </div>
-                    </div>
-
-                    {{-- Footer --}}
-                    <div class="px-6 py-4 border-t-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-end">
-                        <button wire:click="closeDetailModal"
-                            class="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            Cerrar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeDetailModal">Cerrar</x-ui.btn>
+                <x-ui.btn variant="primary" wire:click="openEditModal({{ $detailWeighing->id }})">Editar</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
     @endif
 
-    {{-- MODAL CONFIRMAR ELIMINACIÓN --}}
+    {{-- Confirmación de borrado --}}
     @if ($confirmingDeletion)
-        <div wire:key="modal-weighing-delete" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" wire:click="cancelDeletion"></div>
+        <x-ui-modal wire:key="modal-weighing-delete" title="Eliminar pesada"
+            subtitle="Esta acción no se puede deshacer."
+            close="cancelDeletion" maxWidth="lg">
 
-                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full border-2 border-gray-200 dark:border-gray-700 rounded-lg">
-                    <div class="px-6 py-5">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 border-2 border-red-200 dark:border-red-700 flex items-center justify-center">
-                                <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                                </svg>
-                            </div>
-                            <div class="ml-4">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Eliminar Pesada</h3>
-                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    ¿Estás seguro de que deseas eliminar esta pesada? Esta acción no se puede deshacer.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="px-6 py-4 border-t-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-end gap-3">
-                        <button wire:click="cancelDeletion"
-                            class="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            Cancelar
-                        </button>
-                        <button wire:click="delete"
-                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors">
-                            Eliminar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+            <x-ui.note tone="danger">
+                Se eliminará el registro de producción. Si Calidad ya verificó piezas de este viajero, el sistema
+                lo impedirá y te dirá cuántas hay verificadas.
+            </x-ui.note>
+
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="cancelDeletion">Cancelar</x-ui.btn>
+                <x-ui.btn variant="danger" wire:click="delete">Eliminar pesada</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
     @endif
-</div>
+</x-ui.page>

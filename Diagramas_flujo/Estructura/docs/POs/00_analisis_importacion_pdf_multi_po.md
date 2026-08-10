@@ -585,9 +585,11 @@ Ver Seccion 12 para el analisis completo de todos los escenarios OCR evaluados y
 
 ### 8.5 Duplicados de PO Number
 
-**Riesgo alto.** La columna `po_number` en `purchase_orders` tiene restriccion UNIQUE. Si el operador sube el mismo PDF dos veces, o si una PO del PDF ya fue cargada manualmente, el intento de insercion fallara.
+**Riesgo alto.** Si el operador sube el mismo PDF dos veces, o si una PO del PDF ya fue cargada manualmente, se intentaria insertar un `po_number` repetido.
 
-- **Mitigacion:** Antes de la pantalla de confirmacion, verificar cuales `po_number_extracted` ya existen en `purchase_orders`. Marcar esos items como `price_status = duplicate` y excluirlos del checkbox de importacion por defecto. El operador puede ver el link a la PO existente.
+- **Estado del constraint (actualizado 2026-08-08):** la restriccion UNIQUE simple sobre `po_number` fue reemplazada en `2026_05_21_000000` por un indice compuesto `(po_number, deleted_at)` para permitir reutilizar un numero despues de un soft delete. Ese indice **no** bloquea duplicados entre POs activos, porque MySQL admite multiples filas con NULL en una columna de un indice UNIQUE. La migracion `2026_08_08_000000` restablece la garantia con una columna generada `po_number_active` (el numero cuando `deleted_at IS NULL`, NULL cuando esta borrado) mas un indice unico sobre ella. **Conclusion: la base de datos si rebota duplicados activos, pero solo desde esa migracion en adelante — no asumir el UNIQUE simple original.**
+- **Mitigacion:** Antes de la pantalla de confirmacion, verificar cuales `po_number_extracted` ya existen en `purchase_orders` **entre los registros activos** (`whereNull('deleted_at')`, o el scope por defecto del modelo). Marcar esos items como `price_status = duplicate` y excluirlos del checkbox de importacion por defecto. El operador puede ver el link a la PO existente.
+- **Mitigacion en escritura:** el importador debe capturar `UniqueConstraintViolationException` por fila y reportar esa PO como duplicada en el resumen del batch, en lugar de abortar la importacion completa. Un chequeo previo no basta: entre la verificacion y el insert otra sesion puede tomar el numero.
 
 ### 8.6 Formato de Fechas
 

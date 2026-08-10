@@ -11,6 +11,7 @@ use App\Models\StatusWO;
 use App\Models\WorkOrder;
 use App\Services\POPriceDetectionService;
 use App\Services\PurchaseOrderService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -21,6 +22,8 @@ use Tests\TestCase;
  *   M3 - po_number unique rule counted soft-deleted rows.
  *   M4 - approveAndCreateWO() had no entry-status guard.
  *   M5 - Lot model events crashed when the WorkOrder was soft-deleted.
+ *   M6 - the (number, deleted_at) unique indexes never constrained active rows,
+ *        since a NULL deleted_at makes every live row unique to the database.
  */
 class PurchaseOrderImportantFixesTest extends TestCase
 {
@@ -135,5 +138,62 @@ class PurchaseOrderImportantFixesTest extends TestCase
         ]);
 
         $this->assertModelExists($lot);
+    }
+
+    // ===================================================================
+    // M6 — the database, not just Rule::unique(), rejects active duplicates
+    // ===================================================================
+
+    public function test_m6_database_rejects_duplicate_active_po_number(): void
+    {
+        PurchaseOrder::factory()->create(['po_number' => 'PO-DUP']);
+
+        // Skips Rule::unique() on purpose: this is the race-condition path,
+        // where two requests both clear validation before either one inserts.
+        $this->expectException(UniqueConstraintViolationException::class);
+
+        PurchaseOrder::factory()->create(['po_number' => 'PO-DUP']);
+    }
+
+    public function test_m6_database_rejects_duplicate_active_lot_number_per_wo(): void
+    {
+        StatusWO::firstOrCreate(['name' => 'Open'], ['color' => '#10B981']);
+        $po = PurchaseOrder::factory()->create();
+        $wo = WorkOrder::factory()->create(['purchase_order_id' => $po->id]);
+
+        Lot::create([
+            'work_order_id' => $wo->id,
+            'lot_number' => 'LOT-DUP',
+            'quantity' => 10,
+        ]);
+
+        $this->expectException(UniqueConstraintViolationException::class);
+
+        Lot::create([
+            'work_order_id' => $wo->id,
+            'lot_number' => 'LOT-DUP',
+            'quantity' => 20,
+        ]);
+    }
+
+    public function test_m6_lot_number_can_be_reused_after_soft_delete(): void
+    {
+        StatusWO::firstOrCreate(['name' => 'Open'], ['color' => '#10B981']);
+        $po = PurchaseOrder::factory()->create();
+        $wo = WorkOrder::factory()->create(['purchase_order_id' => $po->id]);
+
+        Lot::create([
+            'work_order_id' => $wo->id,
+            'lot_number' => 'LOT-REUSE',
+            'quantity' => 10,
+        ])->delete();
+
+        $reused = Lot::create([
+            'work_order_id' => $wo->id,
+            'lot_number' => 'LOT-REUSE',
+            'quantity' => 20,
+        ]);
+
+        $this->assertModelExists($reused);
     }
 }

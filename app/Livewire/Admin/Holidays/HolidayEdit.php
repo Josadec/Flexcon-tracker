@@ -16,7 +16,8 @@ class HolidayEdit extends Component
     {
         $this->holiday = $holiday;
         $this->name = $holiday->name;
-        $this->date = $holiday->date;
+        // `date` está casteado a fecha en el modelo: el input espera AAAA-MM-DD.
+        $this->date = $holiday->date?->format('Y-m-d') ?? '';
         $this->description = $holiday->description ?? '';
     }
 
@@ -39,8 +40,7 @@ class HolidayEdit extends Component
             'description' => $this->description,
         ]);
 
-        session()->flash('flash.banner', 'Holiday actualizado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Día festivo actualizado correctamente.');
 
         $this->redirect(route('admin.holidays.index'), navigate: true);
     }

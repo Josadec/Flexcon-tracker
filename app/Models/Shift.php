@@ -118,13 +118,21 @@ class Shift extends Model
         return $query->where('active', false);
     }
 
-    // Buscar turnos por nombre
+    // Buscar turnos por nombre, horario o comentarios.
+    // Las condiciones van agrupadas: sueltas, el `orWhere` se escapaba de
+    // cualquier otro filtro de la consulta y devolvía turnos de más.
     public function scopeSearch($query, $search)
     {
-        return $query->where('name', 'like', "%{$search}%")
-        ->orWhere('start_time', 'like', "%{$search}%")
-        ->orWhere('end_time', 'like', "%{$search}%")
-        ->orWhere('comments', 'like', "%{$search}%");
+        if (blank($search)) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('start_time', 'like', "%{$search}%")
+              ->orWhere('end_time', 'like', "%{$search}%")
+              ->orWhere('comments', 'like', "%{$search}%");
+        });
     }
 
     // Ordenar por campo dinámico

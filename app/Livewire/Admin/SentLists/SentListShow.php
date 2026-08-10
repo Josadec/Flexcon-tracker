@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\SentLists;
 
 use App\Models\SentList;
+use App\Services\ReopeningService;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -92,6 +93,18 @@ class SentListShow extends Component
             'newStatus.required' => 'Selecciona el nuevo estado.',
             'newStatus.in'       => 'El estado seleccionado no es válido.',
         ]);
+
+        // Sacar una lista confirmada de su estado es reabrirla: vuelve a ser
+        // editable por los departamentos. Mismo guard que en el índice.
+        if ($this->sentList->status === SentList::STATUS_CONFIRMED
+            && $this->newStatus !== SentList::STATUS_CONFIRMED
+            && ! app(ReopeningService::class)->allows(auth()->user())) {
+            session()->flash('error',
+                "La lista #{$this->sentList->id} ya está confirmada. Sólo Administración puede reabrirla.");
+            $this->closeStatusModal();
+
+            return;
+        }
 
         // Cancelar borra la lista, salvo que alguna de sus órdenes ya esté
         // corriendo en piso: en ese caso se conserva como evidencia.

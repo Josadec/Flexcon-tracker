@@ -87,7 +87,7 @@
                             $target = $lot->getCrimpTargetTotal();
                             $count = $lot->packagingPieceWeighings->count() + $lot->packagingCrimpWeighings->count();
                         @endphp
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                        <tr wire:key="pkg-lot-{{ $lot->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                             <td class="px-6 py-4 text-blue-600 dark:text-blue-400 font-medium">{{ $po->wo ?? 'N/A' }}</td>
                             <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ $lot->lot_number }}</td>
                             <td class="px-6 py-4 text-gray-700 dark:text-gray-300">{{ $part->number ?? 'N/A' }}</td>

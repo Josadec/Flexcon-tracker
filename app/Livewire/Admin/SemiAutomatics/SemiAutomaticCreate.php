@@ -37,8 +37,7 @@ class SemiAutomaticCreate extends Component
             'area_id' => $this->area_id,
         ]);
 
-        session()->flash('flash.banner', 'Semi-automático creado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Semi-automático creado correctamente.');
 
         return redirect()->route('admin.semi-automatics.index');
     }

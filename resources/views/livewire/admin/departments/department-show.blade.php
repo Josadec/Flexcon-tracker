@@ -1,114 +1,81 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <a href="{{ route('admin.departments.index') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-            </a>
-            <div>
-                <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $department->name }}</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Detalles del departamento</p>
-            </div>
-        </div>
-        <div class="flex gap-3">
-            <a href="{{ route('admin.departments.edit', $department) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium rounded-md">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                Editar
-            </a>
-            <a href="{{ route('admin.departments.index') }}" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
-                Volver
-            </a>
-        </div>
-    </div>
+<x-ui.page eyebrow="Administración" :title="$department->name"
+    :subtitle="$department->description ?: 'Detalle del departamento y de las áreas que agrupa.'"
+    back="{{ route('admin.departments.index') }}" backLabel="Volver a departamentos">
 
-    <!-- Information Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg">
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-base font-semibold text-gray-900 dark:text-white">Información del Departamento</h3>
-        </div>
-        <div class="p-4 space-y-3">
-            <div>
-                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Nombre</dt>
-                <dd class="text-sm text-gray-900 dark:text-white">{{ $department->name }}</dd>
-            </div>
-            <div>
-                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Descripción</dt>
-                <dd class="text-sm text-gray-900 dark:text-white">{{ $department->description ?? 'Sin descripción' }}</dd>
-            </div>
-            @if($department->comments)
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Comentarios</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">{{ $department->comments }}</dd>
-                </div>
-            @endif
-        </div>
-    </div>
+    <x-slot:actions>
+        <x-ui.btn variant="primary" href="{{ route('admin.departments.edit', $department) }}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            Editar departamento
+        </x-ui.btn>
+    </x-slot:actions>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Áreas</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['total_areas'] }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Máquinas</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['total_machines'] }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Mesas</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['total_tables'] }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Semi-Automáticos</div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats['total_semi_automatic'] }}</div>
-        </div>
-    </div>
+    @if (session('message'))
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
+    @endif
+    @if (session('error'))
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
+    @endif
 
-    <!-- Areas Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg">
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-base font-semibold text-gray-900 dark:text-white">Áreas en este departamento</h3>
-        </div>
-        @if($department->areas->count() > 0)
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-900/50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Nombre</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Supervisor</th>
-                            <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        @foreach($department->areas as $area)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $area->name }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ $area->supervisor_name }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right">
-                                    <a href="{{ route('admin.areas.show', $area) }}" class="inline-flex items-center justify-center w-8 h-8 text-blue-900 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors" title="Ver">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                        </svg>
-                                    </a>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+    {{-- Equipo que cuelga del departamento --}}
+    <x-ui.stats cols="4">
+        <x-ui.stat label="Áreas" :value="$stats['total_areas']" />
+        <x-ui.stat label="Máquinas" :value="$stats['total_machines']" tone="info"
+            :help="$stats['active_machines'].' activas de '.$stats['total_machines'].'.'" />
+        <x-ui.stat label="Mesas" :value="$stats['total_tables']" tone="info"
+            :help="$stats['active_tables'].' activas de '.$stats['total_tables'].'.'" />
+        <x-ui.stat label="Semi-automáticos" :value="$stats['total_semi_automatic']" tone="info"
+            :help="$stats['active_semi_automatic'].' activos de '.$stats['total_semi_automatic'].'.'" />
+    </x-ui.stats>
+
+    {{-- Ficha --}}
+    <x-ui.section title="Información del departamento">
+        <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+            <x-ui.kv label="Nombre" :value="$department->name" />
+            <x-ui.kv label="Descripción" :value="$department->description ?: '—'" />
+            <x-ui.kv label="Comentarios" :value="$department->comments ?: '—'" />
+            <x-ui.kv label="Alta" :value="$department->created_at?->format('d/m/Y H:i') ?? '—'" />
+            <x-ui.kv label="Última actualización" :value="$department->updated_at?->format('d/m/Y H:i') ?? '—'" />
+        </dl>
+    </x-ui.section>
+
+    {{-- Áreas --}}
+    <x-ui.section title="Áreas en este departamento"
+        hint="Cada área tiene un responsable y agrupa las máquinas y mesas donde se produce.">
+
+        @if ($department->areas->isNotEmpty())
+            <x-ui.table>
+                <x-slot:head>
+                    <tr>
+                        <x-ui.th>Área</x-ui.th>
+                        <x-ui.th>Responsable</x-ui.th>
+                        <x-ui.th align="right" class="w-24">Acciones</x-ui.th>
+                    </tr>
+                </x-slot:head>
+
+                @foreach ($department->areas as $area)
+                    <tr wire:key="area-{{ $area->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-semibold text-slate-900 dark:text-white">{{ $area->name }}</td>
+                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300">
+                            @if ($area->user)
+                                {{ $area->user->full_name }}
+                            @else
+                                <span class="text-slate-400 dark:text-slate-500">Sin responsable</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3">
+                            <x-ui.row-actions label="el área {{ $area->name }}"
+                                :show="route('admin.areas.show', $area)" />
+                        </td>
+                    </tr>
+                @endforeach
+            </x-ui.table>
         @else
-            <div class="p-6 text-center">
-                <p class="text-sm text-gray-500 dark:text-gray-400">No hay áreas asociadas a este departamento</p>
-            </div>
+            <x-ui.empty icon="box" title="Sin áreas en este departamento"
+                hint="Mientras no tenga áreas, no hay dónde registrar máquinas, mesas ni empleados.">
+                <x-slot:action>
+                    <x-ui.btn variant="primary" href="{{ route('admin.areas.create') }}">Crear un área</x-ui.btn>
+                </x-slot:action>
+            </x-ui.empty>
         @endif
-    </div>
-</div>
+    </x-ui.section>
+</x-ui.page>

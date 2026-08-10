@@ -748,4 +748,13 @@
 
     {{-- Signature Modal Component - DESHABILITADO TEMPORALMENTE --}}
     {{-- <livewire:admin.signature-modal @signature-completed="refreshWorkOrder" /> --}}
+
+    {{-- Historial completo de la orden. La sección "Historial de Estados" de
+         arriba sólo muestra los últimos 5 cambios de estado; aquí está todo. --}}
+    <div class="mt-6">
+        <livewire:admin.history.history-explorer
+            :entity-type="\App\Models\WorkOrder::class"
+            :entity-id="$workOrder->id"
+            :key="'historial-wo-'.$workOrder->id" />
+    </div>
 </div>

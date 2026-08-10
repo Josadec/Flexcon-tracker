@@ -70,8 +70,11 @@ final class PendingActions
                 'packagingPieceWeighings',
                 'packagingCrimpWeighings',
             ])
+            // Un viajero terminado no tiene acciones pendientes: contarlo
+            // inflaba los pendientes de los seis tableros que leen de aquí.
+            ->open()
             ->whereHas('workOrder', function ($q) {
-                $q->whereDoesntHave('status', fn ($s) => $s->where('name', 'Completed'));
+                $q->whereNotIn('status_id', \App\Models\StatusWO::closedIds());
             })
             ->get();
     }

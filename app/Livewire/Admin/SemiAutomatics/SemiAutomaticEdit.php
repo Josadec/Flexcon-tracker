@@ -27,8 +27,11 @@ class SemiAutomaticEdit extends Component
 
     public function rules(): array
     {
+        // La tabla real es `semi__automatics` (doble guion bajo, ver
+        // Semi_Automatic::$table). Apuntar a `semi_automatics` hacía que la
+        // validación consultara una tabla inexistente y guardar reventara.
         return [
-            'number' => 'required|string|max:255|unique:semi_automatics,number,' . $this->semiAutomatic->id,
+            'number' => 'required|string|max:255|unique:semi__automatics,number,' . $this->semiAutomatic->id,
             'employees' => 'nullable|integer|min:1',
             'active' => 'boolean',
             'comments' => 'nullable|string',
@@ -48,10 +51,11 @@ class SemiAutomaticEdit extends Component
             'area_id' => $this->area_id,
         ]);
 
-        session()->flash('flash.banner', 'Semi-automático actualizado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Semi-automático actualizado correctamente.');
 
-        return redirect()->route('semi-automatics.index');
+        // Las rutas del panel viven bajo el nombre `admin.`; sin el prefijo,
+        // guardar terminaba en RouteNotFoundException.
+        return redirect()->route('admin.semi-automatics.index');
     }
 
     public function render()

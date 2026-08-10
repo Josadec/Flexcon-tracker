@@ -52,11 +52,16 @@ class SentListDepartmentGuardTest extends TestCase
             'sent_list_id'      => $sentList->id,
         ]);
 
+        // El flujo es secuencial: Producción sólo pesa lotes con inspección
+        // aprobada. Esta prueba mide la guarda de departamento, no la compuerta
+        // del flujo, así que el lote entra ya inspeccionado.
         $lot = Lot::create([
-            'work_order_id' => $wo->id,
-            'lot_number'    => 'V-1',
-            'quantity'      => 1000,
-            'status'        => Lot::STATUS_PENDING,
+            'work_order_id'     => $wo->id,
+            'lot_number'        => 'V-1',
+            'quantity'          => 1000,
+            'status'            => Lot::STATUS_PENDING,
+            'material_status'   => 'released',
+            'inspection_status' => Lot::INSPECTION_APPROVED,
         ]);
 
         return [$sentList, $lot];

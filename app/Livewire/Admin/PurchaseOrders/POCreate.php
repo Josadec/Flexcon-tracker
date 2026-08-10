@@ -7,7 +7,10 @@ use App\Models\Price;
 use App\Models\PurchaseOrder;
 use App\Services\POPriceDetectionService;
 use App\Services\PurchaseOrderService;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -254,19 +257,30 @@ class POCreate extends Component
             $pdfPath = $this->pdf_file->store('purchase-orders', 'public');
         }
 
-        $purchaseOrder = PurchaseOrder::create([
-            'po_number' => $this->po_number,
-            'wo' => $this->wo ?: null,
-            'part_id' => $this->part_id,
-            'workstation_type' => $this->workstation_type ?: null,
-            'po_date' => $this->po_date,
-            'due_date' => $this->due_date,
-            'quantity' => $this->quantity,
-            'unit_price' => $this->unit_price,
-            'status' => PurchaseOrder::STATUS_PENDING,
-            'comments' => $this->comments ?: null,
-            'pdf_path' => $pdfPath,
-        ]);
+        try {
+            $purchaseOrder = PurchaseOrder::create([
+                'po_number' => $this->po_number,
+                'wo' => $this->wo ?: null,
+                'part_id' => $this->part_id,
+                'workstation_type' => $this->workstation_type ?: null,
+                'po_date' => $this->po_date,
+                'due_date' => $this->due_date,
+                'quantity' => $this->quantity,
+                'unit_price' => $this->unit_price,
+                'status' => PurchaseOrder::STATUS_PENDING,
+                'comments' => $this->comments ?: null,
+                'pdf_path' => $pdfPath,
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            // Otra sesión guardó el mismo número entre el validate() y el insert.
+            if ($pdfPath) {
+                Storage::disk('public')->delete($pdfPath);
+            }
+
+            throw ValidationException::withMessages([
+                'po_number' => 'Ya existe una orden de compra con este número.',
+            ]);
+        }
 
         // Validate price and update status accordingly
         $validation = $this->purchaseOrderService->validatePrice($purchaseOrder);

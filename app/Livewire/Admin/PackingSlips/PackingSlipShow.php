@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\PackingSlips;
 use App\Models\Lot;
 use App\Models\PackingSlip;
 use App\Models\PackingSlipItem;
+use App\Services\ReopeningService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -63,6 +64,22 @@ class PackingSlipShow extends Component
         $validStatuses = array_keys(PackingSlip::STATUSES);
         if (!in_array($this->selectedStatus, $validStatuses)) {
             return;
+        }
+
+        // Sacar un packing slip YA DESPACHADO de vuelta a borrador es una
+        // reapertura: el documento salió de la planta. Antes cualquiera con rol
+        // Empaques podía hacerlo desde un <select>, sin motivo y sin rastro.
+        if ($this->packingSlip->isShipped() && $this->selectedStatus !== PackingSlip::STATUS_SHIPPED) {
+            if (! app(ReopeningService::class)->allows(Auth::user())) {
+                $this->dispatch('notify', [
+                    'type'    => 'error',
+                    'message' => 'Este packing slip ya salió despachado. Sólo Administración puede regresarlo a borrador.',
+                ]);
+
+                $this->selectedStatus = $this->packingSlip->status;
+
+                return;
+            }
         }
 
         $data = ['status' => $this->selectedStatus];

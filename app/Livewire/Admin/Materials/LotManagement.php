@@ -165,8 +165,20 @@ class LotManagement extends Component
         // Validate other fields
         $this->validate([
             'form.work_order_id' => 'required|exists:work_orders,id',
+            // La base tiene índice único (work_order_id, lot_number): sin esta
+            // regla, un número repetido salía como error de SQL en pantalla.
+            'form.lot_number' => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('lots', 'lot_number')
+                    ->where('work_order_id', $this->form['work_order_id'])
+                    ->whereNull('deleted_at')
+                    ->ignore($this->lotId),
+            ],
             'form.quantity' => 'required|integer|min:1',
             'form.status' => 'required|in:pending,in_progress,completed,cancelled',
+        ], [
+            'form.lot_number.required' => 'El número de viajero es obligatorio.',
+            'form.lot_number.unique' => 'Esa orden ya tiene un viajero con ese número.',
         ]);
 
         // Filter empty batch numbers
@@ -219,20 +231,18 @@ class LotManagement extends Component
     {
         $lot = Lot::findOrFail($lotId);
 
-        if (!$lot->canBeDeleted()) {
-            session()->flash('error', 'No se puede eliminar este lote en su estado actual.');
+        if ($motivo = $lot->getDeleteBlockReason()) {
+            session()->flash('error', $motivo);
+
             return;
         }
 
         // Record audit trail before deletion
         $this->auditTrailService->recordDelete($lot, Auth::user());
 
-        // Detach kits and clean up related records before soft-deleting
-        $lot->kits()->detach();
-        $lot->weighings()->delete();
-        $lot->qualityWeighings()->delete();
-        $lot->packagingRecords()->delete();
-
+        // Aquí se borraban a mano pesadas, calidad y empaque antes del soft
+        // delete: eso destruía historial real. Con el guard de arriba, un
+        // viajero que llega hasta este punto no tiene nada que limpiar.
         $lot->delete();
 
         session()->flash('message', 'Lote eliminado exitosamente.');

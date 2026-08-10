@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Tables;
 use App\Models\Table;
 use App\Models\Area;
 use App\Models\ProductionStatus;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class TableEdit extends Component
@@ -40,6 +41,25 @@ class TableEdit extends Component
         $this->s_n = $table->s_n ?? '';
         $this->asset_number = $table->asset_number ?? '';
         $this->description = $table->description ?? '';
+    }
+
+    /**
+     * El catálogo de estados se administra desde un modal (ProductionStatusManager).
+     * Basta con recibir el evento para que render() vuelva a leer la lista.
+     */
+    #[On('production-statuses-updated')]
+    public function refreshProductionStatuses(): void
+    {
+        //
+    }
+
+    /** Un estado recién creado desde el modal queda seleccionado si no había ninguno. */
+    #[On('production-status-created')]
+    public function useNewProductionStatus(int $id): void
+    {
+        if ($this->production_status_id === '') {
+            $this->production_status_id = (string) $id;
+        }
     }
 
     public function rules(): array
@@ -81,8 +101,7 @@ class TableEdit extends Component
             'description' => $this->description ?: null,
         ]);
 
-        session()->flash('flash.banner', 'Mesa actualizada correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Mesa actualizada correctamente.');
 
         return redirect()->route('admin.tables.index');
     }

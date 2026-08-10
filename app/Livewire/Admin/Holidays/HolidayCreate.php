@@ -30,8 +30,7 @@ class HolidayCreate extends Component
             'description' => $this->description,
         ]);
 
-        session()->flash('flash.banner', 'Holiday creado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Día festivo creado correctamente.');
 
         $this->redirect(route('admin.holidays.index'), navigate: true);
     }

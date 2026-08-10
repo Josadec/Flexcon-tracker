@@ -17,8 +17,16 @@ class AuditTrail extends Model
 
     protected $fillable = [
         'user_id',
+        'user_name',
+        'user_email',
         'auditable_type',
         'auditable_id',
+        // Contexto desnormalizado: permite buscar el historial por orden,
+        // viajero o parte sin recorrer relaciones desde una tabla polimórfica.
+        'work_order_id',
+        'purchase_order_id',
+        'lot_id',
+        'part_id',
         'action',
         'old_values',
         'new_values',
@@ -32,6 +40,33 @@ class AuditTrail extends Model
         'new_values' => 'array',
         'created_at' => 'datetime',
     ];
+
+    /**
+     * La auditoría es de sólo escritura: se añade, nunca se corrige ni se borra.
+     *
+     * Es lo que la vuelve evidencia. Si una entrada se puede editar después,
+     * deja de probar nada, y con retención de 5 años por ISO eso es justo lo
+     * que hay que poder demostrar. Se bloquea aquí, en el modelo, para que
+     * ningún componente pueda saltárselo por descuido.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function () {
+            throw new \RuntimeException('Una entrada de auditoría no se puede modificar.');
+        });
+
+        static::deleting(function () {
+            throw new \RuntimeException('Una entrada de auditoría no se puede eliminar.');
+        });
+    }
+
+    /** Quién hizo la acción, aunque su cuenta ya no exista. */
+    public function getActorNameAttribute(): string
+    {
+        return $this->user?->name
+            ? trim($this->user->name.' '.($this->user->last_name ?? ''))
+            : ($this->user_name ?: 'Usuario eliminado');
+    }
 
     /**
      * Get the user who performed the action.

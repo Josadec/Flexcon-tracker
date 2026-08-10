@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\SentLists;
 
 use App\Models\SentList;
+use App\Services\ReopeningService;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -102,6 +103,19 @@ class SentListIndex extends Component
         ]);
 
         $list = SentList::findOrFail($this->statusModalId);
+
+        // Sacar una lista ya confirmada de su estado es reabrirla: vuelve a ser
+        // editable por los departamentos. Antes lo podía hacer cualquiera de los
+        // cinco roles operativos, sobre cualquier lista, desde un <select>.
+        if ($list->status === SentList::STATUS_CONFIRMED
+            && $this->newStatus !== SentList::STATUS_CONFIRMED
+            && ! app(ReopeningService::class)->allows(auth()->user())) {
+            session()->flash('error',
+                "La lista #{$list->id} ya está confirmada. Sólo Administración puede reabrirla.");
+            $this->closeStatusModal();
+
+            return;
+        }
 
         // Cancelar borra la lista, salvo que alguna de sus órdenes ya esté
         // corriendo en piso: en ese caso se conserva como evidencia.

@@ -167,17 +167,21 @@ class CrimpFlowSeeder extends Seeder
 
     private function makePo(Part $part, string $poNumber, string $woNumber, int $qty): PurchaseOrder
     {
-        return PurchaseOrder::create([
-            'po_number'  => $poNumber,
-            'wo'         => $woNumber,
-            'part_id'    => $part->id,
-            'po_date'    => now()->subDays(10),
-            'due_date'   => now()->addDays(20),
-            'quantity'   => $qty,
-            'unit_price' => 1.50,
-            'status'     => PurchaseOrder::STATUS_APPROVED,
-            'comments'   => 'Demo CRIMP seeder.',
-        ]);
+        // firstOrCreate y no create(): el po_number es único entre POs activos,
+        // así que reejecutar el seeder sin limpiar antes reventaría el insert.
+        return PurchaseOrder::firstOrCreate(
+            ['po_number' => $poNumber],
+            [
+                'wo'         => $woNumber,
+                'part_id'    => $part->id,
+                'po_date'    => now()->subDays(10),
+                'due_date'   => now()->addDays(20),
+                'quantity'   => $qty,
+                'unit_price' => 1.50,
+                'status'     => PurchaseOrder::STATUS_APPROVED,
+                'comments'   => 'Demo CRIMP seeder.',
+            ]
+        );
     }
 
     private function makeWo(PurchaseOrder $po, SentList $sentList, int $statusId): WorkOrder

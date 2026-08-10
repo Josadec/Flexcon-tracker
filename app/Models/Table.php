@@ -116,11 +116,22 @@ class Table extends Model
     }
 
     /**
-     * Buscar mesas
+     * Buscar mesas por número, nombre o número de activo.
+     *
+     * Nombre y activo entran porque son los otros dos datos con los que se
+     * identifica físicamente una mesa en piso.
      */
     public function scopeSearch($query, $search)
     {
-        return $query->where('number', 'like', "%{$search}%");
+        if (blank($search)) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($search) {
+            $q->where('number', 'like', "%{$search}%")
+              ->orWhere('name', 'like', "%{$search}%")
+              ->orWhere('asset_number', 'like', "%{$search}%");
+        });
     }
 
     // ===============================================

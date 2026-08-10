@@ -1,4 +1,7 @@
-<div class="shipping-screen min-h-screen bg-slate-50 dark:bg-slate-950" wire:poll.30s="refreshDisplay">
+{{-- `visible`: el refresco se detiene cuando la pestaña está en segundo plano.
+     Una pantalla de piso abierta todo el día hacía 2,880 recargas completas
+     diarias por dispositivo, estuviera alguien mirando o no. --}}
+<div class="shipping-screen min-h-screen bg-slate-50 dark:bg-slate-950" wire:poll.visible.30s="refreshDisplay">
     {{-- Mensajes Flash --}}
     @if (session()->has('message'))
         <div
@@ -154,12 +157,17 @@
         ];
     @endphp
     @if ($summaryTotal > 0)
+        {{-- Plegado como la guía, pero con el total a la vista en la barra: esto
+             es trabajo pendiente, no ayuda, y esconderlo sin dejar rastro sería
+             peor que no plegarlo. --}}
         <div class="mx-auto max-w-full px-4 pt-4 sm:px-6 lg:px-8">
-            <div class="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
-                <div class="flex items-center justify-between gap-4 border-b border-slate-200 px-4 py-2.5 dark:border-slate-700">
-                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Acciones pendientes</h2>
-                    <span class="text-xs text-slate-400 dark:text-slate-500">Quién debe mover cada lote</span>
-                </div>
+            <x-ui.disclosure title="Acciones pendientes" hint="Quién debe mover cada lote">
+                <x-slot:aside>
+                    <x-ui.badge tone="warn" dot>
+                        {{ $summaryTotal }} {{ Str::plural('pendiente', $summaryTotal) }}
+                    </x-ui.badge>
+                </x-slot:aside>
+
                 <div class="grid grid-cols-1 gap-px bg-slate-200 dark:bg-slate-700 sm:grid-cols-2 xl:grid-cols-3">
                     @foreach ($pendingKinds as $key => [$area, $what, $unit, $tone])
                         @continue(($lifecycleSummary[$key] ?? 0) <= 0)
@@ -174,7 +182,7 @@
                         </div>
                     @endforeach
                 </div>
-            </div>
+            </x-ui.disclosure>
         </div>
     @endif
 
@@ -183,55 +191,103 @@
          La prueba con el equipo mostró que la duda no era "qué significa el
          color" sino "dónde le pico". Por eso la guía va en tres pasos cortos y
          la leyenda muestra los controles reales tal como se ven en la tabla.
+
+         Va plegada: es ayuda de una vez, no trabajo diario. Quien ya se sabe el
+         tablero no quiere perder esa franja de pantalla todos los días, y quien
+         la necesita la tiene a un clic.
          ========================================================================== --}}
     <div class="mx-auto max-w-full px-4 pt-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 shadow-sm lg:grid-cols-[minmax(0,1fr)_auto] dark:border-slate-700 dark:bg-slate-700">
+        <x-ui.disclosure title="Cómo usar este tablero"
+            hint="Guía en 3 pasos y qué significa cada recuadro">
+            <div class="grid grid-cols-1 gap-px overflow-hidden bg-slate-200 lg:grid-cols-[minmax(0,1fr)_auto] dark:bg-slate-700">
 
-            {{-- Cómo continuar un viajero --}}
-            <div class="bg-white px-4 py-4 dark:bg-slate-800">
-                <h2 class="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                    <svg class="size-4 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Cómo continuar un viajero
-                </h2>
-                <ol class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    @foreach ([
-                        ['Busca tu orden', 'Escribe el WO, el # de parte o la descripción en el buscador de arriba.'],
-                        ['Ubica tu columna', 'En la fila del viajero, busca la columna de tu área: Material, Insp., Prod., Cal. o Emp.'],
-                        ['Presiona el recuadro', 'Si el recuadro tiene borde, se puede presionar y abre la ventana para registrar.'],
-                    ] as $i => [$stepTitle, $stepText])
-                        <li class="flex gap-3">
-                            <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-sky-700 text-xs font-bold text-white">{{ $i + 1 }}</span>
-                            <span class="min-w-0">
-                                <span class="block text-sm font-semibold text-slate-900 dark:text-white">{{ $stepTitle }}</span>
-                                <span class="mt-0.5 block text-xs leading-4 text-slate-500 dark:text-slate-400">{{ $stepText }}</span>
-                            </span>
+                {{-- Cómo continuar un viajero --}}
+                <div class="bg-white px-4 py-4 dark:bg-slate-800">
+                    <h2 class="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                        <svg class="size-4 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Cómo continuar un viajero
+                    </h2>
+                    <ol class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        @foreach ([
+                            ['Busca tu orden', 'Escribe el WO, el # de parte o la descripción en el buscador de arriba.'],
+                            ['Ubica tu columna', 'En la fila del viajero, busca la columna de tu área: Material, Insp., Prod., Cal. o Emp.'],
+                            ['Presiona el recuadro', 'Si el recuadro tiene borde, se puede presionar y abre la ventana para registrar.'],
+                        ] as $i => [$stepTitle, $stepText])
+                            <li class="flex gap-3">
+                                <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-sky-700 text-xs font-bold text-white">{{ $i + 1 }}</span>
+                                <span class="min-w-0">
+                                    <span class="block text-sm font-semibold text-slate-900 dark:text-white">{{ $stepTitle }}</span>
+                                    <span class="mt-0.5 block text-xs leading-4 text-slate-500 dark:text-slate-400">{{ $stepText }}</span>
+                                </span>
+                            </li>
+                        @endforeach
+                    </ol>
+                </div>
+
+                {{-- Leyenda: los mismos controles que aparecen en la tabla --}}
+                <div class="bg-white px-4 py-4 dark:bg-slate-800 lg:max-w-xs">
+                    <h2 class="mb-3 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Qué significa cada recuadro</h2>
+                    <ul class="space-y-2">
+                        <li class="flex items-center gap-3">
+                            <span class="w-28 shrink-0"><x-ui.row-action state="pending" label="Liberar" hint="Ejemplo de acción pendiente" :clickable="true" /></span>
+                            <span class="text-xs leading-4 text-slate-600 dark:text-slate-300"><strong class="text-slate-900 dark:text-white">Te toca a ti.</strong> Presiónalo para registrar.</span>
                         </li>
-                    @endforeach
-                </ol>
+                        <li class="flex items-center gap-3">
+                            <span class="w-28 shrink-0"><x-ui.row-action state="done" label="Liberado" hint="Ejemplo de paso completado" :clickable="true" /></span>
+                            <span class="text-xs leading-4 text-slate-600 dark:text-slate-300"><strong class="text-slate-900 dark:text-white">Ya se hizo.</strong> Puedes abrirlo para consultar.</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span class="w-28 shrink-0"><x-ui.row-action state="idle" label="No disponible" hint="Ejemplo de paso bloqueado" /></span>
+                            <span class="text-xs leading-4 text-slate-600 dark:text-slate-300"><strong class="text-slate-900 dark:text-white">Aún no.</strong> Falta que termine el paso anterior.</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
+        </x-ui.disclosure>
+    </div>
 
-            {{-- Leyenda: los mismos controles que aparecen en la tabla --}}
-            <div class="bg-white px-4 py-4 dark:bg-slate-800 lg:max-w-xs">
-                <h2 class="mb-3 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Qué significa cada recuadro</h2>
-                <ul class="space-y-2">
-                    <li class="flex items-center gap-3">
-                        <span class="w-28 shrink-0"><x-ui.row-action state="pending" label="Liberar" hint="Ejemplo de acción pendiente" :clickable="true" /></span>
-                        <span class="text-xs leading-4 text-slate-600 dark:text-slate-300"><strong class="text-slate-900 dark:text-white">Te toca a ti.</strong> Presiónalo para registrar.</span>
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="w-28 shrink-0"><x-ui.row-action state="done" label="Liberado" hint="Ejemplo de paso completado" :clickable="true" /></span>
-                        <span class="text-xs leading-4 text-slate-600 dark:text-slate-300"><strong class="text-slate-900 dark:text-white">Ya se hizo.</strong> Puedes abrirlo para consultar.</span>
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="w-28 shrink-0"><x-ui.row-action state="idle" label="No disponible" hint="Ejemplo de paso bloqueado" /></span>
-                        <span class="text-xs leading-4 text-slate-600 dark:text-slate-300"><strong class="text-slate-900 dark:text-white">Aún no.</strong> Falta que termine el paso anterior.</span>
-                    </li>
-                </ul>
+    {{-- Barra de terminados: el tablero enseña lo pendiente; lo cerrado se
+         puede recuperar de un clic, para verificar lo que se acaba de capturar. --}}
+    @if ($showingFinished || $totalFinishedHidden > 0)
+        <div class="mx-auto max-w-full px-4 pt-4 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                    @if ($showingFinished)
+                        Se están mostrando también los viajeros ya terminados.
+                    @else
+                        Hay <strong class="text-slate-700 dark:text-slate-200">{{ $totalFinishedHidden }}</strong>
+                        {{ Str::plural('viajero', $totalFinishedHidden) }} {{ Str::plural('terminado', $totalFinishedHidden) }}
+                        fuera de la vista.
+                    @endif
+                </p>
+
+                <button type="button" wire:click="toggleFinished"
+                    class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-white">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        @if ($showingFinished)
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                        @else
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        @endif
+                    </svg>
+                    {{ $showingFinished ? 'Ocultar terminados' : 'Ver terminados' }}
+                </button>
             </div>
         </div>
-    </div>
+    @endif
+
+    {{-- Se alcanzó el tope de órdenes por vista: hay que acotar con el buscador --}}
+    @if ($reachedLimit)
+        <div class="mx-auto max-w-full px-4 pt-4 sm:px-6 lg:px-8">
+            <x-ui.note tone="warn" title="Se están mostrando las primeras {{ $maxWorkOrders }} órdenes">
+                Hay más órdenes abiertas de las que caben en una pantalla. Usa el buscador o el
+                filtro de estación para acotar, o entra a una lista de envío concreta.
+            </x-ui.note>
+        </div>
+    @endif
 
     {{-- Contenido Principal --}}
     <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-20">
@@ -1092,6 +1148,40 @@
                                     </tr>
                                 @endif
 
+                                {{-- Sin viajeros abiertos pero con piezas pendientes: es el
+                                     lunes por la mañana. La orden sigue viva y alguien tiene
+                                     que ver que falta abrir los viajeros de la semana. --}}
+                                @if ($allLots->isEmpty() && $cantAEnviar > 0)
+                                    <tr class="bg-amber-50 dark:bg-amber-900/20">
+                                        <td colspan="21" class="px-4 py-3">
+                                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                                <span class="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                                                    Faltan {{ number_format($cantAEnviar) }} pz de esta orden y no hay ningún viajero abierto.
+                                                </span>
+                                                <a href="{{ route('admin.materials.manage') }}" wire:navigate
+                                                    class="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700">
+                                                    Crear viajeros
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endif
+
+                                {{-- Viajeros terminados que se están escondiendo --}}
+                                @if (($finishedCounts[$wo->id] ?? 0) > 0)
+                                    <tr class="bg-slate-50 dark:bg-slate-900/30">
+                                        <td colspan="21" class="px-4 py-2">
+                                            <button type="button" wire:click="toggleFinished"
+                                                class="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline dark:text-slate-400 dark:hover:text-slate-100">
+                                                {{ $finishedCounts[$wo->id] }}
+                                                {{ Str::plural('viajero', $finishedCounts[$wo->id]) }}
+                                                {{ Str::plural('terminado', $finishedCounts[$wo->id]) }}
+                                                de esta orden · ver
+                                            </button>
+                                        </td>
+                                    </tr>
+                                @endif
+
                                 {{-- Fila de Total --}}
                                 @if ($allLots->count() > 1)
                                     <tr class="bg-gray-100 dark:bg-gray-700/40 font-semibold">
@@ -1129,10 +1219,38 @@
                                 return $l->getQualityPendingPieces();
                             });
 
+                            // Estado por departamento del WO: se DERIVA de sus lotes, no se
+                            // captura. Antes era un array fijo en 'pending' con un modal que
+                            // no guardaba nada, así que los tres semáforos siempre salían
+                            // amarillos y las selecciones se perdían al refrescar.
+                            $woDeptStatus = function (callable $done, callable $failed) use ($allLots) {
+                                if ($allLots->isEmpty())              return 'pending';
+                                if ($allLots->contains($failed))      return 'rejected';
+                                if ($allLots->every($done))           return 'approved';
+                                if ($allLots->contains($done))        return 'in_progress';
+                                return 'pending';
+                            };
+
                             $departmentStatuses = [
-                                'materials' => 'pending',
-                                'inspection' => 'pending',
-                                'production' => 'pending',
+                                'materials'  => $woDeptStatus(
+                                    fn ($l) => ($l->material_status ?? 'pending') === 'released',
+                                    fn ($l) => ($l->material_status ?? 'pending') === 'rejected',
+                                ),
+                                'inspection' => $woDeptStatus(
+                                    fn ($l) => ($l->inspection_status ?? 'pending') === \App\Models\Lot::INSPECTION_APPROVED,
+                                    fn ($l) => ($l->inspection_status ?? 'pending') === \App\Models\Lot::INSPECTION_REJECTED,
+                                ),
+                                'production' => $woDeptStatus(
+                                    fn ($l) => $l->weighings->sum('good_pieces') + $l->weighings->sum('bad_pieces') >= $l->quantity,
+                                    fn ($l) => false,
+                                ),
+                            ];
+
+                            $deptLabels = [
+                                'rejected'    => 'Rechazado',
+                                'pending'     => 'Pendiente',
+                                'in_progress' => 'En progreso',
+                                'approved'    => 'Aprobado',
                             ];
                         @endphp
 
@@ -1212,9 +1330,9 @@
                                 <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">Estado por Departamento
                                 </div>
                                 <div class="flex items-center gap-4">
-                                    <div class="flex flex-col items-center gap-1">
+                                    @foreach (['materials' => 'Mat.', 'inspection' => 'Insp.', 'production' => 'Prod.'] as $deptKey => $deptShort)
                                         @php
-                                            $materialsColor = match ($departmentStatuses['materials']) {
+                                            $deptColor = match ($departmentStatuses[$deptKey]) {
                                                 'rejected' => 'bg-red-500',
                                                 'pending' => 'bg-yellow-400',
                                                 'in_progress' => 'bg-sky-600',
@@ -1222,43 +1340,12 @@
                                                 default => 'bg-gray-400',
                                             };
                                         @endphp
-                                        <button
-                                            wire:click="openDepartmentStatusModal({{ $wo->id }}, 'materials')"
-                                            class="w-8 h-8 rounded {{ $materialsColor }} hover:opacity-80 transition-opacity"
-                                            title="Materiales"></button>
-                                        <span class="text-xs text-gray-600 dark:text-gray-400">Mat.</span>
-                                    </div>
-                                    <div class="flex flex-col items-center gap-1">
-                                        @php
-                                            $inspectionColor = match ($departmentStatuses['inspection']) {
-                                                'rejected' => 'bg-red-500',
-                                                'pending' => 'bg-yellow-400',
-                                                'in_progress' => 'bg-sky-600',
-                                                'approved' => 'bg-green-500',
-                                                default => 'bg-gray-400',
-                                            };
-                                        @endphp
-                                        <button wire:click="openDepartmentStatusModal({{ $wo->id }}, 'inspection')"
-                                            class="w-8 h-8 rounded {{ $inspectionColor }} hover:opacity-80 transition-opacity"
-                                            title="Inspeccion"></button>
-                                        <span class="text-xs text-gray-600 dark:text-gray-400">Insp.</span>
-                                    </div>
-                                    <div class="flex flex-col items-center gap-1">
-                                        @php
-                                            $productionColor = match ($departmentStatuses['production']) {
-                                                'rejected' => 'bg-red-500',
-                                                'pending' => 'bg-yellow-400',
-                                                'in_progress' => 'bg-sky-600',
-                                                'approved' => 'bg-green-500',
-                                                default => 'bg-gray-400',
-                                            };
-                                        @endphp
-                                        <button
-                                            wire:click="openDepartmentStatusModal({{ $wo->id }}, 'production')"
-                                            class="w-8 h-8 rounded {{ $productionColor }} hover:opacity-80 transition-opacity"
-                                            title="Producción"></button>
-                                        <span class="text-xs text-gray-600 dark:text-gray-400">Prod.</span>
-                                    </div>
+                                        <div wire:key="wo-{{ $wo->id }}-dept-{{ $deptKey }}" class="flex flex-col items-center gap-1">
+                                            <span class="w-8 h-8 rounded {{ $deptColor }}"
+                                                title="{{ $deptShort }} — {{ $deptLabels[$departmentStatuses[$deptKey]] ?? '—' }} (se calcula desde los lotes)"></span>
+                                            <span class="text-xs text-gray-600 dark:text-gray-400">{{ $deptShort }}</span>
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
                         </div>
@@ -1701,45 +1788,6 @@
     @endif
 
     {{-- Modal de Estado de Departamentos --}}
-    @if ($showDepartmentStatusModal)
-        <x-ui-modal wire:key="modal-dept-status" title="Estado por departamento"
-            subtitle="Selecciona el avance actual de cada área."
-            close="closeDepartmentStatusModal" maxWidth="4xl">
-            @php
-                // Los cuatro estados posibles, con el mismo orden y color en las tres áreas.
-                $deptOptions = [
-                    'rejected'    => ['Rechazado',   'bad'],
-                    'pending'     => ['Pendiente',   'warn'],
-                    'in_progress' => ['En progreso', 'info'],
-                    'approved'    => ['Aprobado',    'good'],
-                ];
-            @endphp
-
-            @foreach (['materials' => 'Materiales', 'inspection' => 'Inspección', 'production' => 'Producción'] as $deptKey => $deptLabel)
-                <x-ui.section wire:key="dept-{{ $deptKey }}" :title="$deptLabel" hint="Selecciona el avance actual de esta área.">
-                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        @foreach ($deptOptions as $optValue => [$optLabel, $optTone])
-                            <x-ui.choice wire:key="dept-{{ $deptKey }}-{{ $optValue }}"
-                                :tone="$optTone" :title="$optLabel"
-                                :selected="$departmentStatuses[$deptKey] === $optValue"
-                                wire:click="updateDepartmentStatus('{{ $deptKey }}', '{{ $optValue }}')" />
-                        @endforeach
-                    </div>
-                </x-ui.section>
-            @endforeach
-
-            <x-slot:note>
-                Estos estados alimentan los semáforos por departamento que se ven en las tarjetas de la orden.
-            </x-slot:note>
-            <x-slot:footer>
-                <x-ui.btn variant="secondary" wire:click="closeDepartmentStatusModal">Cancelar</x-ui.btn>
-                <x-ui.btn variant="primary" wire:click="saveDepartmentStatuses" wire:loading.attr="disabled" wire:target="saveDepartmentStatuses">
-                    Guardar cambios
-                </x-ui.btn>
-            </x-slot:footer>
-        </x-ui-modal>
-    @endif
-
     {{-- Modal de Status de Inspeccion por Lote --}}
     @if ($showInspectionModal && $selectedLot)
         <x-ui-modal wire:key="modal-inspection" title="Inspección del lote"
@@ -2571,12 +2619,17 @@
                             {{-- Reabrir: acción destructiva, siempre al final y visualmente aparte. --}}
                             <x-ui.section title="Corregir la decisión" hint="Úsalo sólo si la decisión anterior fue un error.">
                                 @if ($decClosureDecision !== 'complete_lot')
-                                    <x-ui.btn variant="secondary" block
-                                        wire:click="reopenLot"
-                                        wire:confirm="¿Desea reabrir este lote y anular la decisión tomada?">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                                        Reabrir lote y anular la decisión
-                                    </x-ui.btn>
+                                    @if (auth()->user()?->can(\App\Services\ReopeningService::PERMISSION))
+                                        <x-ui.btn variant="secondary" block wire:click="openReopenModal">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                            Reabrir lote y anular la decisión
+                                        </x-ui.btn>
+                                    @else
+                                        <x-ui.note tone="muted">
+                                            La decisión ya está tomada. Sólo Administración puede reabrirla:
+                                            pídelo indicando el viajero y qué hay que corregir.
+                                        </x-ui.note>
+                                    @endif
                                 @else
                                     <x-ui.note tone="muted">
                                         Este lote fue completado y reiniciado. La decisión anterior ya no se puede reabrir.
@@ -2883,8 +2936,59 @@
                             @endif
                         </x-ui.section>
 
-                        {{-- 2. Captura --}}
-                        <x-ui.section title="Registrar la pesada" hint="Estos datos quedan guardados con tu usuario y la hora del sistema.">
+                        {{-- 2. Historial: corregir o borrar lo ya capturado --}}
+                        @if (count($prodWeighingsList) > 0)
+                            <x-ui.section title="Pesadas ya registradas"
+                                hint="Corrige la cantidad o elimina una pesada mal capturada.">
+                                <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <table class="w-full text-sm">
+                                        <thead class="bg-slate-50 dark:bg-slate-900/50">
+                                            <tr class="text-[11px] uppercase tracking-wide">
+                                                <th class="px-3 py-2 text-left font-semibold text-slate-500 dark:text-slate-400">Fecha</th>
+                                                <th class="px-3 py-2 text-right font-semibold text-sky-700 dark:text-sky-400">Piezas</th>
+                                                <th class="px-3 py-2 text-left font-semibold text-slate-500 dark:text-slate-400">Por</th>
+                                                <th class="px-3 py-2 text-right font-semibold text-slate-500 dark:text-slate-400">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                                            @foreach ($prodWeighingsList as $pw)
+                                                <tr wire:key="prod-w-{{ $pw['id'] }}"
+                                                    class="hover:bg-slate-50 dark:hover:bg-slate-700/30 {{ $prodEditingId === $pw['id'] ? 'bg-sky-50 dark:bg-sky-900/20' : '' }}">
+                                                    <td class="px-3 py-2 text-slate-700 dark:text-slate-300">{{ $pw['weighed_at'] }}</td>
+                                                    <td class="px-3 py-2 text-right font-semibold tabular-nums text-sky-700 dark:text-sky-400">{{ number_format($pw['good_pieces']) }}</td>
+                                                    <td class="px-3 py-2 text-slate-600 dark:text-slate-400">{{ $pw['weighed_by'] }}</td>
+                                                    <td class="px-3 py-2">
+                                                        <div class="flex items-center justify-end gap-1.5">
+                                                            <x-ui.icon-btn tone="primary" label="Editar esta pesada"
+                                                                wire:click="editProductionWeighing({{ $pw['id'] }})"
+                                                                wire:loading.attr="disabled" wire:target="editProductionWeighing({{ $pw['id'] }})">
+                                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                                            </x-ui.icon-btn>
+                                                            <x-ui.icon-btn tone="danger" label="Eliminar esta pesada"
+                                                                wire:click="deleteProductionWeighing({{ $pw['id'] }})"
+                                                                wire:confirm="¿Eliminar esta pesada de producción?"
+                                                                wire:loading.attr="disabled" wire:target="deleteProductionWeighing({{ $pw['id'] }})">
+                                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                            </x-ui.icon-btn>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </x-ui.section>
+                        @endif
+
+                        {{-- 3. Captura --}}
+                        <x-ui.section :title="$prodEditingId ? 'Corregir la pesada' : 'Registrar la pesada'"
+                            hint="Estos datos quedan guardados con tu usuario y la hora del sistema.">
+                            @if ($prodEditingId)
+                                <x-slot:aside>
+                                    <x-ui.btn variant="ghost" size="sm" wire:click="cancelEditProduction">Cancelar edición</x-ui.btn>
+                                </x-slot:aside>
+                            @endif
+
                             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <x-ui.field label="Piezas pesadas" required
                                     hint="Cuántas piezas entraron en esta pesada."
@@ -2908,13 +3012,65 @@
                         </x-ui.section>
 
             <x-slot:note>
-                Al registrar, el semáforo de <strong>Producción</strong> avanza y el lote queda listo para que Calidad verifique.
+                @if ($prodEditingId)
+                    Al guardar se corrige esa pesada; el total de <strong>Producción</strong> se recalcula solo.
+                @else
+                    Al registrar, el semáforo de <strong>Producción</strong> avanza y el lote queda listo para que Calidad verifique.
+                @endif
             </x-slot:note>
             <x-slot:footer>
-                <x-ui.btn variant="secondary" wire:click="closeProductionModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="secondary" wire:click="closeProductionModal">Cerrar</x-ui.btn>
                 <x-ui.btn variant="primary" wire:click="saveProduction" wire:loading.attr="disabled" wire:target="saveProduction">
-                    Registrar pesada
+                    {{ $prodEditingId ? 'Actualizar pesada' : 'Registrar pesada' }}
                 </x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
+    @endif
+
+    {{-- Paso 5 · Confirmación de empaque (CRIMP) y Paso 7 · Entrega de viajero.
+         Mismo markup que usa la vista de Empaque: viven en partials para que el
+         tablero y el departamento no se separen otra vez. --}}
+    @include('livewire.admin.sent-lists.partials.modal-confirm-empaque')
+    @include('livewire.admin.sent-lists.partials.modal-viajero')
+
+    {{-- Reapertura: qué se va a deshacer, y por qué --}}
+    @if ($showReopenModal && $selectedLotForDecision)
+        <x-ui-modal wire:key="modal-reabrir-{{ $selectedLotForDecision->id }}"
+            title="Reabrir el viajero {{ $selectedLotForDecision->lot_number }}"
+            subtitle="Anula la decisión de cierre y devuelve el viajero al flujo para volver a trabajarlo."
+            close="closeReopenModal" maxWidth="2xl">
+
+            @if (count($reopenCascade) > 0)
+                <x-ui.note tone="warn" title="Esto no afecta sólo al viajero">
+                    <p>Para reabrirlo hay que deshacer también:</p>
+                    <ul class="mt-2 list-inside list-disc space-y-1">
+                        @foreach ($reopenCascade as $paso)
+                            <li>{{ $paso }}</li>
+                        @endforeach
+                    </ul>
+                    <p class="mt-2">Se hace todo junto o no se hace nada.</p>
+                </x-ui.note>
+            @else
+                <x-ui.note tone="info">
+                    El viajero volverá a estar abierto en Empaque. Todavía no está en ningún
+                    packing slip, así que no hay nada más que deshacer.
+                </x-ui.note>
+            @endif
+
+            <x-ui.section step="1" title="¿Por qué se reabre?" tone="accent"
+                hint="Queda guardado en el historial junto a tu nombre. Es lo que explicará este cambio dentro de un año.">
+                <x-ui.field label="Motivo" required
+                    hint="Mínimo 10 caracteres. Sé concreto: qué estaba mal y quién lo detectó."
+                    :error="$errors->first('reopenReason')">
+                    <textarea wire:model="reopenReason" rows="3" class="w-full"
+                        placeholder="Ej: el cliente reportó 20 piezas menos de las facturadas en el viajero 0042."></textarea>
+                </x-ui.field>
+            </x-ui.section>
+
+            <x-slot:note>Todo lo que se deshaga queda registrado con tu nombre y la fecha.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeReopenModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="danger" wire:click="reopenLot">Reabrir</x-ui.btn>
             </x-slot:footer>
         </x-ui-modal>
     @endif

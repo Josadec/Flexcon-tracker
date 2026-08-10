@@ -20,16 +20,42 @@ class UserList extends Component
     public string $search = '';
     public string $roleFilter = '';
     public string $departmentFilter = '';
+    public string $typeFilter = self::TYPE_STAFF;
     public string $sortField = 'name';
     public string $sortDirection = 'asc';
+    public int $perPage = 10;
 
     public bool $showImportModal = false;
     public $importFile = null;
     public array $importResults = [];
 
-    public function render()
+    /** Columnas por las que se puede ordenar el listado. */
+    private const SORTABLE = ['name', 'email', 'account', 'created_at'];
+
+    /**
+     * Empleado de planta = usuario con este rol. Su alta, sus turnos y su área
+     * de trabajo se administran en el módulo Empleados, no aquí.
+     */
+    public const EMPLOYEE_ROLE = 'employee';
+
+    /** Ámbitos del listado. Por omisión esta pantalla NO muestra empleados. */
+    public const TYPE_STAFF = 'staff';
+    public const TYPE_EMPLOYEE = 'employee';
+    public const TYPE_ALL = 'all';
+
+    /**
+     * Consulta base del listado: ámbito + filtros. La comparten el listado y la
+     * exportación para que el CSV contenga exactamente lo que se ve en pantalla.
+     */
+    private function filteredQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        $query = User::with(['roles', 'areas.department'])
+        return User::query()
+            ->when($this->typeFilter === self::TYPE_STAFF, function ($query) {
+                $query->whereDoesntHave('roles', fn ($q) => $q->where('name', self::EMPLOYEE_ROLE));
+            })
+            ->when($this->typeFilter === self::TYPE_EMPLOYEE, function ($query) {
+                $query->whereHas('roles', fn ($q) => $q->where('name', self::EMPLOYEE_ROLE));
+            })
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('name', 'like', '%' . $this->search . '%')
@@ -49,13 +75,30 @@ class UserList extends Component
                 });
             })
             ->orderBy($this->sortField, $this->sortDirection);
+    }
+
+    public function render()
+    {
+        $users = $this->filteredQuery()
+            ->with(['roles', 'areas.department'])
+            ->paginate($this->perPage);
+
+        // Las métricas describen el ámbito propio de esta pantalla (sin empleados),
+        // salvo la última, que existe justamente para decir dónde están los demás.
+        $staff = User::whereDoesntHave('roles', fn ($q) => $q->where('name', self::EMPLOYEE_ROLE));
+        $totalUsers = (clone $staff)->count();
+        $withRole = (clone $staff)->has('roles')->count();
 
         return view('livewire.admin.users.user-list', [
-            'users' => $query->paginate(10),
+            'users' => $users,
             'departments' => Department::orderBy('name')->get(),
-            'roles' => Role::orderBy('name')->get(),
-            'totalUsers' => User::count(),
-            'usersByRole' => Role::withCount('users')->get(),
+            'roles' => Role::withCount('users')->orderBy('name')->get(),
+            'totalUsers' => $totalUsers,
+            'usersWithRole' => $withRole,
+            'usersWithoutRole' => $totalUsers - $withRole,
+            // whereHas y no ->role(): si el rol 'employee' aún no existe en la BD,
+            // el scope de Spatie lanza RoleDoesNotExist y tumbaría la pantalla.
+            'employeeCount' => User::whereHas('roles', fn ($q) => $q->where('name', self::EMPLOYEE_ROLE))->count(),
         ]);
     }
 
@@ -74,8 +117,22 @@ class UserList extends Component
         $this->resetPage();
     }
 
+    public function updatedTypeFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedPerPage(): void
+    {
+        $this->resetPage();
+    }
+
     public function sortBy(string $field): void
     {
+        if (!in_array($field, self::SORTABLE, true)) {
+            return;
+        }
+
         if ($this->sortField === $field) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
@@ -85,11 +142,12 @@ class UserList extends Component
         $this->resetPage();
     }
 
-    public function deleteUser(User $user): void
+    public function deleteUser(int $id): void
     {
+        $user = User::findOrFail($id);
+
         if ($user->id === auth()->id()) {
-            session()->flash('flash.banner', 'No puedes eliminar tu propia cuenta.');
-            session()->flash('flash.bannerStyle', 'danger');
+            session()->flash('error', 'No puedes eliminar tu propia cuenta.');
             return;
         }
 
@@ -99,11 +157,13 @@ class UserList extends Component
         // Quitar roles asignados (Spatie) para no dejar filas huérfanas en model_has_roles
         $user->syncRoles([]);
 
-        // Hard delete: borrar realmente de la BD (no soft delete)
-        $user->forceDelete();
+        // Baja lógica, no borrado real. Antes esto era `forceDelete()` y, como
+        // audit_trails.user_id iba en cascada, dar de baja a una persona borraba
+        // TODO su rastro: justo lo contrario de conservar 5 años por ISO.
+        // El usuario deja de entrar y de aparecer; lo que firmó sigue firmado.
+        $user->delete();
 
-        session()->flash('flash.banner', 'Usuario eliminado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Usuario eliminado correctamente. Su historial se conserva.');
     }
 
     public function clearFilters(): void
@@ -111,6 +171,7 @@ class UserList extends Component
         $this->search = '';
         $this->roleFilter = '';
         $this->departmentFilter = '';
+        $this->typeFilter = self::TYPE_STAFF;
         $this->resetPage();
     }
 
@@ -139,23 +200,8 @@ class UserList extends Component
         $filename = 'usuarios_' . now()->format('Ymd_His') . '.csv';
         $columns = self::csvColumns();
 
-        $users = User::with(['roles', 'areas'])
-            ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhere('last_name', 'like', '%' . $this->search . '%')
-                      ->orWhere('email', 'like', '%' . $this->search . '%')
-                      ->orWhere('account', 'like', '%' . $this->search . '%');
-                });
-            })
-            ->when($this->roleFilter, function ($query) {
-                $query->whereHas('roles', fn($q) => $q->where('name', $this->roleFilter));
-            })
-            ->when($this->departmentFilter, function ($query) {
-                $query->whereHas('areas.department', fn($q) => $q->where('id', $this->departmentFilter));
-            })
-            ->orderBy($this->sortField, $this->sortDirection)
-            ->get();
+        // Mismo ámbito y mismos filtros que el listado: lo exportado es lo que se ve.
+        $users = $this->filteredQuery()->with(['roles', 'areas'])->get();
 
         return response()->streamDownload(function () use ($users, $columns) {
             $out = fopen('php://output', 'w');
@@ -441,8 +487,7 @@ class UserList extends Component
             if ($updated > 0) $parts[] = "{$updated} actualizados";
             if ($skipped > 0) $parts[] = "{$skipped} sin cambios";
             if ($failed > 0)  $parts[] = "{$failed} fallaron";
-            session()->flash('flash.banner', 'Import usuarios: ' . implode(', ', $parts) . '.');
-            session()->flash('flash.bannerStyle', $failed > 0 ? 'warning' : 'success');
+            session()->flash('message', 'Importación de usuarios: ' . implode(', ', $parts) . '.');
         }
     }
 }

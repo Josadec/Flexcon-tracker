@@ -67,8 +67,7 @@ class BreakTimeEdit extends Component
             'comments' => $this->comments,
         ]);
 
-        session()->flash('flash.banner', 'Descanso actualizado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Descanso actualizado correctamente.');
 
         $this->redirect(route('admin.break-times.index'), navigate: true);
     }

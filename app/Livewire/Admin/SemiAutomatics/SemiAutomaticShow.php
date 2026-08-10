@@ -11,7 +11,7 @@ class SemiAutomaticShow extends Component
 
     public function mount(Semi_Automatic $semiAutomatic): void
     {
-        $this->semiAutomatic = $semiAutomatic->load('area');
+        $this->semiAutomatic = $semiAutomatic->load(['area', 'productionStatus']);
     }
 
     public function render()

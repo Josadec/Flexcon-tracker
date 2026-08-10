@@ -1,244 +1,112 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center gap-4">
-        <a href="{{ route('admin.tables.index') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-            </svg>
-        </a>
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Editar Mesa</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Modifica la información de la mesa {{ $table->number }}</p>
-        </div>
-    </div>
+<x-ui.page eyebrow="Administración" :title="'Editar mesa '.$table->number"
+    subtitle="Ubicación, operación y datos del equipo. El número identifica la mesa en los estándares."
+    back="{{ route('admin.tables.index') }}" backLabel="Volver a mesas">
 
-    <!-- Form -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg">
-        <form wire:submit="update" class="divide-y divide-gray-200 dark:divide-gray-700">
-            <!-- Información Básica -->
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Información Básica</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Número <span class="text-red-500">*</span>
-                        </label>
-                        <input
-                            wire:model="number"
-                            type="text"
-                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            placeholder="Número de la mesa"
-                            required
-                        >
-                        @error('number')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
+    <x-slot:actions>
+        <x-ui.btn variant="secondary" href="{{ route('admin.tables.show', $table) }}">Ver detalle</x-ui.btn>
+    </x-slot:actions>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Nombre
-                        </label>
-                        <input
-                            wire:model="name"
-                            type="text"
-                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            placeholder="Ej: Mesa de Ensamble Principal"
-                        >
-                        @error('name')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
+    <form wire:submit="update" class="space-y-5">
+        <x-ui.section title="Identificación" hint="El número debe ser único: es como se nombra la mesa en piso y en los estándares.">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <x-ui.field label="Número de mesa" required :error="$errors->first('number')">
+                    <input wire:model="number" type="text" class="w-full" required>
+                </x-ui.field>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Área <span class="text-red-500">*</span>
-                        </label>
-                        <select
-                            wire:model="area_id"
-                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            required
-                        >
-                            <option value="">Selecciona un área</option>
-                            @foreach($areas as $area)
-                                <option value="{{ $area->id }}" @selected((int) $area_id === (int) $area->id)>{{ $area->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('area_id')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
+                <x-ui.field label="Nombre" optional
+                    hint="Nombre con el que se le conoce, si tiene uno."
+                    :error="$errors->first('name')">
+                    <input wire:model="name" type="text" class="w-full">
+                </x-ui.field>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Estado de Producción <span class="text-red-500">*</span>
-                        </label>
-                        <select
-                            wire:model="production_status_id"
-                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            required
-                        >
-                            <option value="">Selecciona un estado</option>
-                            @foreach($productionStatuses as $status)
+                <x-ui.field label="Área" required
+                    hint="Área de la planta donde está físicamente la mesa."
+                    :error="$errors->first('area_id')">
+                    <select wire:model="area_id" class="w-full" required>
+                        <option value="">Seleccionar</option>
+                        @foreach ($areas as $area)
+                            <option value="{{ $area->id }}" @selected((int) $area_id === (int) $area->id)>{{ $area->name }}</option>
+                        @endforeach
+                    </select>
+                </x-ui.field>
+
+                <x-ui.field label="Estado de producción" required
+                    hint="En qué punto del flujo trabaja esta mesa. ¿Falta alguno? Adminístralos sin salir de aquí."
+                    :error="$errors->first('production_status_id')">
+                    <div class="flex items-center gap-2">
+                        <select wire:model="production_status_id" class="w-full" required>
+                            <option value="">Seleccionar</option>
+                            @foreach ($productionStatuses as $status)
                                 <option value="{{ $status->id }}" @selected((int) $production_status_id === (int) $status->id)>{{ $status->name }}</option>
                             @endforeach
                         </select>
-                        @error('production_status_id')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
+                        <x-ui.icon-btn tone="primary" label="Administrar estados de producción"
+                            wire:click="$dispatch('open-production-statuses')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        </x-ui.icon-btn>
                     </div>
+                </x-ui.field>
+            </div>
+        </x-ui.section>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Número de Empleados
-                        </label>
-                        <input
-                            wire:model="employees"
-                            type="number"
-                            min="1"
-                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            placeholder="Ej: 2"
-                        >
-                        @error('employees')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
+        <x-ui.section title="Operación" hint="Con cuánta gente trabaja la mesa y si está en uso.">
+            <x-ui.field label="Número de empleados" optional
+                hint="Cuántos operadores trabajan en ella."
+                :error="$errors->first('employees')">
+                <input wire:model="employees" type="number" min="1" step="1"
+                    class="w-full text-right tabular-nums md:max-w-[12rem]">
+            </x-ui.field>
 
-                    <div class="flex items-center">
-                        <label class="flex items-center">
-                            <input
-                                wire:model="active"
-                                type="checkbox"
-                                class="rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 shadow-sm focus:ring-blue-500 dark:bg-gray-700"
-                            >
-                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Mesa activa</span>
-                        </label>
-                        @error('active')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
+            <x-ui.check label="Mesa activa" class="mt-4"
+                hint="Sólo las mesas activas se pueden elegir al configurar un estándar.">
+                <input wire:model="active" type="checkbox">
+            </x-ui.check>
+        </x-ui.section>
+
+        <x-ui.section title="Equipo" hint="Datos de inventario. Todos opcionales.">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <x-ui.field label="Marca" optional :error="$errors->first('brand')">
+                    <input wire:model="brand" type="text" class="w-full">
+                </x-ui.field>
+
+                <x-ui.field label="Modelo" optional :error="$errors->first('model')">
+                    <input wire:model="model" type="text" class="w-full">
+                </x-ui.field>
+
+                <x-ui.field label="Número de serie" optional :error="$errors->first('s_n')">
+                    <input wire:model="s_n" type="text" class="w-full font-mono">
+                </x-ui.field>
+
+                <x-ui.field label="Número de activo" optional
+                    hint="Se puede buscar por este número en el listado."
+                    :error="$errors->first('asset_number')">
+                    <input wire:model="asset_number" type="text" class="w-full font-mono">
+                </x-ui.field>
             </div>
 
-            <!-- Información del Equipo -->
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Información del Equipo</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Marca
-                        </label>
-                        <input
-                            wire:model="brand"
-                            type="text"
-                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            placeholder="Ej: FANUC, ABB, etc."
-                        >
-                        @error('brand')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
+            <x-ui.field label="Descripción" optional class="mt-4" :error="$errors->first('description')">
+                <textarea wire:model="description" rows="3" class="w-full"></textarea>
+            </x-ui.field>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Modelo
-                        </label>
-                        <input
-                            wire:model="model"
-                            type="text"
-                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            placeholder="Ej: XR-1000"
-                        >
-                        @error('model')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
+            <x-ui.field label="Comentarios" optional class="mt-4"
+                hint="Uso interno." :error="$errors->first('comments')">
+                <textarea wire:model="comments" rows="2" class="w-full"></textarea>
+            </x-ui.field>
+        </x-ui.section>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Número de Serie
-                        </label>
-                        <input
-                            wire:model="s_n"
-                            type="text"
-                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            placeholder="Ej: SN-12345678"
-                        >
-                        @error('s_n')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
+        <x-ui.section title="Registro" hint="Fechas de control, sólo lectura.">
+            <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+                <x-ui.kv label="Alta" :value="$table->created_at?->format('d/m/Y H:i') ?? '—'" />
+                <x-ui.kv label="Última actualización" :value="$table->updated_at?->format('d/m/Y H:i') ?? '—'" />
+            </dl>
+        </x-ui.section>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Número de Activo
-                        </label>
-                        <input
-                            wire:model="asset_number"
-                            type="text"
-                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            placeholder="Ej: AST-123456"
-                        >
-                        @error('asset_number')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
-            </div>
+        <div class="flex flex-col-reverse gap-2 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-700">
+            <x-ui.btn variant="secondary" href="{{ route('admin.tables.index') }}">Cancelar</x-ui.btn>
+            <x-ui.btn variant="primary" type="submit">Guardar cambios</x-ui.btn>
+        </div>
+    </form>
 
-            <!-- Descripción y Comentarios -->
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Descripción y Comentarios</h3>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Descripción
-                        </label>
-                        <textarea
-                            wire:model="description"
-                            rows="3"
-                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            placeholder="Descripción detallada de la mesa..."
-                        ></textarea>
-                        @error('description')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Comentarios adicionales
-                        </label>
-                        <textarea
-                            wire:model="comments"
-                            rows="3"
-                            class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            placeholder="Comentarios adicionales sobre la mesa..."
-                        ></textarea>
-                        @error('comments')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="p-6 bg-gray-50 dark:bg-gray-900/50">
-                <div class="flex justify-end gap-3">
-                    <a 
-                        href="{{ route('admin.tables.index') }}" 
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                        Cancelar
-                    </a>
-                    <button 
-                        type="submit" 
-                        class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md"
-                    >
-                        Actualizar Mesa
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
+    {{-- Catálogo compartido de estados: se abre con el botón junto al selector. --}}
+    <livewire:admin.production-statuses.production-status-manager />
+</x-ui.page>

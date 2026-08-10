@@ -20,6 +20,24 @@ class RoleCreate extends Component
         ];
     }
 
+    /**
+     * Marca o desmarca de golpe todos los permisos de un grupo.
+     *
+     * Los ids llegan desde la vista porque el agrupado se arma ahí (por el
+     * prefijo del nombre) y no todos los permisos tienen prefijo.
+     */
+    public function toggleGroup(array $ids): void
+    {
+        $ids = array_map('strval', $ids);
+        $selected = array_map('strval', $this->selectedPermissions);
+
+        $todosMarcados = empty(array_diff($ids, $selected));
+
+        $this->selectedPermissions = $todosMarcados
+            ? array_values(array_diff($selected, $ids))
+            : array_values(array_unique(array_merge($selected, $ids)));
+    }
+
     public function saveRole(): void
     {
         $this->validate();
@@ -34,8 +52,7 @@ class RoleCreate extends Component
             $role->syncPermissions($existingPermissionIds);
         }
 
-        session()->flash('flash.banner', 'Rol creado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Rol creado correctamente.');
 
         $this->redirect(route('admin.roles.index'), navigate: true);
     }

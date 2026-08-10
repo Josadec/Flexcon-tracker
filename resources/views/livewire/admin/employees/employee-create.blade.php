@@ -1,229 +1,98 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center gap-4">
-        <a href="{{ route('admin.employees.index') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-            </svg>
-        </a>
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Crear Empleado</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Completa la información para crear un nuevo empleado</p>
+<x-ui.page eyebrow="Administración" title="Crear empleado"
+    subtitle="Alta de personal de planta. Se crea con el rol «employee», con acceso al panel de empleado."
+    back="{{ route('admin.employees.index') }}" backLabel="Volver a empleados">
+
+    <form wire:submit="save" class="space-y-5">
+        <x-ui.section title="Identidad" hint="Como aparecerá en listados, pesajes y reportes.">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <x-ui.field label="Nombre" required :error="$errors->first('name')">
+                    <input wire:model="name" type="text" class="w-full" placeholder="Ej: Juan" required>
+                </x-ui.field>
+
+                <x-ui.field label="Apellido" required :error="$errors->first('last_name')">
+                    <input wire:model="last_name" type="text" class="w-full" placeholder="Ej: Pérez" required>
+                </x-ui.field>
+
+                <x-ui.field label="Número de empleado" optional
+                    hint="Déjalo vacío si aún no lo tienes. Ojo: después no se puede cambiar."
+                    :error="$errors->first('employee_number')">
+                    <input wire:model="employee_number" type="text" class="w-full font-mono" placeholder="Ej: EMP260001">
+                </x-ui.field>
+
+                <x-ui.field label="Fecha de nacimiento" optional :error="$errors->first('birth_date')">
+                    <input wire:model="birth_date" type="date" class="w-full">
+                </x-ui.field>
+            </div>
+        </x-ui.section>
+
+        <x-ui.section title="Acceso" hint="Con este correo y contraseña entra al panel de empleado.">
+            <x-ui.field label="Correo electrónico" required
+                hint="Debe ser único en todo el sistema."
+                :error="$errors->first('email')">
+                <input wire:model="email" type="email" class="w-full" placeholder="Ej: juan.perez@flexcon.la"
+                    autocomplete="off" required>
+            </x-ui.field>
+
+            <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <x-ui.field label="Contraseña" required hint="Mínimo 8 caracteres." :error="$errors->first('password')">
+                    <input wire:model="password" type="password" class="w-full" autocomplete="new-password" required>
+                </x-ui.field>
+
+                <x-ui.field label="Confirmar contraseña" required :error="$errors->first('password_confirmation')">
+                    <input wire:model="password_confirmation" type="password" class="w-full"
+                        autocomplete="new-password" required>
+                </x-ui.field>
+            </div>
+        </x-ui.section>
+
+        <x-ui.section title="Puesto" hint="Dónde y en qué horario trabaja. Ambos son obligatorios.">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <x-ui.field label="Área" required
+                    hint="Área de planta en la que trabaja."
+                    :error="$errors->first('area_id')">
+                    <select wire:model="area_id" class="w-full" required>
+                        <option value="">Seleccionar</option>
+                        @foreach ($areas as $area)
+                            <option value="{{ $area->id }}">{{ $area->name }}</option>
+                        @endforeach
+                    </select>
+                </x-ui.field>
+
+                <x-ui.field label="Turno" required
+                    hint="Sólo aparecen los turnos activos."
+                    :error="$errors->first('shift_id')">
+                    <select wire:model="shift_id" class="w-full" required>
+                        <option value="">Seleccionar</option>
+                        @foreach ($shifts as $shift)
+                            <option value="{{ $shift->id }}">{{ $shift->name }}</option>
+                        @endforeach
+                    </select>
+                </x-ui.field>
+
+                <x-ui.field label="Posición o cargo" optional :error="$errors->first('position')">
+                    <input wire:model="position" type="text" class="w-full" placeholder="Ej: Operador">
+                </x-ui.field>
+
+                <x-ui.field label="Fecha de ingreso" optional :error="$errors->first('entry_date')">
+                    <input wire:model="entry_date" type="date" class="w-full">
+                </x-ui.field>
+            </div>
+        </x-ui.section>
+
+        <x-ui.section title="Estado y notas" hint="Define si el empleado ya está en operación.">
+            <x-ui.check label="Empleado activo" hint="Los inactivos conservan su historial, pero no cuentan como personal en operación.">
+                <input wire:model="active" type="checkbox">
+            </x-ui.check>
+
+            <x-ui.field label="Comentarios" optional class="mt-4"
+                hint="Uso interno." :error="$errors->first('comments')">
+                <textarea wire:model="comments" rows="3" class="w-full" placeholder="Notas adicionales..."></textarea>
+            </x-ui.field>
+        </x-ui.section>
+
+        <div class="flex flex-col-reverse gap-2 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-700">
+            <x-ui.btn variant="secondary" href="{{ route('admin.employees.index') }}">Cancelar</x-ui.btn>
+            <x-ui.btn variant="primary" type="submit">Crear empleado</x-ui.btn>
         </div>
-    </div>
-
-    <!-- Form -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg">
-        <form wire:submit="save" class="divide-y divide-gray-200 dark:divide-gray-700">
-            <!-- Información Personal -->
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Información Personal</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Nombre <span class="text-red-500">*</span>
-                        </label>
-                        <input 
-                            wire:model="name" 
-                            type="text" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                        />
-                        @error('name') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Apellido <span class="text-red-500">*</span>
-                        </label>
-                        <input 
-                            wire:model="last_name" 
-                            type="text" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                        />
-                        @error('last_name') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Email <span class="text-red-500">*</span>
-                        </label>
-                        <input 
-                            wire:model="email" 
-                            type="email" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                        />
-                        @error('email') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Número de Empleado</label>
-                        <input
-                            wire:model="employee_number"
-                            type="text"
-                            placeholder="Opcional"
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 font-mono"
-                        />
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Déjalo vacío si aún no tienes el número.</p>
-                        @error('employee_number')
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fecha de Nacimiento</label>
-                        <input 
-                            wire:model="birth_date" 
-                            type="date" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                        />
-                        @error('birth_date') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fecha de Ingreso</label>
-                        <input 
-                            wire:model="entry_date" 
-                            type="date" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                        />
-                        @error('entry_date') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                </div>
-            </div>
-
-            <!-- Información Laboral -->
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Información Laboral</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Área <span class="text-red-500">*</span>
-                        </label>
-                        <select 
-                            wire:model="area_id" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
-                        >
-                            <option value="">Seleccionar</option>
-                            @foreach($areas as $area)
-                                <option value="{{ $area->id }}">{{ $area->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('area_id') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Turno <span class="text-red-500">*</span>
-                        </label>
-                        <select 
-                            wire:model="shift_id" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
-                        >
-                            <option value="">Seleccionar</option>
-                            @foreach($shifts as $shift)
-                                <option value="{{ $shift->id }}">{{ $shift->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('shift_id') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Posición / Cargo</label>
-                        <input 
-                            wire:model="position" 
-                            type="text" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                        />
-                        @error('position') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                </div>
-            </div>
-
-            <!-- Contraseña -->
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Contraseña</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Contraseña <span class="text-red-500">*</span>
-                        </label>
-                        <input 
-                            wire:model="password" 
-                            type="password" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                        />
-                        @error('password') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Confirmar <span class="text-red-500">*</span>
-                        </label>
-                        <input 
-                            wire:model="password_confirmation" 
-                            type="password" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                        />
-                        @error('password_confirmation') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                </div>
-            </div>
-
-            <!-- Información Adicional -->
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Información Adicional</h3>
-                <div class="mb-4">
-                    <label class="flex items-center gap-2">
-                        <input 
-                            wire:model="active" 
-                            type="checkbox" 
-                            class="w-4 h-4 text-blue-900 border-gray-300 rounded focus:ring-blue-900"
-                        />
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Empleado Activo</span>
-                    </label>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comentarios</label>
-                    <textarea 
-                        wire:model="comments" 
-                        rows="3" 
-                        class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 resize-none"
-                    ></textarea>
-                    @error('comments') 
-                        <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                    @enderror
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="p-6 bg-gray-50 dark:bg-gray-900/50">
-                <div class="flex justify-end gap-3">
-                    <a 
-                        href="{{ route('admin.employees.index') }}" 
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                        Cancelar
-                    </a>
-                    <button 
-                        type="submit" 
-                        class="px-4 py-2 text-sm font-medium bg-blue-900 hover:bg-blue-800 text-white rounded-md"
-                    >
-                        Crear Empleado
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
+    </form>
+</x-ui.page>

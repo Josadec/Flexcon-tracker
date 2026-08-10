@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PurchaseOrder extends Model
 {
-    use HasFactory, SoftDeletes;
+    use Auditable, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'po_number',
@@ -312,4 +314,14 @@ class PurchaseOrder extends Model
             default => 'gray',
         };
     }
+
+    /** Contexto para el historial: la orden de compra y su parte. */
+    protected function auditContext(): array
+    {
+        return [
+            'purchase_order_id' => $this->getKey(),
+            'part_id' => $this->part_id,
+        ];
+    }
+
 }

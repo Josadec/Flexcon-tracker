@@ -13,6 +13,7 @@ use App\Models\QualityWeighing;
 use App\Models\SentList;
 use App\Models\User;
 use App\Models\Weighing;
+use App\Services\ReopeningService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
@@ -44,6 +45,9 @@ class SentListPackagingView extends Component
     // ── Decision modal (Control de Materiales) ──────────────────────────
     public bool $showDecisionModal = false;
     public $selectedLotForDecision = null;
+
+    /** Motivo obligatorio al reabrir un viajero ya cerrado. */
+    public string $reopenReason = '';
     public int $decLotTotal = 0;
     public int $decPacked = 0;
     public int $decSurplus = 0;
@@ -631,21 +635,21 @@ class SentListPackagingView extends Component
 
         $lot = $this->selectedLotForDecision;
 
-        $lot->update([
-            'closure_decision'     => null,
-            'closure_decided_by'   => null,
-            'closure_decided_at'   => null,
-            'surplus_delivered'    => false,
-            'surplus_delivered_at' => null,
-            'surplus_delivered_by' => null,
-            'surplus_received'     => false,
-            'surplus_received_at'  => null,
-            'surplus_received_by'  => null,
-            'status'               => Lot::STATUS_IN_PROGRESS,
-            'packaging_status'     => 'pending',
-        ]);
+        // Pasa por el servicio único de reapertura: exige permiso de
+        // Administración, pide motivo y lo deja auditado. Esta versión no
+        // limpiaba `ready_for_shipping`, así que un viajero reabierto se
+        // quedaba en la cola de despacho listo para facturar — el «viajero
+        // fantasma» que el propio código del tablero decía querer evitar.
+        try {
+            app(ReopeningService::class)->reopenLot($lot, $this->reopenReason);
+        } catch (\RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
 
-        session()->flash('message', 'Lote ' . $lot->lot_number . ' reabierto exitosamente.');
+            return;
+        }
+
+        $this->reopenReason = '';
+        session()->flash('message', 'Lote '.$lot->lot_number.' reabierto exitosamente.');
         $this->openDecisionModal($lot->id);
         $this->sentList->refresh();
     }

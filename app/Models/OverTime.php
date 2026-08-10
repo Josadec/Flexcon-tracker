@@ -100,10 +100,14 @@ class OverTime extends Model
             return $query;
         }
 
-        return $query->where('name', 'like', "%{$search}%")
-                     ->orWhereHas('shift', function ($q) use ($search) {
-                         $q->where('name', 'like', "%{$search}%");
-                     });
+        // Agrupadas: sueltas, el `orWhereHas` se escapaba del filtro de turno
+        // del listado y devolvía tiempos extra de otros turnos.
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhereHas('shift', function ($sub) use ($search) {
+                  $sub->where('name', 'like', "%{$search}%");
+              });
+        });
     }
 
     /**
@@ -125,8 +129,15 @@ class OverTime extends Model
         $startTime = $this->getRawOriginal('start_time');
         $endTime = $this->getRawOriginal('end_time');
 
-        $start = Carbon::createFromFormat('H:i:s', $startTime);
-        $end = Carbon::createFromFormat('H:i:s', $endTime);
+        if (!$startTime || !$endTime) {
+            return 0;
+        }
+
+        // createFromTimeString y no createFromFormat('H:i:s'): el valor crudo
+        // viene "08:00:00" en MySQL pero "08:00" en bases que guardan la hora
+        // tal cual, y el formato estricto reventaba con "Not enough data".
+        $start = Carbon::createFromTimeString($startTime);
+        $end = Carbon::createFromTimeString($endTime);
 
         // Manejar overtimes que cruzan medianoche
         // Ejemplo: 22:00 a 02:00 (4 horas, no -20 horas)
