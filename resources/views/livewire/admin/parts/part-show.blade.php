@@ -1,4 +1,4 @@
-<x-ui.page :title="$part->number"
+<x-ui.page eyebrow="Catálogo" :title="$part->number"
     :subtitle="$part->description ?: 'Detalle de la parte y sus precios por tipo de estación.'"
     back="{{ route('admin.parts.index') }}" backLabel="Volver a partes">
 

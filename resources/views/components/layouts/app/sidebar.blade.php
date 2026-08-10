@@ -110,10 +110,8 @@
                 <flux:navlist.item icon="bolt" :href="route('admin.over-times.index')"
                     :current="request()->routeIs('admin.over-times.*')" wire:navigate>{{ __('Tiempo Extra') }}
                 </flux:navlist.item>
-                <flux:navlist.item icon="signal" :href="route('admin.production-statuses.index')"
-                    :current="request()->routeIs('admin.production-statuses.*')" wire:navigate>
-                    {{ __('Estados de Producción') }}
-                </flux:navlist.item>
+                {{-- Estados de Producción ya no tiene entrada propia: el catálogo se
+                     administra desde el modal de Mesas (ProductionStatusManager). --}}
                 <flux:navlist.item icon="shield-check" :href="route('admin.roles.index')"
                     :current="request()->routeIs('admin.roles.*')" wire:navigate>{{ __('Roles') }}
                 </flux:navlist.item>

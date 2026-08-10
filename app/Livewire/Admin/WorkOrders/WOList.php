@@ -58,14 +58,29 @@ class WOList extends Component
     public function deleteWorkOrder(int $id): void
     {
         $wo = WorkOrder::findOrFail($id);
+
+        // Una orden que ya produjo algo no se borra: se conserva 5 años por
+        // requisito del ISO. El modelo vuelve a comprobarlo por su cuenta.
+        if ($motivo = $wo->getDeleteBlockReason()) {
+            session()->flash('error', "No se puede eliminar la orden {$wo->wo_number}: {$motivo}");
+
+            return;
+        }
+
         try {
+<<<<<<< HEAD
             $wo->forceDeleteWithRelations();
             // Sólo `success`: esta pantalla ya pinta el aviso en línea con
             // <x-ui.note>. Si además se flasheara `flash.banner`, el layout
             // mostraría el mismo mensaje dos veces.
             session()->flash('success', 'Orden de trabajo y registros relacionados eliminados correctamente.');
+=======
+            $wo->softDeleteWithRelations();
+            session()->flash('flash.banner', 'Orden de trabajo eliminada correctamente.');
+            session()->flash('flash.bannerStyle', 'success');
+>>>>>>> dba4729e63772ad9744b5ced48b25a0fdb214628
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al eliminar la Work Order: ' . $e->getMessage());
+            session()->flash('error', 'Error al eliminar la Work Order: '.$e->getMessage());
         }
     }
 

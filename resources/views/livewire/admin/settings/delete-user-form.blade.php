@@ -1,19 +1,61 @@
 <?php
 
 use App\Livewire\Actions\Logout;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Component;
 
 new class extends Component {
+    public bool $showDeleteModal = false;
     public string $password = '';
 
     /**
-     * Delete the currently authenticated user.
+     * Si el usuario es el único administrador, borrarse deja el sistema sin
+     * nadie que pueda dar de alta usuarios, partes ni órdenes.
      */
+    public function blockReason(): ?string
+    {
+        $user = Auth::user();
+
+        if ($user->hasRole('admin') && User::role('admin')->count() <= 1) {
+            return 'Eres el único administrador del sistema. Si borras tu cuenta, nadie podrá dar de alta '
+                .'usuarios ni configurar el sistema. Nombra a otro administrador antes de hacerlo.';
+        }
+
+        return null;
+    }
+
+    public function confirmDelete(): void
+    {
+        if ($this->blockReason()) {
+            return;
+        }
+
+        $this->password = '';
+        $this->resetErrorBag();
+        $this->showDeleteModal = true;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->showDeleteModal = false;
+        $this->password = '';
+        $this->resetErrorBag();
+    }
+
     public function deleteUser(Logout $logout): void
     {
+        if ($motivo = $this->blockReason()) {
+            $this->addError('password', $motivo);
+
+            return;
+        }
+
         $this->validate([
             'password' => ['required', 'string', 'current_password'],
+        ], [
+            'password.required' => 'Escribe tu contraseña para confirmar.',
+            'password.current_password' => 'Esa no es tu contraseña.',
         ]);
 
         tap(Auth::user(), $logout(...))->delete();
@@ -22,37 +64,47 @@ new class extends Component {
     }
 }; ?>
 
-<section class="mt-10 space-y-6">
-    <div class="relative mb-5">
-        <flux:heading>{{ __('Delete account') }}</flux:heading>
-        <flux:subheading>{{ __('Delete your account and all of its resources') }}</flux:subheading>
-    </div>
+<div>
+    @php $bloqueo = $this->blockReason(); @endphp
 
-    <flux:modal.trigger name="confirm-user-deletion">
-        <flux:button variant="danger" x-data="" x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')">
-            {{ __('Delete account') }}
-        </flux:button>
-    </flux:modal.trigger>
+    <x-ui.section title="Eliminar mi cuenta"
+        hint="Cierra tu acceso al sistema. Los registros que capturaste (pesadas, inspecciones, empaques) se conservan.">
 
-    <flux:modal name="confirm-user-deletion" :show="$errors->isNotEmpty()" focusable class="max-w-lg">
-        <form wire:submit="deleteUser" class="space-y-6">
-            <div>
-                <flux:heading size="lg">{{ __('Are you sure you want to delete your account?') }}</flux:heading>
+        @if ($bloqueo)
+            <x-ui.note tone="warn" title="No puedes eliminar tu cuenta">{{ $bloqueo }}</x-ui.note>
+        @else
+            <x-ui.note tone="danger" title="Esto no se deshace desde aquí">
+                Perderás el acceso de inmediato. Para volver a entrar, un administrador tendría que darte
+                de alta otra vez.
+            </x-ui.note>
 
-                <flux:subheading>
-                    {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
-                </flux:subheading>
+            <div class="mt-4">
+                <x-ui.btn variant="danger" wire:click="confirmDelete">Eliminar mi cuenta</x-ui.btn>
             </div>
+        @endif
+    </x-ui.section>
 
-            <flux:input wire:model="password" :label="__('Password')" type="password" />
+    @if ($showDeleteModal)
+        <x-ui-modal wire:key="modal-delete-account" title="¿Eliminar tu cuenta?"
+            subtitle="Confirma con tu contraseña. Al terminar, la sesión se cierra."
+            close="cancelDelete" maxWidth="lg">
 
-            <div class="flex justify-end space-x-2 rtl:space-x-reverse">
-                <flux:modal.close>
-                    <flux:button variant="filled">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
+            <x-ui.note tone="danger">
+                Vas a cerrar tu propio acceso a Flexcon Tracker. Lo que ya capturaste se queda en el
+                historial, pero no podrás entrar de nuevo hasta que un administrador te reactive.
+            </x-ui.note>
 
-                <flux:button variant="danger" type="submit">{{ __('Delete account') }}</flux:button>
-            </div>
-        </form>
-    </flux:modal>
-</section>
+            <x-ui.section title="Confirma que eres tú">
+                <x-ui.field label="Tu contraseña" required :error="$errors->first('password')">
+                    <input type="password" wire:model="password" autocomplete="current-password" class="w-full">
+                </x-ui.field>
+            </x-ui.section>
+
+            <x-slot:note>Al confirmar se cierra la sesión y vuelves a la pantalla de inicio.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="cancelDelete">Cancelar</x-ui.btn>
+                <x-ui.btn variant="danger" wire:click="deleteUser">Sí, eliminar mi cuenta</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
+    @endif
+</div>

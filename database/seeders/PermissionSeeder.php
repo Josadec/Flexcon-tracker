@@ -159,6 +159,18 @@ class PermissionSeeder extends Seeder
                 'materiales.manage-kits',
                 'materiales.submit-to-quality',
             ],
+
+            // ── ADMINISTRACIÓN DE DOCUMENTOS ──
+            // Reabrir lo que ya se cerró. Se tiene que poder corregir todo,
+            // desde una orden de compra hasta una factura, porque hay errores
+            // de comunicación con el cliente — pero sólo quien administra el
+            // sistema (rol `admin`), y siempre con motivo escrito.
+            //
+            // El rol `admin` lo recibe automáticamente: en RoleSeeder se le
+            // sincronizan todos los permisos.
+            'administracion' => [
+                'administracion.reopen-records',
+            ],
         ];
     }
 

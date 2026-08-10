@@ -83,11 +83,20 @@ class LotPackagingObserver
             'quantity_packed_final' => $quantityPackedFinal,
         ]);
 
-        // Actualizar sin disparar nuevamente el observer (updateQuietly evita el loop)
+        $ahora = now();
+
+        // Actualizar sin disparar nuevamente el observer (updateQuietly evita el loop).
+        //
+        // OJO: `updateQuietly()` silencia TODOS los eventos del modelo, incluido
+        // el `saving` que mantiene `completed_at` al día. Por eso aquí la fecha
+        // de terminado se escribe a mano: es el único camino de cierre que no
+        // pasa por el hook de Lot.
         $lot->updateQuietly([
             'quantity_packed_final' => $quantityPackedFinal,
             'ready_for_shipping'    => true,
-            'ready_for_shipping_at' => now(),
+            'ready_for_shipping_at' => $ahora,
+            'completed_at'          => $lot->completed_at ?? $ahora,
+            'completed_by'          => $lot->completed_by ?? auth()->id(),
             'closed_by_type'        => $closureDecision,
         ]);
 

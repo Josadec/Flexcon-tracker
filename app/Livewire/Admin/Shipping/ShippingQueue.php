@@ -456,6 +456,10 @@ class ShippingQueue extends Component
             // Registrar en el AuditTrail
             AuditTrail::create([
                 'user_id'        => Auth::id(),
+                // Copia del nombre: la entrada tiene que seguir diciendo quién
+                // fue aunque esa cuenta se dé de baja más adelante.
+                'user_name'      => trim(Auth::user()->name.' '.(Auth::user()->last_name ?? '')),
+                'user_email'     => Auth::user()->email,
                 'auditable_type' => Lot::class,
                 'auditable_id'   => $lot->id,
                 'action'         => 'returned_to_packaging',

@@ -64,6 +64,20 @@ class OverTimeEdit extends Component
         ];
     }
 
+    /**
+     * Quitar un empleado de la selección.
+     *
+     * Vive aquí y no en la vista: la expresión que lo hacía en línea armaba un
+     * `array_filter` con closure dentro del wire:click, imposible de leer y de
+     * depurar cuando fallaba.
+     */
+    public function removeEmployee(string $id): void
+    {
+        $this->selectedEmployeeIds = array_values(
+            array_filter($this->selectedEmployeeIds, fn ($selected) => (string) $selected !== $id)
+        );
+    }
+
     public function getNetHoursProperty(): float
     {
         if (!$this->start_time || !$this->end_time) {
@@ -113,8 +127,7 @@ class OverTimeEdit extends Component
 
         $this->overTime->users()->sync($this->selectedEmployeeIds);
 
-        session()->flash('flash.banner', 'Over Time actualizado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Tiempo extra actualizado correctamente.');
 
         return redirect()->route('admin.over-times.show', $this->overTime);
     }

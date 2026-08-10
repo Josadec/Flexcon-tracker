@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 <x-ui.page eyebrow="Catálogo" title="Departamentos"
     subtitle="Departamentos del sistema y las áreas que agrupan.">
+=======
+<x-ui.page eyebrow="Administración" title="Departamentos"
+    subtitle="Agrupan las áreas de la planta. Un departamento sólo se puede eliminar cuando ya no tiene áreas.">
+>>>>>>> dba4729e63772ad9744b5ced48b25a0fdb214628
 
     <x-slot:actions>
         <x-ui.btn variant="primary" href="{{ route('admin.departments.create') }}">
@@ -9,18 +14,37 @@
     </x-slot:actions>
 
     {{-- Resumen --}}
+<<<<<<< HEAD
     <x-ui.stats cols="2">
         <x-ui.stat label="Total departamentos" :value="number_format($totalDepartments)" />
         <x-ui.stat label="Total áreas" :value="number_format($totalAreas)" tone="info" />
     </x-ui.stats>
 
+=======
+    <x-ui.stats cols="3">
+        <x-ui.stat label="Total de departamentos" :value="$totalDepartments" />
+        <x-ui.stat label="Áreas registradas" :value="$totalAreas" tone="info"
+            help="Suma de todas las áreas, de todos los departamentos." />
+        <x-ui.stat label="Sin áreas" :value="$emptyDepartments" :tone="$emptyDepartments > 0 ? 'warn' : 'neutral'"
+            help="Departamentos que todavía no tienen ninguna área dada de alta." />
+    </x-ui.stats>
+
+    @if (session('message'))
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
+    @endif
+>>>>>>> dba4729e63772ad9744b5ced48b25a0fdb214628
     @if (session('error'))
         <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
     @endif
 
     {{-- Filtros --}}
+<<<<<<< HEAD
     <x-ui.section title="Buscar" hint="Filtra por nombre o descripción.">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,2fr)_9rem]">
+=======
+    <x-ui.section title="Buscar" hint="Filtra por nombre o descripción del departamento.">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_9rem]">
+>>>>>>> dba4729e63772ad9744b5ced48b25a0fdb214628
             <x-ui.field label="Texto a buscar">
                 <div class="relative">
                     <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
@@ -40,10 +64,17 @@
             </x-ui.field>
         </div>
 
+<<<<<<< HEAD
         @if ($search !== '')
             <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
                 <span class="text-xs text-slate-500 dark:text-slate-400">Mostrando resultados filtrados.</span>
                 <x-ui.btn variant="ghost" size="sm" wire:click="$set('search', '')">Limpiar filtros</x-ui.btn>
+=======
+        @if ($search)
+            <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Mostrando resultados filtrados.</span>
+                <x-ui.btn variant="ghost" size="sm" wire:click="clearFilters">Limpiar filtros</x-ui.btn>
+>>>>>>> dba4729e63772ad9744b5ced48b25a0fdb214628
             </div>
         @endif
     </x-ui.section>
@@ -52,27 +83,54 @@
     <x-ui.table>
         <x-slot:head>
             <tr>
+<<<<<<< HEAD
                 <x-ui.th sort="name" :field="$sortField" :direction="$sortDirection">Nombre</x-ui.th>
                 <x-ui.th>Descripción</x-ui.th>
                 <x-ui.th align="right">Áreas</x-ui.th>
                 <x-ui.th align="right">Acciones</x-ui.th>
+=======
+                <x-ui.th sort="name" :field="$sortField" :direction="$sortDirection">Departamento</x-ui.th>
+                <x-ui.th>Descripción</x-ui.th>
+                <x-ui.th class="w-28">Áreas</x-ui.th>
+                <x-ui.th align="right" class="w-32">Acciones</x-ui.th>
+>>>>>>> dba4729e63772ad9744b5ced48b25a0fdb214628
             </tr>
         </x-slot:head>
 
         @forelse ($departments as $department)
+<<<<<<< HEAD
             <tr wire:key="dep-{{ $department->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                 <td class="whitespace-nowrap px-4 py-3 font-semibold text-slate-900 dark:text-white">{{ $department->name }}</td>
                 <td class="max-w-md truncate px-4 py-3 text-slate-600 dark:text-slate-300"
                     title="{{ $department->description }}">{{ $department->description ?: '—' }}</td>
                 <td class="px-4 py-3 text-right">
                     <x-ui.badge tone="neutral">{{ number_format($department->areas->count()) }}</x-ui.badge>
+=======
+            <tr wire:key="department-{{ $department->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="whitespace-nowrap px-4 py-3 font-semibold text-slate-900 dark:text-white">
+                    {{ $department->name }}
+                </td>
+                <td class="max-w-md truncate px-4 py-3 text-slate-600 dark:text-slate-300"
+                    title="{{ $department->description }}">{{ $department->description ?: '—' }}</td>
+                <td class="px-4 py-3">
+                    @if ($department->areas_count > 0)
+                        <x-ui.badge tone="info">{{ $department->areas_count }}</x-ui.badge>
+                    @else
+                        <x-ui.badge tone="warn" dot>Sin áreas</x-ui.badge>
+                    @endif
+>>>>>>> dba4729e63772ad9744b5ced48b25a0fdb214628
                 </td>
                 <td class="px-4 py-3">
                     <x-ui.row-actions label="el departamento {{ $department->name }}"
                         :show="route('admin.departments.show', $department)"
                         :edit="route('admin.departments.edit', $department)"
+<<<<<<< HEAD
                         delete="deleteDepartment({{ $department->id }})"
                         deleteConfirm="¿Eliminar el departamento «{{ $department->name }}»? Solo es posible si no tiene áreas asociadas." />
+=======
+                        :delete="$department->areas_count > 0 ? null : 'deleteDepartment('.$department->id.')'"
+                        deleteConfirm="¿Eliminar el departamento «{{ $department->name }}»? Esta acción no se puede deshacer." />
+>>>>>>> dba4729e63772ad9744b5ced48b25a0fdb214628
                 </td>
             </tr>
         @empty

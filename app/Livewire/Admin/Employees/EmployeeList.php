@@ -37,6 +37,34 @@ class EmployeeList extends Component
         'sortDirection' => ['except' => 'asc'],
     ];
 
+    /** Columnas por las que se puede ordenar el listado. */
+    private const SORTABLE = ['employee_number', 'name', 'email', 'active', 'created_at'];
+
+    /**
+     * Consulta base del listado: sólo empleados (rol employee) + filtros. La
+     * comparten listado y exportación para que el CSV sea lo que se ve.
+     *
+     * whereHas y no ->role(): si el rol aún no existe en la BD, el scope de
+     * Spatie lanza RoleDoesNotExist y tumbaría la pantalla.
+     */
+    private function filteredQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return User::query()
+            ->whereHas('roles', fn ($q) => $q->where('name', 'employee'))
+            ->when($this->search, fn($q) => $q->search($this->search))
+            ->when($this->filterArea, fn($q) => $q->byArea($this->filterArea))
+            ->when($this->filterShift, fn($q) => $q->byShift($this->filterShift))
+            ->when($this->filterStatus !== '', function ($q) {
+                if ($this->filterStatus === '1') {
+                    return $q->active();
+                }
+                if ($this->filterStatus === '0') {
+                    return $q->inactive();
+                }
+            })
+            ->orderBy($this->sortField, $this->sortDirection);
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -57,8 +85,17 @@ class EmployeeList extends Component
         $this->resetPage();
     }
 
+    public function updatingPerPage()
+    {
+        $this->resetPage();
+    }
+
     public function sortBy($field)
     {
+        if (!in_array($field, self::SORTABLE, true)) {
+            return;
+        }
+
         if ($this->sortField === $field) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
@@ -77,14 +114,20 @@ class EmployeeList extends Component
     {
         $employee = User::find($employeeId);
 
-        if ($employee) {
-            $employee->delete();
-            session()->flash('flash.banner', 'Empleado eliminado correctamente.');
-            session()->flash('flash.bannerStyle', 'success');
-        } else {
-            session()->flash('flash.banner', 'No se puede eliminar el empleado.');
-            session()->flash('flash.bannerStyle', 'danger');
+        if (!$employee) {
+            session()->flash('error', 'No se encontró el empleado que quieres eliminar.');
+            return;
         }
+
+        if ($employee->id === auth()->id()) {
+            session()->flash('error', 'No puedes eliminar tu propia cuenta.');
+            return;
+        }
+
+        // Soft delete: el empleado conserva su historial (pesajes, tiempo extra).
+        $employee->delete();
+
+        session()->flash('message', 'Empleado eliminado correctamente.');
     }
 
     // ==========================================
@@ -117,17 +160,8 @@ class EmployeeList extends Component
         $filename = 'empleados_' . now()->format('Ymd_His') . '.csv';
         $columns = self::csvColumns();
 
-        $employees = User::role('employee')
-            ->with(['area', 'shift'])
-            ->when($this->search, fn($q) => $q->search($this->search))
-            ->when($this->filterArea, fn($q) => $q->byArea($this->filterArea))
-            ->when($this->filterShift, fn($q) => $q->byShift($this->filterShift))
-            ->when($this->filterStatus !== '', function ($q) {
-                if ($this->filterStatus === '1') return $q->active();
-                if ($this->filterStatus === '0') return $q->inactive();
-            })
-            ->orderBy($this->sortField, $this->sortDirection)
-            ->get();
+        // Mismos filtros que el listado: lo exportado es lo que se ve.
+        $employees = $this->filteredQuery()->with(['area', 'shift'])->get();
 
         return response()->streamDownload(function () use ($employees, $columns) {
             $out = fopen('php://output', 'w');
@@ -412,41 +446,26 @@ class EmployeeList extends Component
             if ($updated > 0) $parts[] = "{$updated} actualizados";
             if ($skipped > 0) $parts[] = "{$skipped} sin cambios";
             if ($failed > 0)  $parts[] = "{$failed} fallaron";
-            session()->flash('flash.banner', 'Import empleados: ' . implode(', ', $parts) . '.');
-            session()->flash('flash.bannerStyle', $failed > 0 ? 'warning' : 'success');
+            session()->flash('message', 'Importación de empleados: ' . implode(', ', $parts) . '.');
         }
     }
 
     public function render()
     {
-        // Obtener usuarios con rol 'employee'
-        $employees = User::query()
-            ->role('employee')
+        $employees = $this->filteredQuery()
             ->with(['area', 'shift'])
-            ->when($this->search, fn($q) => $q->search($this->search))
-            ->when($this->filterArea, fn($q) => $q->byArea($this->filterArea))
-            ->when($this->filterShift, fn($q) => $q->byShift($this->filterShift))
-            ->when($this->filterStatus !== '', function ($q) {
-                if ($this->filterStatus === '1') {
-                    return $q->active();
-                } elseif ($this->filterStatus === '0') {
-                    return $q->inactive();
-                }
-            })
-            ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
 
-        $totalEmployees = User::role('employee')->count();
-        $activeEmployees = User::role('employee')->where('active', true)->count();
-        $inactiveEmployees = User::role('employee')->where('active', false)->count();
+        $base = fn () => User::whereHas('roles', fn ($q) => $q->where('name', 'employee'));
 
         return view('livewire.admin.employees.employee-list', [
             'employees' => $employees,
             'areas' => Area::orderBy('name')->get(),
             'shifts' => Shift::active()->orderBy('name')->get(),
-            'totalEmployees' => $totalEmployees,
-            'activeEmployees' => $activeEmployees,
-            'inactiveEmployees' => $inactiveEmployees,
+            'totalEmployees' => $base()->count(),
+            'activeEmployees' => $base()->where('active', true)->count(),
+            'inactiveEmployees' => $base()->where('active', false)->count(),
+            'withoutNumber' => $base()->whereNull('employee_number')->count(),
         ]);
     }
 }

@@ -39,11 +39,15 @@ class CrimpWeighingsTest extends TestCase
             'sent_pieces'       => 0,
         ]);
 
+        // El viajero llega a Producción con material liberado e inspección
+        // aprobada: es el único estado en el que se puede pesar.
         return Lot::create([
-            'work_order_id' => $wo->id,
-            'lot_number'    => 'V-'.fake()->unique()->numerify('#####'),
-            'quantity'      => 1000,
-            'status'        => Lot::STATUS_PENDING,
+            'work_order_id'     => $wo->id,
+            'lot_number'        => 'V-'.fake()->unique()->numerify('#####'),
+            'quantity'          => 1000,
+            'status'            => Lot::STATUS_PENDING,
+            'material_status'   => 'released',
+            'inspection_status' => Lot::INSPECTION_APPROVED,
         ]);
     }
 

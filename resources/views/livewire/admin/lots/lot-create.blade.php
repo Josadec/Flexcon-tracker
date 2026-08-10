@@ -1,117 +1,61 @@
-<div class="py-12">
-    <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-        <!-- Header -->
-        <div class="mb-8">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Nuevo Lote</h1>
-                    <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        Crear un nuevo lote de producción
-                    </p>
-                </div>
-                <div class="mt-4 sm:mt-0">
-                    <a href="{{ route('admin.lots.index') }}"
-                        class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        Volver
-                    </a>
-                </div>
-            </div>
-        </div>
+<x-ui.page eyebrow="Producción" title="Crear viajero"
+    subtitle="Un viajero es una corrida de producción de una orden. Su cantidad no puede exceder lo pendiente de la orden."
+    back="{{ route('admin.lots.index') }}" backLabel="Volver a viajeros">
 
-        <!-- Form Card -->
-        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <form wire:submit="save" class="p-6 space-y-6">
-                <!-- Work Order Selection -->
-                <div>
-                    <label for="work_order_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Work Order <span class="text-red-500">*</span>
-                    </label>
-                    <select wire:model.live="work_order_id" id="work_order_id"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                        <option value="">Seleccionar Work Order</option>
-                        @foreach($workOrders as $wo)
-                            <option value="{{ $wo->id }}">
-                                {{ $wo->purchaseOrder->wo }} - {{ $wo->purchaseOrder->part->number }} (Pendiente: {{ number_format($wo->pending_quantity) }})
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('work_order_id')
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                    @enderror
-                </div>
+    <form wire:submit="save" class="space-y-5">
+        <x-ui.section title="Orden de trabajo" hint="Sólo aparecen las órdenes abiertas o en progreso con cantidad pendiente.">
+            <x-ui.field label="Orden de trabajo" required :error="$errors->first('work_order_id')">
+                <select wire:model.live="work_order_id" class="w-full" required>
+                    <option value="">Seleccionar</option>
+                    @foreach ($workOrders as $wo)
+                        <option value="{{ $wo->id }}">
+                            WO {{ $wo->purchaseOrder?->wo ?? $wo->id }} ·
+                            {{ $wo->purchaseOrder?->part?->number ?? 'Sin parte' }}
+                            ({{ number_format($wo->pending_quantity) }} pz pendientes)
+                        </option>
+                    @endforeach
+                </select>
+            </x-ui.field>
 
-                <!-- Selected WO Info -->
-                @if($selectedWorkOrder)
-                <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Información de la Work Order</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Parte</p>
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $selectedWorkOrder->purchaseOrder->part->number }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Cantidad Original</p>
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ number_format($selectedWorkOrder->original_quantity) }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Enviadas</p>
-                            <p class="text-sm font-medium text-green-600 dark:text-green-400">{{ number_format($selectedWorkOrder->sent_pieces) }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Pendiente</p>
-                            <p class="text-sm font-medium text-orange-600 dark:text-orange-400">{{ number_format($selectedWorkOrder->pending_quantity) }}</p>
-                        </div>
-                    </div>
-                </div>
-                @endif
+            @if ($workOrders->isEmpty())
+                <x-ui.note tone="warn" class="mt-3">
+                    No hay órdenes de trabajo con cantidad pendiente. Crea o reabre una orden antes de dar de alta un viajero.
+                </x-ui.note>
+            @endif
 
-                <!-- Lot Number -->
-                <div>
-                    <label for="lot_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Número de Lote/Viajero <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" wire:model="lot_number" id="lot_number"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                        placeholder="Ej: 001, LOT-2024-001">
-                    @error('lot_number')
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <!-- Quantity -->
-                <div>
-                    <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Cantidad <span class="text-red-500">*</span>
-                    </label>
-                    <input type="number" wire:model="quantity" id="quantity" min="1"
-                        @if($selectedWorkOrder) max="{{ $selectedWorkOrder->pending_quantity }}" @endif
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                        placeholder="Cantidad de piezas para este lote">
-                    @error('quantity')
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                    @enderror
-                    @if($selectedWorkOrder)
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            Máximo disponible: {{ number_format($selectedWorkOrder->pending_quantity) }} piezas
-                        </p>
+            @if ($selectedWorkOrder)
+                <dl class="mt-4 divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+                    <x-ui.kv label="Parte" :value="$selectedWorkOrder->purchaseOrder?->part?->number ?? '—'" />
+                    <x-ui.kv label="Descripción" :value="$selectedWorkOrder->purchaseOrder?->part?->description ?: '—'" />
+                    <x-ui.kv label="Cantidad pendiente" :value="number_format($selectedWorkOrder->pending_quantity).' pz'" tone="info" />
+                    @if ($selectedWorkOrder->purchaseOrder?->part?->is_crimp)
+                        <x-ui.kv label="Tipo de parte" value="CRIMP" tone="info"
+                            help="El viajero seguirá el flujo de ocho pasos con lotes de CRIMP." />
                     @endif
-                </div>
+                </dl>
+            @endif
+        </x-ui.section>
 
-                <!-- Submit Button -->
-                <div class="flex justify-end space-x-3">
-                    <a href="{{ route('admin.lots.index') }}"
-                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white">
-                        Cancelar
-                    </a>
-                    <button type="submit"
-                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm">
-                        Crear Lote
-                    </button>
-                </div>
-            </form>
+        <x-ui.section title="Datos del viajero">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <x-ui.field label="Número de viajero" required
+                    hint="No se puede repetir dentro de la misma orden."
+                    :error="$errors->first('lot_number')">
+                    <input wire:model="lot_number" type="text" class="w-full" placeholder="Ej: 001" required>
+                </x-ui.field>
+
+                <x-ui.field label="Cantidad" required
+                    hint="Piezas que se van a producir en esta corrida."
+                    :error="$errors->first('quantity')">
+                    <input wire:model="quantity" type="number" min="1" step="1"
+                        class="w-full text-right tabular-nums" required>
+                </x-ui.field>
+            </div>
+        </x-ui.section>
+
+        <div class="flex flex-col-reverse gap-2 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-700">
+            <x-ui.btn variant="secondary" href="{{ route('admin.lots.index') }}">Cancelar</x-ui.btn>
+            <x-ui.btn variant="primary" type="submit">Crear viajero</x-ui.btn>
         </div>
-    </div>
-</div>
+    </form>
+</x-ui.page>

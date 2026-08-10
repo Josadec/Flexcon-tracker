@@ -21,9 +21,15 @@ class TvDisplay extends Component
     {
         $workOrders = WorkOrder::with([
             'purchaseOrder.part',
+            // standards: la estación de trabajo se resuelve por WO más abajo;
+            // sin este eager load era una consulta por orden.
+            'purchaseOrder.part.standards',
             'lots.weighings',
             'lots.qualityWeighings',
             'lots.packagingRecords',
+            // Empaque de CRIMP: vive en estas dos tablas, no en packagingRecords.
+            'lots.packagingPieceWeighings',
+            'lots.packagingCrimpWeighings',
             'lots.crimpLots',
             'sentList',
         ])
@@ -64,8 +70,12 @@ class TvDisplay extends Component
                 $qualGood = $lot->qualityWeighings->sum('good_pieces');
                 $qualTarget = $prodWeighed; // quality checks production output
 
-                // Packaging progress
-                $packed = $lot->packagingRecords->sum('packed_pieces');
+                // Empaque: en CRIMP las piezas empacadas se registran como
+                // pesadas de empaque, no como packagingRecords. Sumar sólo
+                // packagingRecords dejaba a los viajeros CRIMP en cero.
+                $packed = $isCrimp
+                    ? (int) $lot->packagingPieceWeighings->sum('quantity')
+                    : (int) $lot->packagingRecords->sum('packed_pieces');
                 $pkgTarget = $qualGood; // packaging uses quality approved
 
                 // Lotes de CRIMP (para crimp). El indicador usa la liberación del
@@ -108,11 +118,14 @@ class TvDisplay extends Component
                 $qualGoodPieces = $lot->qualityWeighings->sum('good_pieces');
                 if ($qualGoodPieces <= 0) {
                     $pkgGray++;
-                } elseif ($lot->surplus_received || in_array($lot->closure_decision, ['complete_lot', 'close_as_is', 'new_lot'])) {
+                // hasClosureDecision() y no una lista fija: las decisiones de
+                // CRIMP (completar CRIMP / piezas / ambos) no estaban en la
+                // lista y un viajero cerrado así no se ponía en verde.
+                } elseif ($lot->surplus_received || $lot->hasClosureDecision()) {
                     $pkgGreen++;
                 } elseif ($lot->viajero_received) {
                     $pkgYellow++;
-                } elseif ($lot->packagingRecords->sum('packed_pieces') > 0) {
+                } elseif ($packed > 0) {
                     $pkgYellow++;
                 } else {
                     $pkgGray++;
@@ -241,10 +254,19 @@ class TvDisplay extends Component
                 default           => 'Sin Clasificar',
             };
 
+            $woIsCrimp = (bool) ($wo->purchaseOrder?->part?->is_crimp ?? false);
+
             foreach ($wo->lots as $lot) {
-                $todayPacked = $lot->packagingRecords
-                    ->whereBetween('packed_at', [$todayStart, $todayEnd])
-                    ->sum('packed_pieces');
+                // El empaque de CRIMP no pasa por packagingRecords: sin esto,
+                // el KPI del día ignoraba todo lo empacado de CRIMP.
+                $todayPacked = $woIsCrimp
+                    ? $lot->packagingPieceWeighings
+                        ->whereBetween('created_at', [$todayStart, $todayEnd])
+                        ->sum('quantity')
+                    : $lot->packagingRecords
+                        ->whereBetween('packed_at', [$todayStart, $todayEnd])
+                        ->sum('packed_pieces');
+
                 $packedTodayByStation[$station] = ($packedTodayByStation[$station] ?? 0) + (int) $todayPacked;
                 $packedTodayTotal += (int) $todayPacked;
             }

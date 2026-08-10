@@ -135,6 +135,30 @@ class CrimpDecisionTest extends TestCase
         return $u;
     }
 
+    /**
+     * Quien puede reabrir documentos ya cerrados.
+     *
+     * Reabrir dejó de ser cosa de Materiales: el cliente pidió que sólo
+     * Administración pueda corregir lo cerrado, con motivo y dejando rastro.
+     */
+    private function reopeningUser(): User
+    {
+        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $permiso = \Spatie\Permission\Models\Permission::firstOrCreate([
+            'name' => \App\Services\ReopeningService::PERMISSION, 'guard_name' => 'web',
+        ]);
+        Role::findByName('admin')->givePermissionTo($permiso);
+
+        // Spatie cachea los permisos: sin esto, un rol creado a mitad del test
+        // no "tiene" el permiso que se le acaba de dar.
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $u = User::factory()->create();
+        $u->assignRole('admin');
+
+        return $u->fresh();
+    }
+
     /** Toma una decisión D2 y devuelve el viajero refrescado (aún NO recibido). */
     private function decideCompletion(SentList $sentList, Lot $viajero, string $method): Lot
     {
@@ -247,12 +271,15 @@ class CrimpDecisionTest extends TestCase
             ->assertHasNoErrors();
         $this->assertTrue((bool) $viajero->refresh()->ready_for_shipping);
 
-        // Materiales reabre el lote → debe salir de la cola (no queda fantasma).
-        $this->actingAs($this->materialsUser());
+        // Administración reabre el lote → debe salir de la cola (no queda fantasma).
+        $this->actingAs($this->reopeningUser());
         Livewire::test(ShippingListDisplay::class)
             ->call('openDecisionModal', $viajero->id)
+            ->set('reopenReason', 'El cliente reportó una diferencia de cantidad.')
             ->call('reopenLot')
             ->assertHasNoErrors();
+
+        $this->assertNull(session('error'), 'La reapertura falló: '.session('error'));
 
         $viajero->refresh();
         $this->assertNull($viajero->closure_decision);

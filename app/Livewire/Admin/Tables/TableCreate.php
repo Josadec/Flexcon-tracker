@@ -37,8 +37,7 @@ class TableCreate extends Component
             'area_id' => $this->area_id,
         ]);
 
-        session()->flash('flash.banner', 'Mesa creada correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Mesa creada correctamente.');
 
         return redirect()->route('admin.tables.index');
     }

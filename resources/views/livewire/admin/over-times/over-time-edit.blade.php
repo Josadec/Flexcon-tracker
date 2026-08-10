@@ -1,152 +1,130 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center gap-4">
-        <a href="{{ route('admin.over-times.show', $overTime) }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-            </svg>
-        </a>
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Editar tiempo extra</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Actualiza la información del tiempo extra</p>
+<x-ui.page eyebrow="Administración" :title="'Editar '.$overTime->name"
+    subtitle="Al cambiar horario o empleados cambian las horas-hombre que este registro suma a la capacidad."
+    back="{{ route('admin.over-times.index') }}" backLabel="Volver a tiempo extra">
+
+    <x-slot:actions>
+        <x-ui.btn variant="secondary" href="{{ route('admin.over-times.show', $overTime) }}">Ver detalle</x-ui.btn>
+    </x-slot:actions>
+
+    <form wire:submit="update" class="space-y-5">
+        <x-ui.section step="1" title="Cuándo y en qué turno"
+            hint="El turno es opcional: sirve para saber a qué horario pertenece la jornada extra.">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <x-ui.field label="Nombre" required :error="$errors->first('name')">
+                    <input wire:model="name" type="text" class="w-full" required>
+                </x-ui.field>
+
+                <x-ui.field label="Fecha" required :error="$errors->first('date')">
+                    <input wire:model="date" type="date" class="w-full" required>
+                </x-ui.field>
+
+                <x-ui.field label="Turno" optional :error="$errors->first('shift_id')">
+                    <select wire:model="shift_id" class="w-full">
+                        <option value="">Sin turno</option>
+                        @foreach ($shifts as $shift)
+                            <option value="{{ $shift->id }}" @selected((int) $shift_id === (int) $shift->id)>{{ $shift->name }}</option>
+                        @endforeach
+                    </select>
+                </x-ui.field>
+            </div>
+        </x-ui.section>
+
+        <x-ui.section step="2" title="Horario" hint="Las horas netas descuentan los minutos de descanso.">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <x-ui.field label="Hora de inicio" required :error="$errors->first('start_time')">
+                    <input wire:model.blur="start_time" type="time" class="w-full tabular-nums" required>
+                </x-ui.field>
+
+                <x-ui.field label="Hora de fin" required :error="$errors->first('end_time')">
+                    <input wire:model.blur="end_time" type="time" class="w-full tabular-nums" required>
+                </x-ui.field>
+
+                <x-ui.field label="Descanso" required
+                    hint="Minutos que no se cuentan como trabajo."
+                    :error="$errors->first('break_minutes')">
+                    <input wire:model.blur="break_minutes" type="number" min="0" step="1"
+                        class="w-full text-right tabular-nums" required>
+                </x-ui.field>
+            </div>
+
+            <x-ui.stats cols="3" class="mt-4">
+                <x-ui.stat label="Horas netas" :value="$this->net_hours" unit="h"
+                    help="Duración de la jornada menos el descanso." />
+                <x-ui.stat label="Empleados" :value="count($selectedEmployeeIds)" />
+                <x-ui.stat label="Horas-hombre" :value="$this->total_hours" unit="h" tone="accent"
+                    help="Horas netas × empleados. Es lo que se suma a la capacidad." />
+            </x-ui.stats>
+        </x-ui.section>
+
+        <x-ui.section step="3" title="Empleados" tone="accent"
+            hint="Debes elegir al menos uno: sin empleados no hay horas-hombre que sumar.">
+
+            @error('selectedEmployeeIds')
+                <x-ui.note tone="danger" class="mb-4">{{ $message }}</x-ui.note>
+            @enderror
+
+            @if ($selectedEmployees->isNotEmpty())
+                <div class="mb-4">
+                    <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        Seleccionados ({{ $selectedEmployees->count() }})
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach ($selectedEmployees as $emp)
+                            <span wire:key="sel-{{ $emp->id }}"
+                                class="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-800 dark:bg-sky-900/40 dark:text-sky-300">
+                                {{ $emp->full_name }}
+                                <button type="button" wire:click="removeEmployee('{{ $emp->id }}')"
+                                    class="text-sky-600 hover:text-red-600 dark:text-sky-400 dark:hover:text-red-400"
+                                    aria-label="Quitar a {{ $emp->full_name }}">
+                                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </span>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            <x-ui.field label="Buscar empleado">
+                <div class="relative">
+                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </span>
+                    <input type="text" wire:model.live.debounce.300ms="employeeSearch"
+                        placeholder="Nombre, número o posición..." class="w-full pl-10">
+                </div>
+            </x-ui.field>
+
+            <div class="mt-3 max-h-72 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                @forelse ($employees as $emp)
+                    <label wire:key="emp-{{ $emp->id }}"
+                        class="flex cursor-pointer items-center gap-3 border-b border-slate-100 px-4 py-2.5 last:border-b-0 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/40">
+                        <input type="checkbox" wire:model.live="selectedEmployeeIds" value="{{ (string) $emp->id }}">
+                        <span class="min-w-0">
+                            <span class="block truncate text-sm font-semibold text-slate-900 dark:text-white">{{ $emp->full_name }}</span>
+                            <span class="block text-xs text-slate-500 dark:text-slate-400">
+                                {{ $emp->employee_number ?: '—' }} · {{ $emp->position ?: 'Sin posición' }}
+                            </span>
+                        </span>
+                    </label>
+                @empty
+                    <x-ui.empty icon="search"
+                        :title="$employeeSearch ? 'Sin resultados para «'.$employeeSearch.'»' : 'No hay empleados activos'"
+                        :hint="$employeeSearch ? 'Prueba con otro nombre, número o posición.' : 'Da de alta empleados activos para poder programarles tiempo extra.'" />
+                @endforelse
+            </div>
+        </x-ui.section>
+
+        <x-ui.section title="Comentarios">
+            <x-ui.field label="Comentarios" optional
+                hint="Motivo de la jornada extra, autorizaciones, etc."
+                :error="$errors->first('comments')">
+                <textarea wire:model="comments" rows="3" class="w-full"></textarea>
+            </x-ui.field>
+        </x-ui.section>
+
+        <div class="flex flex-col-reverse gap-2 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-700">
+            <x-ui.btn variant="secondary" href="{{ route('admin.over-times.index') }}">Cancelar</x-ui.btn>
+            <x-ui.btn variant="primary" type="submit">Guardar cambios</x-ui.btn>
         </div>
-    </div>
-
-    <!-- Form -->
-    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <form wire:submit="update" class="divide-y divide-gray-200 dark:divide-gray-700">
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Información básica</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nombre <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="name" placeholder="Nombre del tiempo extra" class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        @error('name') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fecha <span class="text-red-500">*</span></label>
-                        <input type="date" wire:model="date" class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        @error('date') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Turno</label>
-                        <select wire:model="shift_id" class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                            <option value="">Selecciona un turno (opcional)</option>
-                            @foreach($shifts as $shift)
-                                <option value="{{ $shift->id }}" @selected((int) $shift_id === (int) $shift->id)>{{ $shift->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('shift_id') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Horario</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hora inicio <span class="text-red-500">*</span></label>
-                        <input type="time" wire:model.blur="start_time" class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        @error('start_time') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hora fin <span class="text-red-500">*</span></label>
-                        <input type="time" wire:model.blur="end_time" class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        @error('end_time') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Descanso (min) <span class="text-red-500">*</span></label>
-                        <input type="number" wire:model.blur="break_minutes" min="0" placeholder="0" class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        @error('break_minutes') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
-                </div>
-                <div class="mt-4 p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                    <p class="text-xs text-blue-800 dark:text-blue-200">Horas netas: <strong>{{ $this->net_hours }} hrs</strong> · Horas totales: <strong>{{ $this->total_hours }} hrs</strong> ({{ count($selectedEmployeeIds) }} empleado{{ count($selectedEmployeeIds) !== 1 ? 's' : '' }})</p>
-                </div>
-            </div>
-
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Empleados <span class="text-red-500">*</span></h3>
-
-                @error('selectedEmployeeIds')
-                    <p class="mb-3 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                @enderror
-
-                <!-- Empleados seleccionados -->
-                @if($selectedEmployees->isNotEmpty())
-                    <div class="mb-4">
-                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Seleccionados ({{ $selectedEmployees->count() }}):</p>
-                        <div class="flex flex-wrap gap-2">
-                            @foreach($selectedEmployees as $emp)
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700">
-                                    {{ $emp->full_name }}
-                                    <button type="button" wire:click="$set('selectedEmployeeIds', array_values(array_filter($selectedEmployeeIds, fn($id) => $id !== '{{ (string) $emp->id }}')))" class="ml-1 text-blue-600 dark:text-blue-400 hover:text-red-600 dark:hover:text-red-400">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                        </svg>
-                                    </button>
-                                </span>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
-                <!-- Buscador de empleados -->
-                <div class="mb-3">
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                        </div>
-                        <input
-                            type="text"
-                            wire:model.live.debounce.300ms="employeeSearch"
-                            placeholder="Buscar empleado por nombre, numero o posicion..."
-                            class="w-full pl-9 pr-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                        />
-                    </div>
-                </div>
-
-                <!-- Lista de empleados con checkboxes -->
-                <div class="border-2 border-gray-200 dark:border-gray-600 rounded-md overflow-hidden max-h-64 overflow-y-auto">
-                    @forelse($employees as $emp)
-                        <label class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0">
-                            <input
-                                type="checkbox"
-                                wire:model="selectedEmployeeIds"
-                                value="{{ (string) $emp->id }}"
-                                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <div class="min-w-0">
-                                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $emp->full_name }}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ $emp->employee_number ?? '—' }} · {{ $emp->position ?? 'Sin posición' }}</p>
-                            </div>
-                        </label>
-                    @empty
-                        <div class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                            @if($employeeSearch)
-                                No se encontraron empleados con "{{ $employeeSearch }}"
-                            @else
-                                No hay empleados activos disponibles
-                            @endif
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Comentarios</h3>
-                <textarea wire:model="comments" rows="3" placeholder="Opcional" class="w-full px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"></textarea>
-                @error('comments') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-            </div>
-
-            <div class="p-6 bg-gray-50 dark:bg-gray-900/50">
-                <div class="flex justify-end gap-3">
-                    <a href="{{ route('admin.over-times.show', $overTime) }}" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</a>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors">Actualizar tiempo extra</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
+    </form>
+</x-ui.page>

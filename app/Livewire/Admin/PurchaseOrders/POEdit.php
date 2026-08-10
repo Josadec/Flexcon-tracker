@@ -7,8 +7,10 @@ use App\Models\Price;
 use App\Models\PurchaseOrder;
 use App\Services\POPriceDetectionService;
 use App\Services\PurchaseOrderService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -252,29 +254,42 @@ class POEdit extends Component
     {
         $this->validate();
 
-        $pdfPath = $this->purchaseOrder->pdf_path;
+        $previousPdfPath = $this->purchaseOrder->pdf_path;
+        $pdfPath = $previousPdfPath;
         if ($this->pdf_file) {
-            // Delete old PDF if exists
-            if ($this->purchaseOrder->pdf_path) {
-                Storage::disk('public')->delete($this->purchaseOrder->pdf_path);
-            }
             $pdfPath = $this->pdf_file->store('purchase-orders', 'public');
         }
 
         $previousStatus = $this->purchaseOrder->status;
 
-        $this->purchaseOrder->update([
-            'po_number' => $this->po_number,
-            'wo' => $this->wo ?: null,
-            'part_id' => $this->part_id,
-            'workstation_type' => $this->workstation_type ?: null,
-            'po_date' => $this->po_date,
-            'due_date' => $this->due_date,
-            'quantity' => $this->quantity,
-            'unit_price' => $this->unit_price,
-            'comments' => $this->comments ?: null,
-            'pdf_path' => $pdfPath,
-        ]);
+        try {
+            $this->purchaseOrder->update([
+                'po_number' => $this->po_number,
+                'wo' => $this->wo ?: null,
+                'part_id' => $this->part_id,
+                'workstation_type' => $this->workstation_type ?: null,
+                'po_date' => $this->po_date,
+                'due_date' => $this->due_date,
+                'quantity' => $this->quantity,
+                'unit_price' => $this->unit_price,
+                'comments' => $this->comments ?: null,
+                'pdf_path' => $pdfPath,
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            // Otra sesión tomó el mismo número entre el validate() y el update.
+            if ($pdfPath !== $previousPdfPath) {
+                Storage::disk('public')->delete($pdfPath);
+            }
+
+            throw ValidationException::withMessages([
+                'po_number' => 'Ya existe una orden de compra con este número.',
+            ]);
+        }
+
+        // El PDF anterior se descarta solo cuando el update ya quedó guardado.
+        if ($previousPdfPath && $pdfPath !== $previousPdfPath) {
+            Storage::disk('public')->delete($previousPdfPath);
+        }
 
         // SIEMPRE revalidar el precio después de actualizar (consistente con Create)
         $validation = $this->purchaseOrderService->validatePrice($this->purchaseOrder);

@@ -370,7 +370,7 @@ class ShiftListEmployeesTest extends TestCase
 
         // Verificar en la vista
         Livewire::test(ShiftList::class)
-            ->assertSee('Empleados Asignados')
+            ->assertSee('Empleados asignados')
             ->assertSee('8');
     }
 
@@ -395,7 +395,7 @@ class ShiftListEmployeesTest extends TestCase
         Livewire::test(ShiftList::class)
             ->assertSee('Turno Test')
             ->assertSee('1 empleado')
-            ->assertSee('bg-blue-100'); // Clase CSS del badge
+            ->assertSee('bg-sky-100'); // Clase del badge tone="info" de x-ui.badge
     }
 
     /**

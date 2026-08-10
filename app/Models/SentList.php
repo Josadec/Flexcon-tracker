@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SentList extends Model
 {
-    use HasFactory, SoftDeletes;
+    use Auditable, HasFactory, SoftDeletes;
 
     protected $table = 'sent_lists';
 
@@ -452,4 +454,13 @@ class SentList extends Model
     {
         return $this->status === self::STATUS_CANCELED;
     }
+
+    /** Contexto para el historial: la orden de compra de la lista. */
+    protected function auditContext(): array
+    {
+        return [
+            'purchase_order_id' => $this->po_id,
+        ];
+    }
+
 }

@@ -38,12 +38,22 @@ class BreakTime extends Model
     /**
      * Scope starts here
      */
+    /**
+     * Las condiciones van agrupadas: sueltas, el `orWhere` se escapaba de los
+     * filtros de turno y estado del listado, y devolvía descansos de más.
+     */
     public function scopeSearch($query, $search)
     {
-        return $query->where('name', 'like', "%{$search}%")
-        ->orWhere('start_break_time', 'like', "%{$search}%")
-        ->orWhere('end_break_time', 'like', "%{$search}%")
-        ->orWhere('comments', 'like', "%{$search}%");
+        if (blank($search)) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('start_break_time', 'like', "%{$search}%")
+              ->orWhere('end_break_time', 'like', "%{$search}%")
+              ->orWhere('comments', 'like', "%{$search}%");
+        });
     }
 
     public function scopeSortByField($query, $field = 'name', $direction = 'asc')

@@ -39,8 +39,7 @@ class DepartmentEdit extends Component
             'comments' => $this->comments,
         ]);
 
-        session()->flash('flash.banner', 'Departamento actualizado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Departamento actualizado correctamente.');
 
         $this->redirect(route('admin.departments.index'), navigate: true);
     }

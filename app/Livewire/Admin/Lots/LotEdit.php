@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Lots;
 
 use App\Models\Lot;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 class LotEdit extends Component
@@ -14,8 +15,23 @@ class LotEdit extends Component
     protected function rules(): array
     {
         return [
-            'lot_number' => 'required|string|max:255',
+            // La base tiene índice único (work_order_id, lot_number): sin esta
+            // regla, un número repetido salía como error de SQL en pantalla.
+            'lot_number' => [
+                'required', 'string', 'max:255',
+                Rule::unique('lots', 'lot_number')
+                    ->where('work_order_id', $this->lot->work_order_id)
+                    ->whereNull('deleted_at')
+                    ->ignore($this->lot->id),
+            ],
             'quantity' => 'required|integer|min:1',
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'lot_number.unique' => 'Esa orden ya tiene otro viajero con ese número.',
         ];
     }
 

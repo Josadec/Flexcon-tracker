@@ -11,7 +11,7 @@ class MachineShow extends Component
 
     public function mount(Machine $machine): void
     {
-        $this->machine = $machine->load('area');
+        $this->machine = $machine->load(['area', 'productionStatus']);
     }
 
     public function render()

@@ -12,36 +12,38 @@ use App\Models\SentList;
 #[Layout('components.layouts.app')]
 class MaterialsAreaDashboard extends Component
 {
-    public string $viewMode = 'work-orders'; // Default to work-orders view
-    public string $searchTerm = '';
+    public string $viewMode = 'work-orders'; // work-orders | lots
 
-    /**
-     * Switch between different views.
-     */
     public function switchView(string $mode): void
     {
-        $this->viewMode = $mode;
-        $this->dispatch('view-switched', mode: $mode);
+        if (in_array($mode, ['work-orders', 'lots'], true)) {
+            $this->viewMode = $mode;
+        }
     }
 
     /**
-     * Get statistics for the dashboard.
+     * Métricas de lo que Materiales tiene enfrente.
+     *
+     * Antes eran conteos generales del sistema (total de órdenes, total de
+     * viajeros); ahora cuentan trabajo pendiente del área y separan CRIMP de
+     * no-CRIMP, que es lo que cambia el procedimiento.
      */
     public function getStatsProperty(): array
     {
+        $porLiberar = Lot::where('material_status', 'pending');
+        $crimp = fn () => Lot::whereHas('workOrder.purchaseOrder.part', fn ($q) => $q->where('is_crimp', true));
+
         return [
-            'total_work_orders' => WorkOrder::whereHas('lots')->count(),
-            'total_lots' => Lot::count(),
-            'pending_lots' => Lot::where('status', 'pending')->count(),
-            'total_crimp_lots' => CrimpLot::count(),
-            'crimp_lots_qty' => (int) CrimpLot::sum('quantity'),
-            'viajeros_con_crimp' => Lot::has('crimpLots')->count(),
+            'por_liberar' => (clone $porLiberar)->count(),
+            'por_liberar_crimp' => (clone $porLiberar)->whereHas('workOrder.purchaseOrder.part', fn ($q) => $q->where('is_crimp', true))->count(),
+            'viajeros_crimp' => $crimp()->count(),
+            'crimp_sin_lotes' => $crimp()->doesntHave('crimpLots')->count(),
+            'lotes_crimp' => CrimpLot::count(),
+            'piezas_crimp' => (int) CrimpLot::sum('quantity'),
+            'ordenes_activas' => WorkOrder::whereHas('lots')->count(),
         ];
     }
 
-    /**
-     * Render the component.
-     */
     public function render()
     {
         $pendingSentLists = SentList::with(['workOrders.purchaseOrder.part', 'workOrders.lots', 'unresolvedRejections'])
@@ -51,7 +53,7 @@ class MaterialsAreaDashboard extends Component
             ->get();
 
         return view('livewire.admin.materials.materials-area-dashboard', [
-            'stats'            => $this->stats,
+            'stats' => $this->stats,
             'pendingSentLists' => $pendingSentLists,
         ]);
     }

@@ -16,7 +16,30 @@ class RoleEdit extends Component
     {
         $this->role = $role;
         $this->name = $role->name;
-        $this->selectedPermissions = $role->permissions->pluck('id')->toArray();
+        // Como strings: es lo que mandan las casillas, y así las comparaciones
+        // del selector por grupo no mezclan tipos.
+        $this->selectedPermissions = $role->permissions
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->toArray();
+    }
+
+    /**
+     * Marca o desmarca de golpe todos los permisos de un grupo.
+     *
+     * Los ids llegan desde la vista porque el agrupado se arma ahí (por el
+     * prefijo del nombre) y no todos los permisos tienen prefijo.
+     */
+    public function toggleGroup(array $ids): void
+    {
+        $ids = array_map('strval', $ids);
+        $selected = array_map('strval', $this->selectedPermissions);
+
+        $todosMarcados = empty(array_diff($ids, $selected));
+
+        $this->selectedPermissions = $todosMarcados
+            ? array_values(array_diff($selected, $ids))
+            : array_values(array_unique(array_merge($selected, $ids)));
     }
 
     protected function rules(): array
@@ -40,8 +63,7 @@ class RoleEdit extends Component
         // Solo sincronizar los permisos que realmente existen
         $this->role->syncPermissions($existingPermissionIds);
 
-        session()->flash('flash.banner', 'Rol actualizado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Rol actualizado correctamente.');
 
         $this->redirect(route('admin.roles.index'), navigate: true);
     }

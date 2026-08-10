@@ -244,17 +244,17 @@ class ReportController extends Controller
         $row = 4;
         $this->sectionTitle($sheet, $row, 'RESUMEN', $hBg, $fw, 8);
         $row++;
+        // El flujo migró de Kits a lotes de CRIMP y el PDF se actualizó, pero
+        // esta hoja se quedó leyendo claves que ReportService ya no devuelve:
+        // descargar Materiales o General en Excel reventaba con
+        // "Undefined array key". Ahora usa las mismas claves que el PDF.
         $stats = [
             ['Total lotes',          $data['stats']['total_lotes']],
             ['Lotes pendientes',     $data['stats']['lotes_pendientes']],
             ['Lotes liberados',      $data['stats']['lotes_liberados']],
             ['Lotes rechazados',     $data['stats']['lotes_rechazados']],
-            ['Total kits',           $data['stats']['total_kits']],
-            ['Kits preparando',      $data['stats']['kits_preparando']],
-            ['Kits listos',          $data['stats']['kits_listos']],
-            ['Kits liberados',       $data['stats']['kits_liberados']],
-            ['Kits en ensamble',     $data['stats']['kits_en_ensamble']],
-            ['Kits rechazados',      $data['stats']['kits_rechazados']],
+            ['Total lotes de CRIMP', $data['stats']['total_crimp_lots']],
+            ['Piezas de CRIMP',      $data['stats']['total_crimp_piezas']],
         ];
         foreach ($stats as $i => $s) {
             $bg = ($i % 2 === 0) ? $odd : $white;
@@ -289,23 +289,22 @@ class ReportController extends Controller
         }
         $row++;
 
-        // Kits — nueva hoja o misma hoja
-        $this->sectionTitle($sheet, $row, 'KITS', $hBg, $fw, 8);
+        // Lotes de CRIMP (antes eran Kits, que ya no se usan)
+        $this->sectionTitle($sheet, $row, 'LOTES DE CRIMP', $hBg, $fw, 8);
         $row++;
-        $hKits = ['#', 'Kit', 'Work Order', 'Cantidad', 'Estatus', 'Enviado a inspección', 'Aprobado'];
-        $wKits = [5, 14, 14, 10, 18, 22, 22];
-        $this->tableHeader($sheet, $row, $hKits, $sBg, $fw);
+        $hCrimp = ['#', 'Lote de CRIMP', 'Viajero', 'Work Order', 'Cantidad', 'Lote fabricante', 'Registrado'];
+        $this->tableHeader($sheet, $row, $hCrimp, $sBg, $fw);
         $row++;
-        foreach ($data['kits'] as $i => $kit) {
+        foreach ($data['crimp_lots'] as $i => $crimpLot) {
             $bg = ($i % 2 === 0) ? $odd : $white;
             $this->dataRow($sheet, $row, [
                 $i + 1,
-                $kit->kit_number,
-                $kit->workOrder?->wo_number ?? 'N/A',
-                $kit->quantity,
-                ucfirst($kit->status),
-                $kit->submitted_to_inspection_at?->format('d/m/Y H:i') ?? '—',
-                $kit->approved_at?->format('d/m/Y H:i') ?? '—',
+                $crimpLot->crimp_lot_number,
+                $crimpLot->lot?->lot_number ?? 'N/A',
+                $crimpLot->lot?->workOrder?->wo_number ?? 'N/A',
+                $crimpLot->quantity ?? 0,
+                $crimpLot->lote_fabricante ?? '—',
+                $crimpLot->created_at?->format('d/m/Y H:i') ?? '—',
             ], $bg);
             $row++;
         }

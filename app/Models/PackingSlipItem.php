@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PackingSlipItem extends Model
 {
-    use HasFactory;
+    use Auditable, HasFactory;
 
     protected $fillable = [
         'packing_slip_id',
@@ -88,4 +90,19 @@ class PackingSlipItem extends Model
             default  => null,
         };
     }
+
+    /** Contexto para el historial: el viajero que se empacó y su cadena. */
+    protected function auditContext(): array
+    {
+        $lot = $this->lot;
+        $wo = $lot?->workOrder;
+
+        return [
+            'lot_id' => $this->lot_id,
+            'work_order_id' => $lot?->work_order_id,
+            'purchase_order_id' => $wo?->purchase_order_id,
+            'part_id' => $wo?->purchaseOrder?->part_id,
+        ];
+    }
+
 }

@@ -25,8 +25,7 @@ class PermissionCreate extends Component
             'guard_name' => 'web',
         ]);
 
-        session()->flash('flash.banner', 'Permiso creado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Permiso creado correctamente.');
 
         $this->redirect(route('admin.permissions.index'), navigate: true);
     }

@@ -246,10 +246,8 @@
                     <flux:navlist.item icon="bolt" :href="route('admin.over-times.index')"
                         :current="request()->routeIs('admin.over-times.*')" wire:navigate>{{ __('Tiempo Extra') }}
                     </flux:navlist.item>
-                    <flux:navlist.item icon="signal" :href="route('admin.production-statuses.index')"
-                        :current="request()->routeIs('admin.production-statuses.*')" wire:navigate>
-                        {{ __('Estados de Producción') }}
-                    </flux:navlist.item>
+                    {{-- Estados de Producción ya no tiene entrada propia: el catálogo se
+                         administra desde el modal de Mesas (ProductionStatusManager). --}}
                     <flux:navlist.item icon="shield-check" :href="route('admin.roles.index')"
                         :current="request()->routeIs('admin.roles.*')" wire:navigate>{{ __('Roles') }}
                     </flux:navlist.item>
@@ -279,51 +277,91 @@
 
         </flux:navlist>
 
+        {{-- El perfil vive ahora en la barra superior, no aquí: el sidebar se
+             queda sólo con la navegación. --}}
         <flux:spacer />
-
-        <!-- Desktop User Menu -->
-        <flux:dropdown class="hidden lg:block" position="bottom" align="start">
-            <flux:profile :name="auth()->user()->name" :initials="auth()->user()->initials()"
-                icon:trailing="chevrons-up-down" />
-
-            <flux:menu class="w-[220px]">
-                <flux:menu.radio.group>
-                    <div class="p-0 text-sm font-normal">
-                        <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
-                            <span class="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-lg">
-                                <span
-                                    class="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
-                                    {{ auth()->user()->initials() }}
-                                </span>
-                            </span>
-
-                            <div class="grid flex-1 text-start text-sm leading-tight">
-                                <span class="truncate font-semibold">{{ auth()->user()->name }}</span>
-                                <span class="truncate text-xs">{{ auth()->user()->email }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </flux:menu.radio.group>
-
-                <flux:menu.separator />
-
-                <flux:menu.radio.group>
-                    <flux:menu.item :href="route('admin.settings.profile')" icon="cog" wire:navigate>
-                        {{ __('Settings') }}</flux:menu.item>
-                </flux:menu.radio.group>
-
-                <flux:menu.separator />
-
-                <form method="POST" action="{{ route('logout') }}" class="w-full">
-                    @csrf
-                    <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full">
-                        {{ __('Log Out') }}
-                    </flux:menu.item>
-                </form>
-            </flux:menu>
-        </flux:dropdown>
     </flux:sidebar>
 
+    {{-- Barra superior: dónde estás (migas) · buscar · tu cuenta.
+         Fija al hacer scroll, para que el buscador siga a mano en las tablas
+         largas. El perfil se movió aquí desde el pie del sidebar.
+
+         OJO — el orden importa: Flux coloca el header al lado del sidebar sólo
+         con el selector `[data-flux-sidebar]+[data-flux-header]`. Cualquier
+         elemento entre ambos rompe esa adyacencia y el header se monta ENCIMA
+         del sidebar, a todo el ancho de la ventana. Nada va entre estas dos
+         etiquetas. --}}
+    <flux:header sticky
+        class="border-b border-zinc-200 bg-white/90 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/90">
+        <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
+
+        {{-- Tres zonas con los laterales al mismo `flex-1`: es lo que deja el
+             buscador centrado de verdad en la barra. Con un spacer suelto, las
+             migas se iban a la izquierda y todo lo demás se apelotonaba a la
+             derecha dejando un hueco muerto en medio. --}}
+        <div class="flex min-w-0 flex-1 items-center">
+            <x-ui.breadcrumb class="hidden sm:block" />
+        </div>
+
+        <button type="button" x-on:click="$dispatch('abrir-buscador')"
+            class="mx-4 flex h-9 w-full max-w-md shrink items-center gap-2.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-500 transition hover:border-zinc-300 hover:bg-white hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200">
+            <svg class="size-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <span class="hidden truncate text-start sm:inline">Buscar viajero, orden, parte...</span>
+            <kbd class="ms-auto hidden shrink-0 rounded border border-zinc-200 bg-white px-1.5 py-0.5 font-sans text-[10px] font-semibold text-zinc-400 sm:inline dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-500">Ctrl K</kbd>
+        </button>
+
+        <div class="flex min-w-0 flex-1 items-center justify-end">
+            <flux:dropdown position="bottom" align="end">
+                <flux:profile :initials="auth()->user()->initials()" icon-trailing="chevron-down" />
+
+                <flux:menu class="w-[240px]">
+                    <flux:menu.radio.group>
+                        <div class="p-0 text-sm font-normal">
+                            <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
+                                <span class="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-lg">
+                                    <span
+                                        class="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
+                                        {{ auth()->user()->initials() }}
+                                    </span>
+                                </span>
+
+                                <div class="grid flex-1 text-start text-sm leading-tight">
+                                    <span class="truncate font-semibold">{{ auth()->user()->name }}</span>
+                                    <span class="truncate text-xs">{{ auth()->user()->email }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </flux:menu.radio.group>
+
+                    <flux:menu.separator />
+
+                    <flux:menu.radio.group>
+                        <flux:menu.item :href="route('admin.settings.profile')" icon="user" wire:navigate>
+                            {{ __('Mi perfil') }}</flux:menu.item>
+                        <flux:menu.item :href="route('admin.settings.appearance')" icon="swatch" wire:navigate>
+                            {{ __('Apariencia') }}</flux:menu.item>
+                    </flux:menu.radio.group>
+
+                    <flux:menu.separator />
+
+                    <form method="POST" action="{{ route('logout') }}" class="w-full">
+                        @csrf
+                        <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full">
+                            {{ __('Cerrar sesión') }}
+                        </flux:menu.item>
+                    </form>
+                </flux:menu>
+            </flux:dropdown>
+        </div>
+    </flux:header>
+
+    {{ $slot }}
+
+    {{-- Botón flotante para volver a sacar el sidebar cuando está oculto.
+         Va aquí, y no junto al sidebar, porque es `fixed` (su sitio en el DOM
+         no cambia dónde se ve) y en medio rompía el grid del header. --}}
     <button
         x-cloak
         x-show="!adminSidebarOpen"
@@ -339,54 +377,28 @@
         </svg>
     </button>
 
-    <!-- Mobile User Menu -->
-    <flux:header class="lg:hidden">
-        <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
+    {{-- Vive en el layout para que el atajo Ctrl+K funcione en toda la app. --}}
+    <livewire:admin.global-search />
 
-        <flux:spacer />
+    {{--
+        Si el buscador está abierto NO puede vivir en el `x-data` del propio
+        componente: cada tecla dispara un re-render de Livewire, el morph
+        reinicializa el scope de Alpine y `abierto` vuelve a false, así que la
+        ventana se cerraba sola al escribir. En un store de Alpine el estado
+        vive fuera del DOM y sobrevive a cualquier re-render.
+    --}}
+    <script>
+        (function () {
+            function registrarStore() {
+                if (window.Alpine && ! window.Alpine.store('buscador')) {
+                    window.Alpine.store('buscador', { abierto: false });
+                }
+            }
 
-        <flux:dropdown position="top" align="end">
-            <flux:profile :initials="auth()->user()->initials()" icon-trailing="chevron-down" />
-
-            <flux:menu>
-                <flux:menu.radio.group>
-                    <div class="p-0 text-sm font-normal">
-                        <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
-                            <span class="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-lg">
-                                <span
-                                    class="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
-                                    {{ auth()->user()->initials() }}
-                                </span>
-                            </span>
-
-                            <div class="grid flex-1 text-start text-sm leading-tight">
-                                <span class="truncate font-semibold">{{ auth()->user()->name }}</span>
-                                <span class="truncate text-xs">{{ auth()->user()->email }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </flux:menu.radio.group>
-
-                <flux:menu.separator />
-
-                <flux:menu.radio.group>
-                    <flux:menu.item :href="route('admin.settings.profile')" icon="cog" wire:navigate>
-                        {{ __('Settings') }}</flux:menu.item>
-                </flux:menu.radio.group>
-
-                <flux:menu.separator />
-
-                <form method="POST" action="{{ route('logout') }}" class="w-full">
-                    @csrf
-                    <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full">
-                        {{ __('Log Out') }}
-                    </flux:menu.item>
-                </form>
-            </flux:menu>
-        </flux:dropdown>
-    </flux:header>
-
-    {{ $slot }}
+            document.addEventListener('alpine:init', registrarStore);
+            registrarStore(); // por si Alpine ya arrancó antes de este script
+        })();
+    </script>
 
     @fluxScripts
     @include('partials.sidebar-current-sync')

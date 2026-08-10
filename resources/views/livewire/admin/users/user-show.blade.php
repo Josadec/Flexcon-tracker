@@ -1,91 +1,87 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <a href="{{ route('admin.users.index') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-            </a>
-            <div>
-                <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $user->name }} {{ $user->last_name }}</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $user->email }}</p>
-            </div>
-        </div>
-        <div class="flex gap-3">
-            <a href="{{ route('admin.users.edit', $user) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium rounded-md">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                Editar
-            </a>
-            <a href="{{ route('admin.users.index') }}" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
-                Volver
-            </a>
-        </div>
-    </div>
+@php
+    $role = $user->roles->first()?->name;
+    $roleTone = match ($role) {
+        'admin' => 'accent',
+        'employee' => 'neutral',
+        null => 'warn',
+        default => 'info',
+    };
+@endphp
 
-    <!-- Information Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Información Personal -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg">
-            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white">Información Personal</h3>
+<x-ui.page eyebrow="Administración" :title="$user->full_name" :subtitle="$user->email"
+    back="{{ route('admin.users.index') }}" backLabel="Volver a usuarios">
+
+    <x-slot:actions>
+        <x-ui.btn variant="primary" href="{{ route('admin.users.edit', $user) }}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            Editar usuario
+        </x-ui.btn>
+    </x-slot:actions>
+
+    @if (session('message'))
+        <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
+    @endif
+    @if (session('error'))
+        <x-ui.note tone="danger">{{ session('error') }}</x-ui.note>
+    @endif
+
+    {{-- Ficha --}}
+    <x-ui.section title="Información del usuario">
+        <x-slot:aside>
+            <div class="flex items-center gap-2">
+                <x-ui.badge :tone="$roleTone">{{ $role ?? 'Sin rol' }}</x-ui.badge>
             </div>
-            <div class="p-4 space-y-3">
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Nombre Completo</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">{{ $user->name }} {{ $user->last_name }}</dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Correo Electrónico</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">{{ $user->email }}</dd>
-                </div>
-                @if($user->account)
-                    <div>
-                        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Número de Cuenta</dt>
-                        <dd class="text-sm font-mono text-gray-900 dark:text-white">{{ $user->account }}</dd>
-                    </div>
-                @endif
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Fecha de Registro</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">{{ $user->created_at->format('d/m/Y') }}</dd>
-                </div>
+        </x-slot:aside>
+
+        <div class="mb-4 flex items-center gap-4">
+            <span class="flex size-14 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                aria-hidden="true">{{ $user->initials }}</span>
+            <div class="min-w-0">
+                <p class="truncate text-base font-bold text-slate-900 dark:text-white">{{ $user->full_name }}</p>
+                <p class="truncate text-sm text-slate-500 dark:text-slate-400">{{ $user->email }}</p>
             </div>
         </div>
 
-        <!-- Información Laboral -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg">
-            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white">Información Laboral</h3>
-            </div>
-            <div class="p-4 space-y-3">
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Rol</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">
-                        @if($user->roles->isNotEmpty())
-                            <span class="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                {{ $user->roles->first()->name }}
-                            </span>
-                        @else
-                            <span class="text-gray-400">Sin rol asignado</span>
-                        @endif
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Área Asignada</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white">
-                        @if($user->areas->isNotEmpty())
-                            @foreach($user->areas as $area)
-                                <div class="font-medium">{{ $area->name }}</div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ $area->department->name }}</div>
-                            @endforeach
-                        @else
-                            <span class="text-gray-400">Sin área asignada</span>
-                        @endif
-                    </dd>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+        <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+            <x-ui.kv label="Nombre completo" :value="$user->full_name" />
+            <x-ui.kv label="Correo electrónico" :value="$user->email" />
+            <x-ui.kv label="Cuenta" :value="$user->account ?: '—'" help="Clave corta con la que se le identifica en planta." />
+            <x-ui.kv label="Rol" :value="$role ?? 'Sin rol asignado'" :tone="$role ? 'neutral' : 'warn'" />
+            <x-ui.kv label="Alta" :value="$user->created_at?->format('d/m/Y H:i') ?? '—'" />
+            <x-ui.kv label="Última actualización" :value="$user->updated_at?->format('d/m/Y H:i') ?? '—'" />
+        </dl>
+
+        @unless ($role)
+            <x-ui.note tone="warn" class="mt-4">
+                Este usuario no tiene rol asignado: puede iniciar sesión, pero no verá ningún módulo.
+                Asígnale uno desde <strong>Editar usuario</strong>.
+            </x-ui.note>
+        @endunless
+    </x-ui.section>
+
+    {{-- Áreas a su cargo --}}
+    <x-ui.section title="Áreas a su cargo"
+        hint="Áreas en las que este usuario aparece como responsable.">
+
+        @if ($user->areas->isNotEmpty())
+            <x-ui.table>
+                <x-slot:head>
+                    <tr>
+                        <x-ui.th>Área</x-ui.th>
+                        <x-ui.th>Departamento</x-ui.th>
+                    </tr>
+                </x-slot:head>
+
+                @foreach ($user->areas as $area)
+                    <tr wire:key="area-{{ $area->id }}" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-semibold text-slate-900 dark:text-white">{{ $area->name }}</td>
+                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ $area->department?->name ?? '—' }}</td>
+                    </tr>
+                @endforeach
+            </x-ui.table>
+        @else
+            <x-ui.empty icon="box" title="Sin áreas a su cargo"
+                hint="El área se asigna desde la edición del usuario, y sólo aplica cuando el rol es Supervisor." />
+        @endif
+    </x-ui.section>
+</x-ui.page>

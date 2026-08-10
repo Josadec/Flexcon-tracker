@@ -11,6 +11,13 @@ use Illuminate\Support\Facades\Schema;
  * — same pattern already used by the lots table — so a soft-deleted PO no
  * longer blocks the number. Uniqueness among *active* POs is enforced in
  * the application layer via Rule::unique()->withoutTrashed().
+ *
+ * NOTE (2026-08-08): the application layer alone turned out to be insufficient
+ * — this composite index does not constrain active rows at all, since MySQL
+ * allows repeated values when one indexed column is NULL, and deleted_at is
+ * NULL on every live PO. Migration 2026_08_08_000000 restores the database
+ * guarantee via a generated column. Keep this index: it is what still allows
+ * a number to be reused after a soft delete.
  */
 return new class extends Migration
 {

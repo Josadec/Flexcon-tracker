@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Departments;
 
+use App\Models\Area;
 use App\Models\Department;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -15,52 +16,67 @@ class DepartmentList extends Component
     public string $sortDirection = 'asc';
     public int $perPage = 10;
 
+    /** Columnas por las que se puede ordenar el listado. */
+    private const SORTABLE = ['name', 'created_at'];
+
     public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingPerPage(): void
     {
         $this->resetPage();
     }
 
     public function sortBy(string $field): void
     {
+        if (!in_array($field, self::SORTABLE, true)) {
+            return;
+        }
+
         if ($this->sortField === $field) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
             $this->sortDirection = 'asc';
         }
-        
+
         $this->sortField = $field;
+    }
+
+    public function clearFilters(): void
+    {
+        $this->search = '';
+        $this->resetPage();
     }
 
     public function deleteDepartment(int $id): void
     {
         $department = Department::findOrFail($id);
-        
+
         if (!$department->canBeDeleted()) {
-            session()->flash('flash.banner', 'No se puede eliminar este departamento porque tiene áreas asociadas.');
-            session()->flash('flash.bannerStyle', 'danger');
+            session()->flash('error', 'No se puede eliminar «' . $department->name . '» porque todavía tiene áreas asociadas. Muévelas o elimínalas primero.');
             return;
         }
-        
+
         $department->delete();
-        
-        session()->flash('flash.banner', 'Departamento eliminado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+
+        session()->flash('message', 'Departamento eliminado correctamente.');
     }
 
     public function render()
     {
-        $departments = Department::with('areas')
+        // withCount: la tabla sólo necesita cuántas áreas hay, no las áreas.
+        $departments = Department::withCount('areas')
             ->search($this->search)
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
 
-        $totalDepartments = Department::count();
-        $totalAreas = \App\Models\Area::count();
-
         return view('livewire.admin.departments.department-list', [
             'departments' => $departments,
-            'totalDepartments' => $totalDepartments,
-            'totalAreas' => $totalAreas,
+            'totalDepartments' => Department::count(),
+            'totalAreas' => Area::count(),
+            'emptyDepartments' => Department::doesntHave('areas')->count(),
         ]);
     }
 }

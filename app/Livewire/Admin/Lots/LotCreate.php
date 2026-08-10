@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Lots;
 
 use App\Models\Lot;
 use App\Models\WorkOrder;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 class LotCreate extends Component
@@ -16,8 +17,22 @@ class LotCreate extends Component
     {
         return [
             'work_order_id' => 'required|exists:work_orders,id',
-            'lot_number' => 'required|string|max:255',
+            // La base tiene índice único (work_order_id, lot_number): sin esta
+            // regla, un número repetido salía como error de SQL en pantalla.
+            'lot_number' => [
+                'required', 'string', 'max:255',
+                Rule::unique('lots', 'lot_number')
+                    ->where('work_order_id', $this->work_order_id)
+                    ->whereNull('deleted_at'),
+            ],
             'quantity' => 'required|integer|min:1',
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'lot_number.unique' => 'Esa orden ya tiene un viajero con ese número.',
         ];
     }
 

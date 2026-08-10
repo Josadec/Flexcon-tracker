@@ -399,6 +399,82 @@
         </div>
     </x-ui.section>
 
+    {{-- Paso 5 · Registro de empaque (NO-CRIMP) --}}
+    @if ($showPackagingModal)
+        @php
+            $pkLot   = $workOrders->flatMap->lots->firstWhere('id', $packagingLotId);
+            $pkWO    = $pkLot?->workOrder;
+            $pkPart  = $pkWO?->purchaseOrder?->part;
+            $pkWoNum = $pkWO?->purchaseOrder?->wo ?? $pkWO?->wo_number ?? '—';
+            $pkPacked = $pkLot ? $pkLot->getPackagingPackedPieces() : 0;
+        @endphp
+        <x-ui-modal wire:key="modal-packaging-{{ $packagingLotId }}" title="Registrar empaque"
+            subtitle="Captura las piezas que Empaque acaba de empacar de este lote."
+            close="closePackagingModal" maxWidth="3xl">
+            <x-slot:context>
+                <x-ui-modal.ctx label="Descripción" :value="$pkPart?->description ?? $pkPart?->number ?? '—'" />
+                <x-ui-modal.ctx label="No. Order (WO + Lote)" :value="$pkWoNum.($pkLot?->lot_number ?? '—')" />
+                <x-ui-modal.ctx label="Cantidad en lote" :value="number_format($pkLot?->quantity ?? 0)" />
+                <x-ui-modal.ctx label="Disponibles (Calidad)" :value="number_format($modalAvailable)" />
+            </x-slot:context>
+
+            @if ($modalAvailable === 0)
+                <x-ui.section>
+                    <x-ui.note tone="warn" title="Calidad todavía no aprueba piezas de este lote">
+                        Empaque no puede registrar piezas hasta que <strong>Calidad</strong> verifique al menos una pieza buena.
+                    </x-ui.note>
+                </x-ui.section>
+            @else
+                <x-ui.section title="Cantidades empacadas"
+                    hint="Empacadas = las que se van con el cliente. Sobrantes = piezas buenas que NO se empacaron y regresan a Materiales.">
+                    <x-ui.stats cols="3" class="mb-4">
+                        <x-ui.stat label="Disponibles" :value="number_format($modalAvailable)" />
+                        <x-ui.stat label="Ya empacadas" :value="number_format($pkPacked)" tone="good" />
+                        <x-ui.stat label="Por empacar" :value="number_format(max(0, $modalAvailable - $pkPacked))" tone="warn" />
+                    </x-ui.stats>
+
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <x-ui.field label="Piezas empacadas" required
+                            :hint="'Máximo '.number_format($modalAvailable).' piezas.'"
+                            :error="$errors->first('packedPieces')">
+                            <input type="number" wire:model="packedPieces" min="1" max="{{ $modalAvailable }}"
+                                placeholder="0" class="w-full text-right font-bold tabular-nums">
+                        </x-ui.field>
+
+                        <x-ui.field label="Piezas sobrantes" optional
+                            hint="Se capturan a mano; quedan pendientes de entregar a Materiales."
+                            :error="$errors->first('surplusPieces')">
+                            <input type="number" wire:model="surplusPieces" min="0"
+                                placeholder="0" class="w-full text-right font-bold tabular-nums">
+                        </x-ui.field>
+
+                        <x-ui.field label="Fecha y hora" required :error="$errors->first('packedAt')">
+                            <input type="datetime-local" wire:model="packedAt" class="w-full">
+                        </x-ui.field>
+
+                        <x-ui.field label="Comentarios" optional
+                            hint="Observaciones del empaque de este lote.">
+                            <textarea wire:model="packagingComments" rows="2" class="w-full"
+                                placeholder="Observaciones de empaque..."></textarea>
+                        </x-ui.field>
+                    </div>
+                </x-ui.section>
+            @endif
+
+            <x-slot:note>
+                Al guardar se crea el registro de empaque del lote y avanza el semáforo de <strong>Empaque</strong>.
+            </x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closePackagingModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="primary" wire:click="savePackaging"
+                    wire:loading.attr="disabled" wire:target="savePackaging"
+                    :disabled="$modalAvailable === 0">
+                    Guardar empaque
+                </x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
+    @endif
+
     {{-- Notificación de empaque terminado (CRIMP) --}}
     @if ($showNotifyModal)
         @php $nLot = $workOrders->flatMap->lots->firstWhere('id', $notifyLotId); @endphp
@@ -837,15 +913,27 @@
                             @endif
                             @endif
 
-                            {{-- Reabrir Lote --}}
-                            <button wire:click="reopenLot"
-                                wire:confirm="¿Desea reabrir este lote y anular la decisión tomada?"
-                                class="w-full px-4 py-3 border-2 border-yellow-400 dark:border-yellow-600 text-yellow-700 dark:text-yellow-300 font-semibold rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center justify-center gap-2 cursor-pointer">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                                Reabrir Lote
-                            </button>
+                            {{-- Reabrir Lote: sólo Administración, con motivo y dejando rastro --}}
+                            @if (auth()->user()?->can(\App\Services\ReopeningService::PERMISSION))
+                                <x-ui.section title="Corregir la decisión"
+                                    hint="Anula el cierre y devuelve el viajero al flujo. Queda registrado con tu nombre.">
+                                    <x-ui.field label="¿Por qué se reabre?" required
+                                        hint="Mínimo 10 caracteres."
+                                        :error="$errors->first('reopenReason')">
+                                        <textarea wire:model="reopenReason" rows="2" class="w-full"
+                                            placeholder="Ej: el cliente reportó una diferencia de cantidad."></textarea>
+                                    </x-ui.field>
+
+                                    <x-ui.btn variant="danger" block class="mt-3" wire:click="reopenLot">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                        Reabrir lote y anular la decisión
+                                    </x-ui.btn>
+                                </x-ui.section>
+                            @else
+                                <x-ui.note tone="muted">
+                                    La decisión ya está tomada. Sólo Administración puede reabrirla.
+                                </x-ui.note>
+                            @endif
                         @endif
             <x-slot:note>
                 @if ($decIsCrimp)

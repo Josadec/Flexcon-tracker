@@ -59,18 +59,55 @@ class LotShow extends Component
         $this->newStatus = $status;
     }
 
+    /**
+     * ¿A qué estados puede moverse este viajero? Mismos guards que los botones:
+     * el modal no puede ser una puerta trasera para saltarse el flujo.
+     */
+    public function allowedTransitions(): array
+    {
+        $permitidos = [$this->lot->status];
+
+        if ($this->lot->canBeStarted()) {
+            $permitidos[] = Lot::STATUS_IN_PROGRESS;
+        }
+
+        if ($this->lot->canBeCompleted()) {
+            $permitidos[] = Lot::STATUS_COMPLETED;
+        }
+
+        if ($this->lot->canBeCancelled()) {
+            $permitidos[] = Lot::STATUS_CANCELLED;
+        }
+
+        return array_values(array_unique($permitidos));
+    }
+
     public function updateLotStatus(): void
     {
         if (!$this->newStatus) {
             return;
         }
 
+        // Antes se escribía cualquier cadena que llegara del cliente.
+        if (!in_array($this->newStatus, $this->allowedTransitions(), true)) {
+            session()->flash('error', 'Ese cambio de estado no es válido para este viajero.');
+            $this->closeStatusModal();
+
+            return;
+        }
+
+        if ($this->newStatus === $this->lot->status) {
+            $this->closeStatusModal();
+
+            return;
+        }
+
         $this->lot->update(['status' => $this->newStatus]);
         $this->lot->refresh();
-        
-        $statusLabels = Lot::getStatuses();
-        session()->flash('message', "Estado del lote actualizado a: {$statusLabels[$this->newStatus]}");
-        
+
+        $etiquetas = Lot::getStatuses();
+        session()->flash('message', 'Estado del viajero actualizado a: ' . ($etiquetas[$this->newStatus] ?? $this->newStatus) . '.');
+
         $this->closeStatusModal();
     }
 

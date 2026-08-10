@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Permissions;
 
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -13,14 +14,33 @@ class PermissionList extends Component
     public string $search = '';
     public string $sortField = 'name';
     public string $sortDirection = 'asc';
+    public string $filterGroup = '';
+    public int $perPage = 15;
+
+    /** Columnas por las que se puede ordenar el listado. */
+    private const SORTABLE = ['name', 'created_at'];
 
     public function updatedSearch(): void
     {
         $this->resetPage();
     }
 
+    public function updatedFilterGroup(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedPerPage(): void
+    {
+        $this->resetPage();
+    }
+
     public function sortBy(string $field): void
     {
+        if (!in_array($field, self::SORTABLE, true)) {
+            return;
+        }
+
         if ($this->sortField === $field) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
@@ -30,35 +50,49 @@ class PermissionList extends Component
         $this->resetPage();
     }
 
-    public function deletePermission(Permission $permission): void
+    public function clearFilters(): void
     {
-        // Verificar si el permiso está asignado a algún rol
+        $this->search = '';
+        $this->filterGroup = '';
+        $this->resetPage();
+    }
+
+    public function deletePermission(int $id): void
+    {
+        $permission = Permission::findOrFail($id);
+
         if ($permission->roles()->count() > 0) {
-            session()->flash('flash.banner', 'No se puede eliminar el permiso porque está asignado a uno o más roles.');
-            session()->flash('flash.bannerStyle', 'danger');
+            session()->flash('error', 'No se puede eliminar «' . $permission->name . '» porque está asignado a uno o más roles.');
             return;
         }
 
         $permission->delete();
 
-        session()->flash('flash.banner', 'Permiso eliminado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Permiso «' . $permission->name . '» eliminado correctamente.');
     }
 
     public function render()
     {
-        $query = Permission::withCount('roles')
-            ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%');
-            })
-            ->orderBy($this->sortField, $this->sortDirection);
+        $permissions = Permission::withCount('roles')
+            ->when($this->search, fn ($query) => $query->where('name', 'like', '%' . $this->search . '%'))
+            ->when($this->filterGroup, fn ($query) => $query->where('name', 'like', $this->filterGroup . '.%'))
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->paginate($this->perPage);
 
-        $permissions = $query->paginate(15);
-        $totalPermissions = Permission::count();
+        // Los permisos se nombran «grupo.accion»; el prefijo sirve de familia.
+        $groups = Permission::pluck('name')
+            ->map(fn ($name) => str_contains($name, '.') ? explode('.', $name)[0] : null)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
 
         return view('livewire.admin.permissions.permission-list', [
             'permissions' => $permissions,
-            'totalPermissions' => $totalPermissions,
+            'groups' => $groups,
+            'totalPermissions' => Permission::count(),
+            'totalRoles' => Role::count(),
+            'orphanPermissions' => Permission::doesntHave('roles')->count(),
         ]);
     }
 }

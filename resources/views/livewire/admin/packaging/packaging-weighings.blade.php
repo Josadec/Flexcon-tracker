@@ -39,6 +39,7 @@
         </div>
     </x-ui.section>
 
+<<<<<<< HEAD
     {{-- Listado --}}
     <x-ui.table>
         <x-slot:head>
@@ -88,6 +89,67 @@
                 </td>
             </tr>
         @endforelse
+=======
+    {{-- Table --}}
+    <div class="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">WO</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Viajero</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Parte</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Obj. CRIMP</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-sky-600 dark:text-sky-400 uppercase">Manguitas</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase">CRIMP</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase"># Pesadas</th>
+                        <th class="px-6 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    @forelse ($lots as $lot)
+                        @php
+                            $po = $lot->workOrder->purchaseOrder ?? null;
+                            $part = $po->part ?? null;
+                            $pieces = $lot->getPackagedPiecesTotal();
+                            $crimp = $lot->getPackagedCrimpTotal();
+                            $target = $lot->getCrimpTargetTotal();
+                            $count = $lot->packagingPieceWeighings->count() + $lot->packagingCrimpWeighings->count();
+                        @endphp
+                        <tr wire:key="pkg-lot-{{ $lot->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                            <td class="px-6 py-4 text-blue-600 dark:text-blue-400 font-medium">{{ $po->wo ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ $lot->lot_number }}</td>
+                            <td class="px-6 py-4 text-gray-700 dark:text-gray-300">{{ $part->number ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 text-right text-gray-700 dark:text-gray-300">{{ number_format($target) }}</td>
+                            <td class="px-6 py-4 text-right font-medium text-sky-600 dark:text-sky-400">{{ number_format($pieces) }}</td>
+                            <td class="px-6 py-4 text-right font-medium text-amber-600 dark:text-amber-400">{{ number_format($crimp) }}</td>
+                            <td class="px-6 py-4 text-right text-gray-700 dark:text-gray-300">{{ number_format($count) }}</td>
+                            <td class="px-6 py-4 text-center">
+                                <button wire:click="openDetailModal({{ $lot->id }})"
+                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/20 border-2 border-teal-200 dark:border-teal-800 rounded-md hover:bg-teal-100 dark:hover:bg-teal-900/40 transition-colors">
+                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                    Ver Detalle
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" class="px-6 py-12 text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                <p class="mt-4 text-base font-medium text-gray-900 dark:text-white">No hay pesadas de Empaque registradas</p>
+                                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Las pesadas aparecerán aquí cuando Empaque confirme manguitas o CRIMP.</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+>>>>>>> dba4729e63772ad9744b5ced48b25a0fdb214628
 
         @if ($lots->hasPages())
             <x-slot:foot>{{ $lots->links() }}</x-slot:foot>

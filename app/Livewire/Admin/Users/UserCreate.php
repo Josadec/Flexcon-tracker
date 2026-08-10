@@ -74,8 +74,7 @@ class UserCreate extends Component
             }
         }
 
-        session()->flash('flash.banner', 'Usuario creado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()->flash('message', 'Usuario creado correctamente.');
 
         $this->redirect(route('admin.users.index'));
     }

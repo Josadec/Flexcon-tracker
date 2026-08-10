@@ -771,6 +771,7 @@
         </x-ui-modal>
     @endif
 
+<<<<<<< HEAD
     {{-- Administración de estados de WO (colores incluidos) sin salir del WO.
          Se abre con el evento 'open-statuses-wo-manager' y, al guardar, emite
          'statuses-wo-updated' para que este componente recargue las píldoras. --}}
@@ -778,3 +779,17 @@
         @livewire(\App\Livewire\Admin\StatusesWO\StatusWOManager::class, [], key('statuses-wo-manager'))
     @endcan
 </x-ui.page>
+=======
+    {{-- Signature Modal Component - DESHABILITADO TEMPORALMENTE --}}
+    {{-- <livewire:admin.signature-modal @signature-completed="refreshWorkOrder" /> --}}
+
+    {{-- Historial completo de la orden. La sección "Historial de Estados" de
+         arriba sólo muestra los últimos 5 cambios de estado; aquí está todo. --}}
+    <div class="mt-6">
+        <livewire:admin.history.history-explorer
+            :entity-type="\App\Models\WorkOrder::class"
+            :entity-id="$workOrder->id"
+            :key="'historial-wo-'.$workOrder->id" />
+    </div>
+</div>
+>>>>>>> dba4729e63772ad9744b5ced48b25a0fdb214628

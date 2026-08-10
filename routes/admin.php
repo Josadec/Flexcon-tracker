@@ -33,6 +33,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // ===================================================================
 Route::middleware(['auth', 'verified', 'role:admin|Materiales|Produccion|Calidad|Empaques'])->group(function () {
     Route::get('/tutorial', \App\Livewire\Admin\Tutorial::class)->name('tutorial');
+
+    // Historial: lo consultan TODOS los departamentos, para reportes y
+    // consultas. Es de sólo lectura; la tabla no se puede modificar ni borrar.
+    Route::get('/historial', \App\Livewire\Admin\History\HistoryExplorer::class)->name('history.index');
 });
 
 // ===================================================================

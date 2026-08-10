@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Lot extends Model
 {
-    use HasFactory, SoftDeletes;
+    use Auditable, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'work_order_id',
@@ -25,6 +27,8 @@ class Lot extends Model
         'quantity_packed_final',
         'ready_for_shipping',
         'ready_for_shipping_at',
+        'completed_at',
+        'completed_by',
         'closed_by_type',
         'status',
         'comments',
@@ -70,6 +74,7 @@ class Lot extends Model
         'quantity_packed_final' => 'integer',
         'ready_for_shipping' => 'boolean',
         'ready_for_shipping_at' => 'datetime',
+        'completed_at' => 'datetime',
         'raw_material_batch_numbers' => 'array',
         'receipt_date' => 'date',
         'expiration_date' => 'date',
@@ -124,6 +129,16 @@ class Lot extends Model
             }
         });
 
+        // «Terminado» se mantiene solo, en un único sitio.
+        //
+        // Antes había tres nociones sueltas —`status`, `closure_decision` y
+        // `ready_for_shipping`— que se escribían en trece sitios distintos, y
+        // nada garantizaba que coincidieran. Aquí se derivan a un solo campo:
+        // así ninguna pantalla puede encender una y olvidarse de la otra.
+        static::saving(function (Lot $lot) {
+            $lot->syncCompletedAt();
+        });
+
         // When a lot is created with completed status, update the work order's sent_pieces
         static::created(function ($lot) {
             if ($lot->status === self::STATUS_COMPLETED) {
@@ -151,6 +166,87 @@ class Lot extends Model
                 $lot->workOrder?->updateSentPieces();
             }
         });
+    }
+
+    // =====================================================
+    // TERMINADO — la definición canónica
+    // =====================================================
+
+    /**
+     * ¿El viajero ya terminó su recorrido?
+     *
+     * Regla del cliente: «un lote se termina cuando se termina de empacar, ya
+     * está listo para el shipping list». Eso es `ready_for_shipping`, que es
+     * donde ya convergían las dos ramas del flujo (decisiones D1/D3 por el
+     * observer de empaque, y las D2 de CRIMP al recibir el viajero).
+     *
+     * Se acepta además el `status` administrativo: un viajero marcado como
+     * completado a mano también está terminado, aunque no haya pasado por la
+     * cola de despacho.
+     */
+    public function isFinished(): bool
+    {
+        return $this->completed_at !== null;
+    }
+
+    /** Mantiene `completed_at` alineado con las señales de cierre. */
+    protected function syncCompletedAt(): void
+    {
+        $terminado = (bool) $this->ready_for_shipping
+            || $this->status === self::STATUS_COMPLETED;
+
+        if ($terminado && $this->completed_at === null) {
+            $this->completed_at = $this->ready_for_shipping_at ?? $this->closure_decided_at ?? now();
+            $this->completed_by = $this->completed_by ?? auth()->id();
+
+            return;
+        }
+
+        // Reapertura: al apagarse las dos señales, el viajero vuelve al tablero.
+        if (! $terminado && $this->completed_at !== null) {
+            $this->completed_at = null;
+            $this->completed_by = null;
+        }
+    }
+
+    /**
+     * Por qué no se puede reabrir este viajero (null si sí se puede).
+     *
+     * Aquí van sólo los «no» de verdad. Que esté facturado NO es uno: el
+     * cliente pidió expresamente poder corregir incluso con la factura emitida,
+     * y eso lo resuelve la cascada de ReopeningService, no un bloqueo.
+     */
+    public function getReopenBlockReason(): ?string
+    {
+        if (! $this->isFinished()) {
+            return 'Este viajero no está cerrado: no hay nada que reabrir.';
+        }
+
+        $factura = $this->packingSlipItem?->packingSlip?->invoice;
+
+        if ($factura && $factura->status === Invoice::STATUS_CANCELLED) {
+            return 'La factura de este viajero está cancelada. Genera una nueva en vez de reabrir la anterior.';
+        }
+
+        return null;
+    }
+
+    /** Viajeros que ya terminaron. */
+    public function scopeFinished(Builder $query): Builder
+    {
+        return $query->whereNotNull('completed_at');
+    }
+
+    /** Viajeros que siguen en el flujo: lo que el piso tiene que ver. */
+    public function scopeOpen(Builder $query): Builder
+    {
+        return $query->whereNull('completed_at');
+    }
+
+    /** Quién lo dio por terminado. */
+    public function completedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'completed_by');
     }
 
     /**
@@ -398,11 +494,57 @@ class Lot extends Model
     }
 
     /**
-     * Check if the lot can be deleted.
+     * ¿Se puede borrar el viajero?
+     *
+     * Antes esto devolvía true para los cuatro estados posibles, o sea:
+     * siempre. Y como `lot_id` está declarado `onDelete('cascade')` en pesadas
+     * de producción, de calidad y de empaque, borrar un viajero con historial
+     * lo arrastraba todo sin avisar. Sólo se puede borrar lo que aún no tiene
+     * movimiento.
      */
     public function canBeDeleted(): bool
     {
-        return in_array($this->status, [self::STATUS_PENDING, self::STATUS_IN_PROGRESS, self::STATUS_COMPLETED, self::STATUS_CANCELLED]);
+        return $this->getDeleteBlockReason() === null;
+    }
+
+    /**
+     * Qué impide borrar el viajero (null si sí se puede).
+     */
+    public function getDeleteBlockReason(): ?string
+    {
+        $conHistorial = [];
+
+        if ($this->weighings()->exists()) {
+            $conHistorial[] = 'pesadas de producción';
+        }
+
+        if ($this->qualityWeighings()->exists()) {
+            $conHistorial[] = 'pesadas de calidad';
+        }
+
+        if ($this->packagingRecords()->exists()
+            || $this->packagingPieceWeighings()->exists()
+            || $this->packagingCrimpWeighings()->exists()) {
+            $conHistorial[] = 'registros de empaque';
+        }
+
+        if ($this->crimpLots()->exists()) {
+            $conHistorial[] = 'lotes de CRIMP';
+        }
+
+        if ($this->hasClosureDecision()) {
+            $conHistorial[] = 'una decisión de cierre';
+        }
+
+        if (empty($conHistorial)) {
+            return null;
+        }
+
+        $ultimo = array_pop($conHistorial);
+        $lista = $conHistorial ? implode(', ', $conHistorial) . ' y ' . $ultimo : $ultimo;
+
+        return 'Este viajero ya tiene ' . $lista . '. Borrarlo eliminaría ese historial; '
+            . 'cancélalo en vez de borrarlo.';
     }
 
     /**
@@ -798,7 +940,7 @@ class Lot extends Model
      */
     public function getProductionGoodPieces(): int
     {
-        return (int) $this->weighings()->sum('good_pieces');
+        return $this->sumaDeRelacion('weighings', 'good_pieces');
     }
 
     /**
@@ -806,7 +948,7 @@ class Lot extends Model
      */
     public function getProductionBadPieces(): int
     {
-        return (int) $this->weighings()->sum('bad_pieces');
+        return $this->sumaDeRelacion('weighings', 'bad_pieces');
     }
 
     /**
@@ -822,9 +964,8 @@ class Lot extends Model
      */
     public function getQualityAlreadyWeighed(): int
     {
-        return (int) $this->qualityWeighings()
-            ->selectRaw('COALESCE(SUM(good_pieces), 0) + COALESCE(SUM(bad_pieces), 0) as total')
-            ->value('total');
+        return $this->sumaDeRelacion('qualityWeighings', 'good_pieces')
+            + $this->sumaDeRelacion('qualityWeighings', 'bad_pieces');
     }
 
     /**
@@ -841,7 +982,7 @@ class Lot extends Model
      */
     public function getQualityGoodPieces(): int
     {
-        return (int) $this->qualityWeighings()->sum('good_pieces');
+        return $this->sumaDeRelacion('qualityWeighings', 'good_pieces');
     }
 
     /**
@@ -849,7 +990,7 @@ class Lot extends Model
      */
     public function getQualityBadPieces(): int
     {
-        return (int) $this->qualityWeighings()->sum('bad_pieces');
+        return $this->sumaDeRelacion('qualityWeighings', 'bad_pieces');
     }
 
     /**
@@ -892,7 +1033,7 @@ class Lot extends Model
      */
     public function hasProductionWeighings(): bool
     {
-        return $this->weighings()->exists();
+        return $this->tieneEnRelacion('weighings');
     }
 
     // =====================================================
@@ -999,7 +1140,7 @@ class Lot extends Model
      */
     public function getPackagingPackedPieces(): int
     {
-        return (int) $this->packagingRecords()->sum('packed_pieces');
+        return $this->sumaDeRelacion('packagingRecords', 'packed_pieces');
     }
 
     /**
@@ -1033,7 +1174,7 @@ class Lot extends Model
      */
     public function hasPackagingRecords(): bool
     {
-        return $this->packagingRecords()->exists();
+        return $this->tieneEnRelacion('packagingRecords');
     }
 
     // =====================================================
@@ -1061,7 +1202,7 @@ class Lot extends Model
      */
     public function getPackagedPiecesTotal(): int
     {
-        return (int) $this->packagingPieceWeighings()->sum('quantity');
+        return $this->sumaDeRelacion('packagingPieceWeighings', 'quantity');
     }
 
     /**
@@ -1069,7 +1210,7 @@ class Lot extends Model
      */
     public function getPackagedCrimpTotal(): int
     {
-        return (int) $this->packagingCrimpWeighings()->sum('quantity');
+        return $this->sumaDeRelacion('packagingCrimpWeighings', 'quantity');
     }
 
     /**
@@ -1398,4 +1539,42 @@ class Lot extends Model
     {
         return ! is_null($this->returned_to_packaging_at);
     }
+
+    /** Contexto para el historial: el viajero y toda su cadena hacia arriba. */
+    protected function auditContext(): array
+    {
+        $wo = $this->workOrder;
+
+        return [
+            'lot_id' => $this->getKey(),
+            'work_order_id' => $this->work_order_id,
+            'purchase_order_id' => $wo?->purchase_order_id,
+            'part_id' => $wo?->purchaseOrder?->part_id,
+        ];
+    }
+
+
+    /**
+     * Suma un campo de una relación SIN volver a consultar si ya está cargada.
+     *
+     * El tablero hace eager loading de las pesadas y del empaque, pero estos
+     * getters usaban `->relacion()->sum()`, que siempre lanza una consulta
+     * nueva. Con 10 órdenes y 30 viajeros eso eran más de mil consultas por
+     * refresco, y el tablero se refresca cada 30 segundos.
+     */
+    private function sumaDeRelacion(string $relacion, string $campo): int
+    {
+        return (int) ($this->relationLoaded($relacion)
+            ? $this->{$relacion}->sum($campo)
+            : $this->{$relacion}()->sum($campo));
+    }
+
+    /** ¿Tiene registros en esta relación, sin consultar si ya está cargada? */
+    private function tieneEnRelacion(string $relacion): bool
+    {
+        return $this->relationLoaded($relacion)
+            ? $this->{$relacion}->isNotEmpty()
+            : $this->{$relacion}()->exists();
+    }
+
 }

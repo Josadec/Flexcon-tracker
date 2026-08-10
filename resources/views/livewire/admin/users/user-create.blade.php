@@ -1,196 +1,98 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center gap-4">
-        <a href="{{ route('admin.users.index') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-            </svg>
-        </a>
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Crear Usuario</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Completa la información para crear un nuevo usuario</p>
+<x-ui.page eyebrow="Administración" title="Crear usuario"
+    subtitle="Alta de una persona con acceso al sistema. El rol define qué módulos verá al entrar."
+    back="{{ route('admin.users.index') }}" backLabel="Volver a usuarios">
+
+    <form wire:submit="saveUser" class="space-y-5">
+        <x-ui.section title="Identidad" hint="Como aparecerá el usuario en listados, firmas y viajeros.">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <x-ui.field label="Nombre" required :error="$errors->first('name')">
+                    <input wire:model="name" type="text" class="w-full" placeholder="Ej: Juan" required>
+                </x-ui.field>
+
+                <x-ui.field label="Apellido" optional :error="$errors->first('last_name')">
+                    <input wire:model="last_name" type="text" class="w-full" placeholder="Ej: Pérez">
+                </x-ui.field>
+            </div>
+        </x-ui.section>
+
+        <x-ui.section title="Acceso" hint="Con el correo entra al sistema; la cuenta es su clave corta interna.">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <x-ui.field label="Correo electrónico" required
+                    hint="Debe ser único. Es el usuario con el que inicia sesión."
+                    :error="$errors->first('email')">
+                    <input wire:model="email" type="email" class="w-full" placeholder="Ej: juan.perez@flexcon.la"
+                        autocomplete="off" required>
+                </x-ui.field>
+
+                <x-ui.field label="Cuenta" optional
+                    hint="Número o clave con la que se le identifica en planta."
+                    :error="$errors->first('account')">
+                    <input wire:model="account" type="text" class="w-full" placeholder="Ej: jperez">
+                </x-ui.field>
+            </div>
+        </x-ui.section>
+
+        <x-ui.section title="Rol y asignación" hint="El rol decide los permisos; el área sólo se usa para quien supervisa.">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <x-ui.field label="Rol" required
+                    hint="Sin rol, el usuario entra pero no ve ningún módulo."
+                    :error="$errors->first('selected_role')">
+                    <select wire:model.live="selected_role" class="w-full" required>
+                        <option value="">Seleccionar</option>
+                        @foreach ($roles as $role)
+                            <option value="{{ $role->name }}">{{ $role->name }}</option>
+                        @endforeach
+                    </select>
+                </x-ui.field>
+
+                <x-ui.field label="Departamento" optional
+                    hint="Filtra las áreas disponibles."
+                    :error="$errors->first('department_id')">
+                    <select wire:model.live="department_id" class="w-full">
+                        <option value="">Seleccionar</option>
+                        @foreach ($departments as $department)
+                            <option value="{{ $department->id }}">{{ $department->name }}</option>
+                        @endforeach
+                    </select>
+                </x-ui.field>
+
+                <x-ui.field label="Área" :required="$selected_role === 'Supervisor'"
+                    :optional="$selected_role !== 'Supervisor'"
+                    hint="Primero elige un departamento."
+                    :error="$errors->first('area_id')">
+                    <select wire:model="area_id" class="w-full" @disabled(!$department_id)>
+                        <option value="">Seleccionar</option>
+                        @foreach ($areas as $area)
+                            <option value="{{ $area->id }}">{{ $area->name }}</option>
+                        @endforeach
+                    </select>
+                </x-ui.field>
+            </div>
+
+            @if ($area_id && $selected_role !== 'Supervisor')
+                <x-ui.note tone="warn" class="mt-4">
+                    El área sólo se asigna cuando el rol es <strong>Supervisor</strong>. Con el rol
+                    <strong>{{ $selected_role ?: 'seleccionado' }}</strong> el usuario se creará sin área a su cargo.
+                </x-ui.note>
+            @endif
+        </x-ui.section>
+
+        <x-ui.section title="Contraseña" hint="Mínimo 8 caracteres. El usuario puede cambiarla después desde su perfil.">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <x-ui.field label="Contraseña" required :error="$errors->first('password')">
+                    <input wire:model="password" type="password" class="w-full" autocomplete="new-password" required>
+                </x-ui.field>
+
+                <x-ui.field label="Confirmar contraseña" required :error="$errors->first('password_confirmation')">
+                    <input wire:model="password_confirmation" type="password" class="w-full"
+                        autocomplete="new-password" required>
+                </x-ui.field>
+            </div>
+        </x-ui.section>
+
+        <div class="flex flex-col-reverse gap-2 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-700">
+            <x-ui.btn variant="secondary" href="{{ route('admin.users.index') }}">Cancelar</x-ui.btn>
+            <x-ui.btn variant="primary" type="submit">Crear usuario</x-ui.btn>
         </div>
-    </div>
-
-    <!-- Form -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg">
-        <form wire:submit="saveUser" class="divide-y divide-gray-200 dark:divide-gray-700">
-            <!-- Información Personal -->
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Información Personal</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Nombre <span class="text-red-500">*</span>
-                        </label>
-                        <input 
-                            type="text" 
-                            wire:model="name" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                            required 
-                        />
-                        @error('name') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Apellido</label>
-                        <input 
-                            type="text" 
-                            wire:model="last_name" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                        />
-                        @error('last_name') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                </div>
-            </div>
-
-            <!-- Información de Cuenta -->
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Información de Cuenta</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cuenta</label>
-                        <input 
-                            type="text" 
-                            wire:model="account" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                        />
-                        @error('account') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Email <span class="text-red-500">*</span>
-                        </label>
-                        <input 
-                            type="email" 
-                            wire:model="email" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                            required 
-                        />
-                        @error('email') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                </div>
-            </div>
-
-            <!-- Rol y Asignación -->
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Rol y Asignación</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Rol <span class="text-red-500">*</span>
-                        </label>
-                        <select 
-                            wire:model.live="selected_role" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
-                        >
-                            <option value="">Seleccionar</option>
-                            @foreach($roles as $role)
-                                <option value="{{ $role->name }}">{{ $role->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('selected_role') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Departamento</label>
-                        <select 
-                            wire:model.live="department_id" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
-                        >
-                            <option value="">Seleccionar</option>
-                            @foreach($departments as $department)
-                                <option value="{{ $department->id }}">{{ $department->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('department_id') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Área
-                            @if($selected_role === 'Supervisor') 
-                                <span class="text-red-500">*</span>
-                            @endif
-                        </label>
-                        <select 
-                            wire:model="area_id" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 disabled:opacity-50" 
-                            @if(!$department_id) disabled @endif
-                        >
-                            <option value="">Seleccionar</option>
-                            @foreach($areas as $area)
-                                <option value="{{ $area->id }}">{{ $area->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('area_id') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                </div>
-            </div>
-
-            <!-- Contraseña -->
-            <div class="p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Contraseña</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Contraseña <span class="text-red-500">*</span>
-                        </label>
-                        <input 
-                            type="password" 
-                            wire:model="password" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                            required 
-                        />
-                        @error('password') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Confirmar <span class="text-red-500">*</span>
-                        </label>
-                        <input 
-                            type="password" 
-                            wire:model="password_confirmation" 
-                            class="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900" 
-                            required 
-                        />
-                        @error('password_confirmation') 
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> 
-                        @enderror
-                    </div>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="p-6 bg-gray-50 dark:bg-gray-900/50">
-                <div class="flex justify-end gap-3">
-                    <a 
-                        href="{{ route('admin.users.index') }}" 
-                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                        Cancelar
-                    </a>
-                    <button 
-                        type="submit" 
-                        class="px-4 py-2 text-sm font-medium bg-blue-900 hover:bg-blue-800 text-white rounded-md"
-                    >
-                        Crear Usuario
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
+    </form>
+</x-ui.page>

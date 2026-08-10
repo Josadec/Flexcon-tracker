@@ -12,7 +12,9 @@ class DepartmentShow extends Component
 
     public function mount(Department $department): void
     {
-        $this->department = $department->load('areas');
+        // areas.user: la tabla muestra el responsable de cada área; sin esto
+        // se dispara una consulta por renglón.
+        $this->department = $department->load('areas.user');
         $this->stats = $department->getStats();
     }
 
