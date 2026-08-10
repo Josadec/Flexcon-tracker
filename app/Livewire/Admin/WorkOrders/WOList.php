@@ -68,17 +68,9 @@ class WOList extends Component
         }
 
         try {
-<<<<<<< HEAD
-            $wo->forceDeleteWithRelations();
-            // Sólo `success`: esta pantalla ya pinta el aviso en línea con
-            // <x-ui.note>. Si además se flasheara `flash.banner`, el layout
-            // mostraría el mismo mensaje dos veces.
-            session()->flash('success', 'Orden de trabajo y registros relacionados eliminados correctamente.');
-=======
             $wo->softDeleteWithRelations();
             session()->flash('flash.banner', 'Orden de trabajo eliminada correctamente.');
             session()->flash('flash.bannerStyle', 'success');
->>>>>>> dba4729e63772ad9744b5ced48b25a0fdb214628
         } catch (\Exception $e) {
             session()->flash('error', 'Error al eliminar la Work Order: '.$e->getMessage());
         }
