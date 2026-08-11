@@ -27,6 +27,10 @@
     };
 @endphp
 
+{{-- Raíz única obligatoria: sin este <div> el primer nodo que emite Livewire es
+     el marcador <!--[if BLOCK]--> del @if, y al re-renderizar dentro de otra
+     vista revienta con "Invalid Livewire child tag name". --}}
+<div>
 @if ($this->isEmbedded())
     {{-- Línea de tiempo dentro de la ficha de un registro --}}
     <x-ui.section title="Historial" hint="Todo lo que se ha hecho sobre este registro, de lo más reciente a lo más antiguo.">
@@ -192,3 +196,4 @@
         </x-ui.table>
     </x-ui.page>
 @endif
+</div>

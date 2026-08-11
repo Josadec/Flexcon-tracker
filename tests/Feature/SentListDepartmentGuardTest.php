@@ -37,44 +37,38 @@ class SentListDepartmentGuardTest extends TestCase
     private function makeList(string $department): array
     {
         $part = Part::factory()->create(['is_crimp' => false]);
-        $po   = PurchaseOrder::factory()->approved()->create(['part_id' => $part->id, 'quantity' => 1000]);
+        $po = PurchaseOrder::factory()->approved()->create(['part_id' => $part->id, 'quantity' => 1000]);
 
         $sentList = SentList::create([
-            'po_id'                 => $po->id,
-            'status'                => SentList::STATUS_PENDING,
-            'current_department'    => $department,
-            'shift_ids'             => [],
-            'num_persons'           => 1,
-            'start_date'            => now()->toDateString(),
-            'end_date'              => now()->toDateString(),
+            'po_id' => $po->id,
+            'status' => SentList::STATUS_PENDING,
+            'current_department' => $department,
+            'shift_ids' => [],
+            'num_persons' => 1,
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->toDateString(),
             'total_available_hours' => 0,
-            'used_hours'            => 0,
-            'remaining_hours'       => 0,
+            'used_hours' => 0,
+            'remaining_hours' => 0,
         ]);
 
         $wo = WorkOrder::factory()->create([
             'purchase_order_id' => $po->id,
-            'status_id'         => StatusWO::factory(),
-            'sent_pieces'       => 0,
-            'sent_list_id'      => $sentList->id,
+            'status_id' => StatusWO::factory(),
+            'sent_pieces' => 0,
+            'sent_list_id' => $sentList->id,
         ]);
 
         // El flujo es secuencial: Producción sólo pesa lotes con inspección
         // aprobada. Esta prueba mide la guarda de departamento, no la compuerta
         // del flujo, así que el lote entra ya inspeccionado.
         $lot = Lot::create([
-            'work_order_id'     => $wo->id,
-            'lot_number'        => 'V-1',
-            'quantity'          => 1000,
-            'status'            => Lot::STATUS_PENDING,
-<<<<<<< HEAD
-            // Precondiciones reales del flujo para que Producción pueda pesar:
-            'material_status'   => 'released',                 // Materiales liberó
-            'inspection_status' => Lot::INSPECTION_APPROVED,   // Calidad aprobó
-=======
-            'material_status'   => 'released',
+            'work_order_id' => $wo->id,
+            'lot_number' => 'V-1',
+            'quantity' => 1000,
+            'status' => Lot::STATUS_PENDING,
+            'material_status' => 'released',
             'inspection_status' => Lot::INSPECTION_APPROVED,
->>>>>>> dba4729e63772ad9744b5ced48b25a0fdb214628
         ]);
 
         return [$sentList, $lot];
@@ -85,6 +79,7 @@ class SentListDepartmentGuardTest extends TestCase
         Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         $u = User::factory()->create();
         $u->assignRole($role);
+
         return $u;
     }
 
@@ -157,12 +152,12 @@ class SentListDepartmentGuardTest extends TestCase
         $this->actingAs($this->userWithRole('Produccion'));
 
         $foreign = Weighing::create([
-            'lot_id'      => $lotB->id,
-            'quantity'    => 1000,
+            'lot_id' => $lotB->id,
+            'quantity' => 1000,
             'good_pieces' => 50,
-            'bad_pieces'  => 0,
-            'weighed_at'  => now(),
-            'weighed_by'  => auth()->id(),
+            'bad_pieces' => 0,
+            'weighed_at' => now(),
+            'weighed_by' => auth()->id(),
         ]);
 
         // Desde la vista de la Lista A no puede borrar una pesada de la Lista B.

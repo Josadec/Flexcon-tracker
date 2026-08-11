@@ -55,12 +55,12 @@ class StatusWOManagerModalTest extends TestCase
     private function makeWorkOrder(StatusWO $status): WorkOrder
     {
         $part = Part::factory()->create();
-        $po   = PurchaseOrder::factory()->approved()->create(['part_id' => $part->id, 'quantity' => 1000]);
+        $po = PurchaseOrder::factory()->approved()->create(['part_id' => $part->id, 'quantity' => 1000]);
 
         return WorkOrder::factory()->create([
             'purchase_order_id' => $po->id,
-            'status_id'         => $status->id,
-            'sent_pieces'       => 0,
+            'status_id' => $status->id,
+            'sent_pieces' => 0,
         ]);
     }
 
@@ -77,7 +77,10 @@ class StatusWOManagerModalTest extends TestCase
         Livewire::test(WOShow::class, ['workOrder' => $wo])
             ->assertOk()
             ->assertSee('Administrar estados')
-            ->assertSee('open-statuses-wo-manager', escape: false);
+            ->assertSee('open-statuses-wo-manager', escape: false)
+            // El botón no sirve de nada si el manager no está montado en la
+            // página: el evento se despacharía al vacío (ya pasó en un merge).
+            ->assertSeeLivewire('admin.statuses-wo.status-wo-manager');
     }
 
     public function test_modal_is_hidden_until_the_open_event_arrives(): void
@@ -186,7 +189,7 @@ class StatusWOManagerModalTest extends TestCase
         $this->actingAs($this->admin);
 
         $status = StatusWO::factory()->create(['name' => 'Open', 'color' => '#3B82F6']);
-        $wo     = $this->makeWorkOrder($status);
+        $wo = $this->makeWorkOrder($status);
 
         $component = Livewire::test(WOShow::class, ['workOrder' => $wo])
             ->assertSee('background-color: #3B82F6', escape: false);
@@ -238,7 +241,7 @@ class StatusWOManagerModalTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $open      = StatusWO::factory()->create(['name' => 'Open', 'color' => '#3B82F6']);
+        $open = StatusWO::factory()->create(['name' => 'Open', 'color' => '#3B82F6']);
         $completed = StatusWO::factory()->create(['name' => 'Completed', 'color' => '#10B981']);
 
         // rows[0] = Completed, rows[1] = Open (orden alfabético).
@@ -357,7 +360,7 @@ class StatusWOManagerModalTest extends TestCase
     public function test_the_status_manager_button_is_hidden_for_a_user_without_permission(): void
     {
         $status = StatusWO::factory()->create(['name' => 'Open', 'color' => '#3B82F6']);
-        $wo     = $this->makeWorkOrder($status);
+        $wo = $this->makeWorkOrder($status);
 
         $this->actingAs(User::factory()->create(['email' => 'mirón@test.com']));
 
@@ -378,7 +381,7 @@ class StatusWOManagerModalTest extends TestCase
 
         $this->get('/admin/statuses-wo')->assertNotFound();
         $this->get('/admin/statuses-wo/create')->assertNotFound();
-        $this->get('/admin/statuses-wo/' . $status->id . '/edit')->assertNotFound();
+        $this->get('/admin/statuses-wo/'.$status->id.'/edit')->assertNotFound();
     }
 
     /**
