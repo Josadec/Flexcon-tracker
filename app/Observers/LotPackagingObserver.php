@@ -67,9 +67,14 @@ class LotPackagingObserver
             return;
         }
 
-        // Calcular la cantidad empacada final sumando todos los packaging_records del lote.
-        // Se usa la relacion directa para obtener el valor fresco desde la BD.
-        $quantityPackedFinal = (int) $lot->packagingRecords()->sum('packed_pieces');
+        // Calcular la cantidad empacada final del ciclo actual.
+        // CRIMP-aware (variante gated): un viajero CRIMP no escribe packaging_records; su
+        // empaque son las manguitas (packaging_piece_weighings). NO-CRIMP mantiene EXACTAMENTE
+        // el comportamiento previo (piezas del ciclo actual desde packaging_records), por lo
+        // que los lotes NO-CRIMP multi-ciclo no se ven afectados.
+        $quantityPackedFinal = $lot->isViajero()
+            ? $lot->getPackagedPiecesTotal()
+            : (int) $lot->packagingRecords()->sum('packed_pieces');
 
         Log::info('LotPackagingObserver: activando ready_for_shipping para lote.', [
             'lot_id'               => $lot->id,

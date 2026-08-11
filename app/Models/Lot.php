@@ -64,6 +64,9 @@ class Lot extends Model
         'packaging_notified_by',
         'complete_crimp_qty',
         'complete_pieces_qty',
+        'returned_to_packaging_at',
+        'returned_to_packaging_by',
+        'returned_to_packaging_reason',
     ];
 
     protected $casts = [
@@ -89,6 +92,7 @@ class Lot extends Model
         'packaging_notified_at' => 'datetime',
         'complete_crimp_qty' => 'integer',
         'complete_pieces_qty' => 'integer',
+        'returned_to_packaging_at' => 'datetime',
     ];
 
     /**
@@ -1076,7 +1080,12 @@ class Lot extends Model
             $alreadyLogged = $this->completionLogs->contains('cycle_number', $finalCycle);
 
             if (! $alreadyLogged) {
-                $finalPacked = (int) $this->packagingRecords->sum('packed_pieces');
+                // Fuente CRIMP-aware (regla 1:1 confirmada 2026-06-29): para un viajero CRIMP
+                // las "piezas completadas" son las manguitas empacadas (packaging_piece_weighings),
+                // ya que el flujo CRIMP nunca escribe packaging_records. NO-CRIMP sin cambios.
+                $finalPacked = $this->isViajero()
+                    ? $this->getPackagedPiecesTotal()
+                    : (int) $this->packagingRecords->sum('packed_pieces');
                 if ($finalPacked > 0) {
                     $cycles[] = ['cycle' => $finalCycle, 'pieces' => $finalPacked];
                 }
@@ -1224,6 +1233,44 @@ class Lot extends Model
      * Sobrante de CRIMP del viajero = objetivo − empacados.
      */
     public function getPackagedCrimpSurplus(): int
+    {
+        return max(0, $this->getCrimpTargetTotal() - $this->getPackagedCrimpTotal());
+    }
+
+    // =====================================================
+    // FALTANTE TOTAL DEL VIAJERO (display Paso 5 · Empaque)
+    //
+    // "Faltante total" = cuánto falta por empacar para alcanzar el
+    // OBJETIVO DE TODO EL VIAJERO (suma de las cantidades de sus lotes
+    // de CRIMP), sumando todas las pesadas del viajero — NO por lote de
+    // CRIMP seleccionado. Distinto del "sobrante" (getPackaged*Surplus):
+    // el sobrante de piezas usa el disponible de Calidad como referencia;
+    // el faltante usa el objetivo del viajero (getCrimpTargetTotal).
+    //
+    // Ambos nunca son negativos (max(0, ...)): si lo empacado iguala o
+    // supera el objetivo, el faltante es 0.
+    //
+    // SOLO LECTURA / DISPLAY: no participa en ningún cálculo aguas abajo
+    // (Paso 6, Packing Slip, Invoice). Ver RP-01 en
+    // docs/Mejoras/ModalCincoEmpaque/01_captura_manual_sobrantes_crimp.md.
+    // =====================================================
+
+    /**
+     * Faltante total de piezas «manguitas» del viajero
+     * = objetivo del viajero (suma de lotes de CRIMP) − manguitas empacadas.
+     * Nivel viajero completo. Nunca negativo.
+     */
+    public function getPiecesShortfallTotal(): int
+    {
+        return max(0, $this->getCrimpTargetTotal() - $this->getPackagedPiecesTotal());
+    }
+
+    /**
+     * Faltante total de CRIMP del viajero
+     * = objetivo del viajero (suma de lotes de CRIMP) − CRIMP empacados.
+     * Nivel viajero completo. Nunca negativo.
+     */
+    public function getCrimpShortfallTotal(): int
     {
         return max(0, $this->getCrimpTargetTotal() - $this->getPackagedCrimpTotal());
     }

@@ -27,6 +27,10 @@
     };
 @endphp
 
+{{-- Raíz HTML plana obligatoria: Livewire saca el tag del componente hijo con
+     un regex sobre el HTML renderizado. Si la raíz fuera el @if (cuyas dos
+     ramas son componentes Blade), el tag sale vacío y el render falla. --}}
+<div>
 @if ($this->isEmbedded())
     {{-- Línea de tiempo dentro de la ficha de un registro --}}
     <x-ui.section title="Historial" hint="Todo lo que se ha hecho sobre este registro, de lo más reciente a lo más antiguo.">
@@ -192,3 +196,4 @@
         </x-ui.table>
     </x-ui.page>
 @endif
+</div>

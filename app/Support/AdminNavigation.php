@@ -30,7 +30,9 @@ class AdminNavigation
 
             ['group' => 'Órdenes', 'label' => 'Purchase Orders', 'route' => 'admin.purchase-orders.index', 'alias' => 'po ordenes de compra pedidos'],
             ['group' => 'Órdenes', 'label' => 'Manage PO', 'route' => 'admin.work-orders.index', 'alias' => 'wo work order ordenes de trabajo'],
-            ['group' => 'Órdenes', 'label' => 'Estados de WO', 'route' => 'admin.statuses-wo.index', 'alias' => 'status estatus'],
+            // «Estados de WO» ya no es una pantalla propia: se administra desde
+            // la ficha de la orden con el modal StatusWOManager, así que no hay
+            // ruta que ofrecer en la búsqueda global.
             ['group' => 'Órdenes', 'label' => 'Capacidad', 'route' => 'admin.capacity.wizard', 'alias' => 'planeacion horas asistente'],
             ['group' => 'Órdenes', 'label' => 'Invoices', 'route' => 'admin.invoices.index', 'alias' => 'facturas facturacion'],
 

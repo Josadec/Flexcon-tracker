@@ -16,6 +16,8 @@ class PackingSlipPdfController extends Controller
     {
         $packingSlip->load([
             'items.lot.workOrder.purchaseOrder.part',
+            // CRIMP (FPL-10): desglose viajero -> lotes de CRIMP en el PDF. Solo se usa si la parte es is_crimp.
+            'items.lot.crimpLots',
         ]);
 
         // Agrupar por PO # y ordenar dentro de cada grupo de mayor a menor cantidad

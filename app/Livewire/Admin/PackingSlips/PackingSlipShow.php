@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\PackingSlips;
 
+use App\Models\CrimpLot;
 use App\Models\Lot;
 use App\Models\PackingSlip;
 use App\Models\PackingSlipItem;
@@ -117,10 +118,12 @@ class PackingSlipShow extends Component
     {
         $value = strtoupper(trim($value));
 
-        if ($this->packingSlip->isShipped() || $this->packingSlip->isPending() || $this->packingSlip->isCancelled()) {
+        // Editable solo en Borrador o Pendiente; bloqueado en Despachado o Cancelado
+        // (mismo criterio que updateItemDate / updateCrimpLotDate).
+        if ($this->packingSlip->isShipped() || $this->packingSlip->isCancelled()) {
             $this->dispatch('notify', [
                 'type'    => 'error',
-                'message' => 'No se puede cambiar el número en el estado actual del Packing Slip.',
+                'message' => 'No se puede editar el Numero de PS de un Packing Slip despachado o cancelado.',
             ]);
             return;
         }
@@ -143,7 +146,8 @@ class PackingSlipShow extends Component
         // Construir la URL de redirect usando getRouteKey() que ya aplica rawurlencode(),
         // evitando que route() haga doble-encoding en versiones de Livewire con wire:navigate.
         // getRouteKey() retorna ej: %23000012544 para ps_number=#000012544
-        $redirectUrl = url('/admin/packing-slips/' . $this->packingSlip->getRouteKey());
+        // La ruta de esta pantalla es admin/shipping-list/{packingSlip} (admin.shipping-list.show).
+        $redirectUrl = url('/admin/shipping-list/' . $this->packingSlip->getRouteKey());
 
         session()->flash('notify', [
             'type'    => 'success',
@@ -180,9 +184,47 @@ class PackingSlipShow extends Component
     // -----------------------------------------------------------------------
     public function updateItemDate(int $itemId, string $value): void
     {
+        // Editable solo en Borrador o Pendiente; bloqueado si Despachado o Cancelado.
+        if ($this->packingSlip->isShipped() || $this->packingSlip->isCancelled()) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => 'No se puede editar el Date de un Packing Slip despachado o cancelado.',
+            ]);
+            return;
+        }
+
         $item = $this->packingSlip->items()->findOrFail($itemId);
         $item->update(['lot_date_code' => trim($value) ?: null]);
         $this->packingSlip->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part']);
+
+        $this->dispatch('notify', [
+            'type'    => 'success',
+            'message' => 'Date actualizado correctamente.',
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Edición inline del Date por Lote de CRIMP (FPL-10)
+    // Cada lote de CRIMP es una fila con su propio date_code manual (ej. 260602B01).
+    // -----------------------------------------------------------------------
+    public function updateCrimpLotDate(int $crimpLotId, string $value): void
+    {
+        // Editable solo en Borrador o Pendiente; bloqueado si Despachado o Cancelado.
+        if ($this->packingSlip->isShipped() || $this->packingSlip->isCancelled()) {
+            $this->dispatch('notify', [
+                'type'    => 'error',
+                'message' => 'No se puede editar el Date de un Packing Slip despachado o cancelado.',
+            ]);
+            return;
+        }
+
+        // Verificar que el lote de CRIMP pertenece a un lote (viajero) de este Packing Slip.
+        $lotIds = $this->packingSlip->items()->pluck('lot_id')->toArray();
+
+        $crimpLot = CrimpLot::whereIn('lot_id', $lotIds)->findOrFail($crimpLotId);
+        $crimpLot->update(['date_code' => trim($value) ?: null]);
+
+        $this->packingSlip->load(['creator', 'shipper', 'items.lot.workOrder.purchaseOrder.part', 'items.lot.crimpLots']);
 
         $this->dispatch('notify', [
             'type'    => 'success',
@@ -319,6 +361,10 @@ class PackingSlipShow extends Component
         // replicando la estructura del Excel FPL-10 (columna C agrupada con subtotal).
         // Dentro de cada grupo PO, los items se ordenan de mayor a menor cantidad
         // segun el requerimiento del cliente (formato FPL-10).
+        // CRIMP (FPL-10): asegurar el desglose viajero -> lotes de CRIMP disponible en la vista,
+        // sea cual sea el load path previo. Solo se usa si la parte es is_crimp.
+        $this->packingSlip->loadMissing('items.lot.crimpLots');
+
         $itemsGroupedByPo = $this->packingSlip->items
             ->groupBy(fn ($item) => $item->lot?->workOrder?->purchaseOrder?->po_number ?? 'Sin PO')
             ->map(fn ($poItems) => $poItems->sortByDesc('quantity_packed')->values());

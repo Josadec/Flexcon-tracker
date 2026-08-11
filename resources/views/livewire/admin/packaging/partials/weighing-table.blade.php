@@ -3,7 +3,6 @@
     Props:
       $rows       array de pesadas
       $type       'piece' | 'crimp'  (para los wire:click)
-      $headBg     clases de fondo del encabezado/pie (string literal Tailwind)
       $accentText clases de color de acento (string literal Tailwind)
       $total      int
 --}}
@@ -23,7 +22,7 @@
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 @foreach ($rows as $row)
-                    <tr wire:key="pkg-w-{{ $type }}-{{ $row['id'] }}">
+                    <tr>
                         <td class="px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ $row['weighed_at'] ?? '-' }}</td>
                         <td class="px-3 py-2 text-gray-700 dark:text-gray-300">{{ $row['crimp_lot'] ?? '—' }}</td>
                         <td class="px-3 py-2 text-right font-medium {{ $accentText }}">{{ number_format($row['quantity']) }}</td>
@@ -60,5 +59,5 @@
         </table>
     </div>
 @else
-    <p class="text-sm text-gray-500 dark:text-gray-400">Sin pesadas registradas.</p>
+    <p class="text-sm text-slate-500 dark:text-slate-400">Sin pesadas registradas.</p>
 @endif

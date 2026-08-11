@@ -11,6 +11,21 @@ class StatusWO extends Model
     use HasFactory;
 
     /**
+     * Formato aceptado para el color del estado.
+     *
+     * El color se pinta como `background-color` en las píldoras de estado
+     * (WO show, listado de WOs, Lista de envío). Si se guarda cualquier cadena
+     * de hasta 7 caracteres el badge puede quedar sin fondo, así que se exige
+     * hexadecimal completo de 6 dígitos.
+     */
+    public const COLOR_REGEX = '/^#[0-9A-Fa-f]{6}$/';
+
+    /**
+     * Color por defecto (gris) cuando no se indica otro.
+     */
+    public const DEFAULT_COLOR = '#6B7280';
+
+    /**
      * The table associated with the model.
      *
      * @var string
@@ -104,5 +119,61 @@ class StatusWO extends Model
     public function canBeDeleted(): bool
     {
         return $this->workOrders()->count() === 0;
+    }
+
+    /**
+     * Normaliza lo que escribe el usuario a `#RRGGBB` en mayúsculas.
+     *
+     * Acepta `abc`, `#abc`, `aabbcc` y `#AABBCC`. Lo que no se pueda
+     * interpretar se devuelve tal cual para que la validación lo rechace con
+     * un mensaje, en vez de guardarse silenciosamente transformado.
+     */
+    public static function normalizeColor(?string $color): string
+    {
+        $value = strtoupper(trim((string) $color));
+
+        if ($value === '') {
+            return self::DEFAULT_COLOR;
+        }
+
+        if ($value[0] !== '#') {
+            $value = '#' . $value;
+        }
+
+        // Forma corta #ABC -> #AABBCC (así la escribe mucha gente).
+        if (preg_match('/^#[0-9A-F]{3}$/', $value)) {
+            $value = '#' . $value[1] . $value[1] . $value[2] . $value[2] . $value[3] . $value[3];
+        }
+
+        return $value;
+    }
+
+    /**
+     * ¿El color es tan claro que el texto blanco de la píldora no se lee?
+     *
+     * Las píldoras de estado se pintan con `text-white`, así que un amarillo
+     * claro deja el nombre ilegible. No se bloquea el guardado: se avisa.
+     */
+    public function hasLowContrastWithWhite(): bool
+    {
+        return self::colorIsLight($this->color);
+    }
+
+    /**
+     * Luminancia relativa aproximada (ITU-R BT.601) sobre 255.
+     */
+    public static function colorIsLight(?string $color): bool
+    {
+        $value = self::normalizeColor($color);
+
+        if (! preg_match(self::COLOR_REGEX, $value)) {
+            return false;
+        }
+
+        $r = hexdec(substr($value, 1, 2));
+        $g = hexdec(substr($value, 3, 2));
+        $b = hexdec(substr($value, 5, 2));
+
+        return (0.299 * $r + 0.587 * $g + 0.114 * $b) > 186;
     }
 }

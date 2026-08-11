@@ -234,6 +234,28 @@
             white-space: nowrap;
         }
 
+        /* Sub-filas CRIMP: desglose viajero -> lotes de CRIMP (solo partes is_crimp / FPL-10) */
+        .items-table tbody tr.crimp-sub td {
+            padding: 2px 5px;
+            border: 1px solid #e4ebf2;
+            background-color: #fbfdff;
+            color: #44515f;
+            font-size: 7pt;
+            vertical-align: top;
+        }
+
+        .items-table tbody tr.crimp-sub td.crimp-viajero {
+            padding-left: 14px;
+            font-weight: bold;
+            color: #1e3a5f;
+            white-space: nowrap;
+        }
+
+        .items-table tbody tr.crimp-sub td.col-qty {
+            text-align: right;
+            white-space: nowrap;
+        }
+
         /* Fila de total por grupo PO */
         .items-table tbody tr.subtotal-row td {
             padding: 3px 5px;
@@ -456,18 +478,39 @@
                     {{-- Filas de datos del grupo PO --}}
                     @foreach ($poItems as $item)
                         @php
-                            $labelSpec = $item->label_spec
-                                ?: ($item->lot?->workOrder?->purchaseOrder?->part?->label_spec ?: '-');
+                            $part      = $item->lot?->workOrder?->purchaseOrder?->part;
+                            $psIsCrimp = (bool) ($part?->is_crimp ?? false);
+                            $crimpLots = $psIsCrimp ? ($item->lot?->crimpLots ?? collect()) : collect();
+                            $poNum     = $item->lot?->workOrder?->purchaseOrder?->po_number ?? '-';
+                            $labelSpec = $item->label_spec ?: ($part?->label_spec ?: '-');
                         @endphp
+
+                        @if ($psIsCrimp && $crimpLots->isNotEmpty())
+                            {{-- CRIMP (FPL-10): cada lote de CRIMP es UNA fila. Sin rótulo "Viajero".
+                                 Item no = número de parte, Description = descripción de la parte,
+                                 Quantity = cantidad del lote de CRIMP, Label Spec = del part. --}}
+                            @foreach ($crimpLots as $crimp)
+                                <tr class="data-row">
+                                    <td>{{ $item->wo_number_ps ?? '-' }}</td>
+                                    <td>{{ $poNum }}</td>
+                                    <td>{{ $part?->item_number ?? '-' }}</td>
+                                    <td>{{ $part?->description ?? '-' }}</td>
+                                    <td class="col-qty">{{ number_format($crimp->quantity) }}</td>
+                                    <td>{{ $crimp->date_code ?? '' }}</td>
+                                    <td>{{ $labelSpec }}</td>
+                                </tr>
+                            @endforeach
+                        @else
                         <tr class="data-row">
                             <td>{{ $item->wo_number_ps ?? '-' }}</td>
-                            <td>{{ $item->lot?->workOrder?->purchaseOrder?->po_number ?? '-' }}</td>
-                            <td>{{ $item->lot?->workOrder?->purchaseOrder?->part?->item_number ?? '-' }}</td>
-                            <td>{{ $item->lot?->workOrder?->purchaseOrder?->part?->description ?? '-' }}</td>
+                            <td>{{ $poNum }}</td>
+                            <td>{{ $part?->item_number ?? '-' }}</td>
+                            <td>{{ $part?->description ?? '-' }}</td>
                             <td class="col-qty">{{ number_format($item->quantity_packed) }}</td>
                             <td>{{ $item->lot_date_code ?? '-' }}</td>
                             <td>{{ $labelSpec }}</td>
                         </tr>
+                        @endif
                     @endforeach
 
                     {{-- Fila de subtotal por grupo PO --}}

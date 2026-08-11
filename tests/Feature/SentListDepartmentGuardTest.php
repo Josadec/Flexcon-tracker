@@ -27,6 +27,13 @@ class SentListDepartmentGuardTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Crea una lista con un lote LISTO PARA PRODUCIR. El flujo es secuencial
+     * (Materiales libera → Calidad inspecciona → Producción pesa), así que el
+     * lote nace con material liberado e inspección aprobada: sin eso el
+     * componente corta antes de llegar a la guarda de departamento y los tests
+     * de bloqueo pasarían por la razón equivocada.
+     */
     private function makeList(string $department): array
     {
         $part = Part::factory()->create(['is_crimp' => false]);
@@ -56,12 +63,13 @@ class SentListDepartmentGuardTest extends TestCase
         // aprobada. Esta prueba mide la guarda de departamento, no la compuerta
         // del flujo, así que el lote entra ya inspeccionado.
         $lot = Lot::create([
-            'work_order_id'     => $wo->id,
-            'lot_number'        => 'V-1',
-            'quantity'          => 1000,
-            'status'            => Lot::STATUS_PENDING,
-            'material_status'   => 'released',
-            'inspection_status' => Lot::INSPECTION_APPROVED,
+            'work_order_id' => $wo->id,
+            'lot_number'    => 'V-1',
+            'quantity'      => 1000,
+            'status'        => Lot::STATUS_PENDING,
+            // Precondiciones reales del flujo para que Producción pueda pesar:
+            'material_status'   => 'released',                 // Materiales liberó
+            'inspection_status' => Lot::INSPECTION_APPROVED,   // Calidad aprobó
         ]);
 
         return [$sentList, $lot];

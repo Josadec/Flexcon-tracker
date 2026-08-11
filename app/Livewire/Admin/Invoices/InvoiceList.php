@@ -132,6 +132,8 @@ class InvoiceList extends Component
             $query->draft();
         } elseif ($this->filterStatus === Invoice::STATUS_ISSUED) {
             $query->issued();
+        } elseif ($this->filterStatus === Invoice::STATUS_CANCELLED) {
+            $query->where('status', Invoice::STATUS_CANCELLED);
         }
 
         $invoices = $query->orderBy($this->sortField, $this->sortDirection)
@@ -141,6 +143,7 @@ class InvoiceList extends Component
             'total' => Invoice::count(),
             'draft' => Invoice::draft()->count(),
             'issued' => Invoice::issued()->count(),
+            'cancelled' => Invoice::where('status', Invoice::STATUS_CANCELLED)->count(),
         ];
 
         return view('livewire.admin.invoices.invoice-list-v2', [

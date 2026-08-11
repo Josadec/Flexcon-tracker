@@ -39,9 +39,9 @@
         .band td { font-weight: bold; font-size: 9px; padding: 3px 4px; }
         .num { text-align: right; }
         .ctr { text-align: center; }
-        .yellow { background: #FFFF00; font-weight: bold; text-align: right; }
+        .yellow { font-weight: bold; text-align: right; }
         .item-no { color: #C00000; font-weight: bold; text-align: center; }
-        .qty-cell { background: #D9D9D9; text-align: right; }
+        .qty-cell { text-align: right; }
         .wo-main td { font-weight: bold; }
         .sub td { color: #222; }
         .note { font-style: italic; }

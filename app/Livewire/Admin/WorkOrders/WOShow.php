@@ -7,8 +7,8 @@ use App\Models\StatusWO;
 use App\Models\Weighing;
 use App\Models\WorkOrder;
 use App\Services\PurchaseOrderService;
-use App\Services\SignatureService;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -24,7 +24,6 @@ class WOShow extends Component
     public $signedDocument = null;
 
     protected PurchaseOrderService $purchaseOrderService;
-    protected SignatureService $signatureService;
 
     // ===============================================
     // TAB MANAGEMENT
@@ -60,17 +59,15 @@ class WOShow extends Component
     // LIFECYCLE
     // ===============================================
 
-    public function boot(PurchaseOrderService $purchaseOrderService, SignatureService $signatureService): void
+    public function boot(PurchaseOrderService $purchaseOrderService): void
     {
         $this->purchaseOrderService = $purchaseOrderService;
-        $this->signatureService = $signatureService;
     }
 
     public function mount(WorkOrder $workOrder): void
     {
         $this->workOrder = $workOrder->load([
             'purchaseOrder.part',
-            'purchaseOrder.signatures.user',
             'status',
             'statusLogs.fromStatus',
             'statusLogs.toStatus',
@@ -86,7 +83,6 @@ class WOShow extends Component
     {
         $this->workOrder = $this->workOrder->fresh([
             'purchaseOrder.part',
-            'purchaseOrder.signatures.user',
             'status',
             'statusLogs.fromStatus',
             'statusLogs.toStatus',
@@ -104,15 +100,14 @@ class WOShow extends Component
     }
 
     // ===============================================
-    // EXISTING METHODS (signatures, status)
+    // DOCUMENTO FIRMADO Y ESTADO
     // ===============================================
 
-    public function openSignatureModal(): void
-    {
-        if ($this->workOrder->purchaseOrder) {
-            $this->dispatch('openSignatureModal', purchaseOrderId: $this->workOrder->purchaseOrder->id);
-        }
-    }
+    // Las FIRMAS (openSignatureModal + $signatures + SignatureService) se
+    // quitaron de aquí: el bloque de la vista llevaba comentado como
+    // "DESHABILITADO TEMPORALMENTE" desde antes del rediseño y el servicio se
+    // ejecutaba en cada render para nada. Se recuperan de 51d4cea:
+    // WOShow.php líneas 10, 28, 64-68, 111-116, 445-459.
 
     public function uploadSignedDocument(): void
     {
@@ -157,9 +152,21 @@ class WOShow extends Component
     {
         $this->purchaseOrderService->updateWorkOrderStatus($this->workOrder, $statusId, $comments);
 
-        session()->flash('flash.banner', 'Estado actualizado correctamente.');
-        session()->flash('flash.bannerStyle', 'success');
+        // Sólo `success`: la ficha pinta el aviso en línea con <x-ui.note>.
+        // Flashear además `flash.banner` duplicaría el mensaje en el layout.
+        session()->flash('success', 'Estado actualizado correctamente.');
 
+        $this->refreshWorkOrder();
+    }
+
+    /**
+     * El modal de administración de estados (StatusWOManager) avisa cuando
+     * cambia un color/nombre. Se recarga el WO para que la píldora del estado
+     * y la lista de "Cambiar Estado" salgan ya con el color nuevo.
+     */
+    #[On('statuses-wo-updated')]
+    public function onStatusesWOUpdated(): void
+    {
         $this->refreshWorkOrder();
     }
 
@@ -359,11 +366,16 @@ class WOShow extends Component
             return;
         }
 
+        // `quantity` es la cantidad del lote (columna informativa, NOT NULL sin
+        // default). Se guarda igual que en Producción: sin ella el INSERT falla.
+        $lot = Lot::findOrFail($this->weighingLotId);
+
         if ($this->editingWeighingId) {
             $weighing = Weighing::findOrFail($this->editingWeighingId);
             // kit_id no se reasigna (historial); las pesadas viejas lo conservan.
             $weighing->update([
                 'lot_id' => $this->weighingLotId,
+                'quantity' => $lot->quantity,
                 'good_pieces' => $this->goodPieces,
                 'bad_pieces' => $this->badPieces,
                 'weighed_at' => $this->weighedAt,
@@ -375,6 +387,7 @@ class WOShow extends Component
             Weighing::create([
                 'lot_id' => $this->weighingLotId,
                 'kit_id' => null,
+                'quantity' => $lot->quantity,
                 'good_pieces' => $this->goodPieces,
                 'bad_pieces' => $this->badPieces,
                 'weighed_at' => $this->weighedAt,
@@ -430,11 +443,6 @@ class WOShow extends Component
 
     public function render()
     {
-        $signatures = [];
-        if ($this->workOrder->purchaseOrder) {
-            $signatures = $this->signatureService->getDocumentSignatures($this->workOrder->purchaseOrder);
-        }
-
         // Gather all weighings for this WO through lots
         $lotIds = $this->workOrder->lots->pluck('id');
         $weighings = Weighing::whereIn('lot_id', $lotIds)
@@ -444,7 +452,6 @@ class WOShow extends Component
 
         return view('livewire.admin.work-orders.wo-show', [
             'statuses' => StatusWO::all(),
-            'signatures' => $signatures,
             'weighings' => $weighings,
         ]);
     }
