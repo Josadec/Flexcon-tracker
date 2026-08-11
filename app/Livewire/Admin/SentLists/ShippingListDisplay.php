@@ -106,6 +106,10 @@ class ShippingListDisplay extends Component
     #[Url(as: 'terminados', except: false)]
     public bool $showFinished = false;
 
+    /** Cierre de lista de envío desde el propio tablero. */
+    public bool $showCloseListModal = false;
+    public ?int $closingSentListId = null;
+
     /** Confirmación de reapertura: motivo obligatorio y cascada anunciada. */
     public bool $showReopenModal = false;
     public string $reopenReason = '';
@@ -2267,6 +2271,82 @@ class ShippingListDisplay extends Component
         $this->dispatch('refresh-display');
     }
 
+    // ===============================================
+    // CIERRE DE LISTA DE ENVÍO
+    // ===============================================
+
+    /**
+     * Cierra una lista de envío desde el propio tablero.
+     *
+     * Empaque hace todo su trabajo aquí —registrar el empaque y tomar la
+     * decisión— pero para cerrar la lista tenía que salirse a otra pantalla
+     * (Listas Preliminares → pestaña Empaque). Ese salto era justo el paso que
+     * se quedaba sin hacer.
+     *
+     * La regla de «lista completa» vive en el modelo y distingue CRIMP de
+     * no-CRIMP; aquí sólo se invoca, para que las dos pantallas no se separen.
+     */
+    public function openCloseListModal(int $sentListId): void
+    {
+        if (! $this->guardDepartment('packaging')) {
+            return;
+        }
+
+        $lista = SentList::find($sentListId);
+
+        if (! $lista) {
+            session()->flash('error', 'Lista de envío no encontrada.');
+
+            return;
+        }
+
+        $this->closingSentListId = $sentListId;
+        $this->showCloseListModal = true;
+    }
+
+    public function closeCloseListModal(): void
+    {
+        $this->showCloseListModal = false;
+        $this->closingSentListId = null;
+    }
+
+    public function confirmCloseList(): void
+    {
+        if (! $this->guardDepartment('packaging')) {
+            return;
+        }
+
+        $lista = SentList::find($this->closingSentListId);
+
+        if (! $lista) {
+            session()->flash('error', 'Lista de envío no encontrada.');
+            $this->closeCloseListModal();
+
+            return;
+        }
+
+        // Se revalida en el servidor: el botón deshabilitado no protege nada.
+        if (! $lista->allLotsHavePackaging()) {
+            session()->flash('error', 'No se puede cerrar la lista #'.$lista->id.': faltan viajeros por empacar.');
+            $this->closeCloseListModal();
+
+            return;
+        }
+
+        if ($lista->status === SentList::STATUS_CONFIRMED) {
+            session()->flash('error', 'La lista #'.$lista->id.' ya estaba cerrada.');
+            $this->closeCloseListModal();
+
+            return;
+        }
+
+        $lista->update(['status' => SentList::STATUS_CONFIRMED]);
+
+        session()->flash('message', 'Lista de envío #'.$lista->id.' cerrada y confirmada.');
+        $this->closeCloseListModal();
+        $this->dispatch('refresh-display');
+    }
+
     /**
      * Abre la confirmación de reapertura.
      *
@@ -3329,8 +3409,32 @@ class ShippingListDisplay extends Component
                 ->pluck('total', 'work_order_id')
                 ->all();
 
+        // La lista de envío de la vista enfocada: la propia (/display/sl/{id})
+        // o la del WO que se está mirando (/display/wo/{id}). Sólo se calcula
+        // en vista enfocada, que es donde se ofrece cerrarla.
+        $listaSeleccionada = null;
+
+        if ($isFocusedView) {
+            $listaActiva = $this->focusedSentListId
+                ? SentList::find($this->focusedSentListId)
+                : $workOrders->first()?->sentList;
+
+            if ($listaActiva) {
+                $avance = $listaActiva->packagingProgress();
+
+                $listaSeleccionada = [
+                    'id' => $listaActiva->id,
+                    'empacados' => $avance['empacados'],
+                    'total' => $avance['total'],
+                    'completa' => $avance['total'] > 0 && $avance['empacados'] === $avance['total'],
+                    'cerrada' => $listaActiva->status === SentList::STATUS_CONFIRMED,
+                ];
+            }
+        }
+
         return view('livewire.admin.sent-lists.shipping-list-display', [
             'workOrdersGrouped' => $workOrdersGrouped,
+            'listaSeleccionada' => $listaSeleccionada,
             'lifecycleSummary'  => $lifecycleSummary,
             'finishedCounts'    => $finishedCounts,
             'showingFinished'   => $verTerminados,

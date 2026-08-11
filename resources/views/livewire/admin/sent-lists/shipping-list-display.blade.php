@@ -91,6 +91,7 @@
                             <option value="Sin Clasificar">Sin Clasificar</option>
                         </select>
                     </label>
+
                 </div>
             </div>
         </div>
@@ -113,13 +114,36 @@
                         @endif
                     </span>
                 </div>
-                <a href="{{ route('admin.sent-lists.display') }}" wire:navigate
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white dark:bg-gray-800 text-sky-700 dark:text-sky-300 rounded hover:bg-sky-100 dark:hover:bg-sky-900/40 transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                    </svg>
-                    Ver todo
-                </a>
+                <div class="flex items-center gap-3">
+                    {{-- Cierre de la lista de envío.
+                         Vive aquí, en la vista enfocada, porque es el único
+                         sitio del tablero donde hay UNA sola lista: no hay duda
+                         de cuál se cierra, no estorba en la vista general y no
+                         se repite en cada renglón. --}}
+                    @if ($canPackaging && $listaSeleccionada)
+                        @if ($listaSeleccionada['cerrada'])
+                            <x-ui.badge tone="good" dot>Lista #{{ $listaSeleccionada['id'] }} cerrada</x-ui.badge>
+                        @elseif ($listaSeleccionada['completa'])
+                            <x-ui.btn variant="success" size="sm" wire:click="openCloseListModal({{ $listaSeleccionada['id'] }})">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                Cerrar lista #{{ $listaSeleccionada['id'] }}
+                            </x-ui.btn>
+                        @else
+                            <span class="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                                Lista #{{ $listaSeleccionada['id'] }}:
+                                faltan {{ $listaSeleccionada['total'] - $listaSeleccionada['empacados'] }} por empacar
+                            </span>
+                        @endif
+                    @endif
+
+                    <a href="{{ route('admin.sent-lists.display') }}" wire:navigate
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white dark:bg-gray-800 text-sky-700 dark:text-sky-300 rounded hover:bg-sky-100 dark:hover:bg-sky-900/40 transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                        Ver todo
+                    </a>
+                </div>
             </div>
         </div>
     @endif
@@ -347,7 +371,8 @@
                                     <th class="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider {{ $thColor }}">{{ $th }}</th>
                                 @endforeach
 
-                                @foreach (['Fecha Prog. A', 'Fecha de Envío', 'Fecha de Apertura', 'EG'] as $th)
+                                {{-- «EG» no significaba nada para nadie: es la lista de envío. --}}
+                                @foreach (['Fecha Prog. A', 'Fecha de Envío', 'Fecha de Apertura', 'Lista de envío'] as $th)
                                     <th class="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{{ $th }}</th>
                                 @endforeach
                             </tr>
@@ -479,6 +504,7 @@
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6h6v6m-9 4h12a2 2 0 002-2V7l-5-4H6a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                                             </a>
                                         </div>
+
                                     </td>
                                     <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $part->item_number }}
                                     </td>
@@ -668,7 +694,17 @@
                                     <td class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">
                                         {{ $wo->created_at->format('m/d/Y') }}</td>
                                     <td class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">
-                                        {{ $wo->sentList?->id ?? '-' }}</td>
+                                        {{-- Enlace a SU lista: ahí es donde se cierra. --}}
+                                        @if ($wo->sentList)
+                                            <a href="{{ route('admin.sent-lists.display.sl', $wo->sentList->id) }}" wire:navigate
+                                                class="font-semibold text-sky-700 hover:underline dark:text-sky-300"
+                                                title="Abrir la lista de envío #{{ $wo->sentList->id }}">
+                                                {{ $wo->sentList->id }}
+                                            </a>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
                                 </tr>
 
                                 {{-- Filas de Lotes --}}
@@ -3032,6 +3068,34 @@
          tablero y el departamento no se separen otra vez. --}}
     @include('livewire.admin.sent-lists.partials.modal-confirm-empaque')
     @include('livewire.admin.sent-lists.partials.modal-viajero')
+
+    {{-- Confirmación de cierre de lista --}}
+    @if ($showCloseListModal && $closingSentListId)
+        @php
+            $listaCierre = $listaSeleccionada;
+        @endphp
+        <x-ui-modal wire:key="modal-cerrar-lista-{{ $closingSentListId }}"
+            title="Cerrar la lista de envío #{{ $closingSentListId }}"
+            subtitle="La lista queda confirmada y deja de estar en manos de los departamentos."
+            close="closeCloseListModal" maxWidth="lg">
+
+            <x-ui.note tone="info">
+                Los {{ $listaCierre['total'] ?? 0 }} viajeros de esta lista tienen su empaque registrado.
+                Al cerrarla, sus piezas quedan listas para el shipping list.
+            </x-ui.note>
+
+            <x-ui.note tone="muted" class="mt-3">
+                Que la lista se cierre <strong>no exige</strong> que las órdenes estén terminadas: una WO
+                grande se trabaja en varias semanas y seguirá abierta con sus piezas pendientes.
+            </x-ui.note>
+
+            <x-slot:note>Si hace falta corregir algo después, sólo Administración puede reabrirla.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeCloseListModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="primary" wire:click="confirmCloseList">Cerrar y confirmar</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
+    @endif
 
     {{-- Reapertura: qué se va a deshacer, y por qué --}}
     @if ($showReopenModal && $selectedLotForDecision)

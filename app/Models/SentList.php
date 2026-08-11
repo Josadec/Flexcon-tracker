@@ -389,6 +389,56 @@ class SentList extends Model
      *
      * @return \Illuminate\Support\Collection<int, \App\Models\WorkOrder>
      */
+    /**
+     * Cuántos viajeros de la lista ya tienen su empaque registrado.
+     *
+     * La regla cambia según el tipo de parte, y por eso vive aquí y no repetida
+     * en cada pantalla:
+     *   NO-CRIMP → al menos un registro de empaque.
+     *   CRIMP    → al menos una pesada de piezas o de CRIMP (en CRIMP lo
+     *              empacado se mide con pesadas, no con registros).
+     *
+     * @return array{empacados: int, total: int}
+     */
+    public function packagingProgress(): array
+    {
+        $workOrders = $this->getEffectiveWorkOrders()->load([
+            'purchaseOrder.part',
+            'lots.packagingRecords',
+            'lots.packagingPieceWeighings',
+            'lots.packagingCrimpWeighings',
+        ]);
+
+        $total = 0;
+        $empacados = 0;
+
+        foreach ($workOrders as $wo) {
+            $esCrimp = (bool) ($wo->purchaseOrder->part->is_crimp ?? false);
+
+            foreach ($wo->lots as $lot) {
+                $total++;
+
+                $tieneEmpaque = $esCrimp
+                    ? ($lot->packagingPieceWeighings->isNotEmpty() || $lot->packagingCrimpWeighings->isNotEmpty())
+                    : $lot->packagingRecords->isNotEmpty();
+
+                if ($tieneEmpaque) {
+                    $empacados++;
+                }
+            }
+        }
+
+        return ['empacados' => $empacados, 'total' => $total];
+    }
+
+    /** ¿Todos los viajeros de la lista tienen empaque? (con lotes, al menos uno) */
+    public function allLotsHavePackaging(): bool
+    {
+        ['empacados' => $empacados, 'total' => $total] = $this->packagingProgress();
+
+        return $total > 0 && $empacados === $total;
+    }
+
     public function getRunningWorkOrders(): \Illuminate\Support\Collection
     {
         $workOrders = $this->getEffectiveWorkOrders();

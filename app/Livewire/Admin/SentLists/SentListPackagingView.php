@@ -326,25 +326,9 @@ class SentListPackagingView extends Component
      */
     public function allLotsHavePackaging(): bool
     {
-        $workOrders = $this->sentList->getEffectiveWorkOrders()
-            ->load([
-                'purchaseOrder.part',
-                'lots.packagingRecords',
-                'lots.packagingPieceWeighings',
-                'lots.packagingCrimpWeighings',
-            ]);
-
-        if ($workOrders->flatMap->lots->isEmpty()) {
-            return false;
-        }
-
-        return $workOrders->every(function ($wo) {
-            $isCrimp = (bool) ($wo->purchaseOrder->part->is_crimp ?? false);
-
-            return $wo->lots->every(fn ($l) => $isCrimp
-                ? ($l->packagingPieceWeighings->isNotEmpty() || $l->packagingCrimpWeighings->isNotEmpty())
-                : $l->packagingRecords->isNotEmpty());
-        });
+        // La regla vive en el modelo: el tablero de piso también cierra listas
+        // y las dos pantallas tienen que decidir con el mismo criterio.
+        return $this->sentList->allLotsHavePackaging();
     }
 
     public function closeList(): void
