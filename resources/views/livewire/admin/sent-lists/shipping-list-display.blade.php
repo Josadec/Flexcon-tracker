@@ -1780,10 +1780,17 @@
                 @if ($lotsRestante < 0)
                     <x-ui.note tone="danger" class="mt-4">
                         La suma de los lotes sobrepasa la cantidad del WO por <strong>{{ number_format(abs($lotsRestante)) }} pz</strong>.
+                        No se puede guardar así: baja alguna cantidad o elimina un lote.
                     </x-ui.note>
                 @elseif ($lotsRestante === 0 && $lotsAsignado > 0)
                     <x-ui.note tone="success" class="mt-4">La suma coincide con la cantidad del WO.</x-ui.note>
                 @endif
+
+                {{-- El motivo del rechazo, dentro del modal. Antes iba por
+                     session()->flash y se pintaba detrás, así que no se veía. --}}
+                @error('lots')
+                    <x-ui.note tone="danger" class="mt-4" title="No se guardó">{{ $message }}</x-ui.note>
+                @enderror
             </x-ui.section>
 
             <x-ui.section title="Lotes y viajeros de la orden"
@@ -1822,18 +1829,39 @@
                     @endforelse
                 </div>
 
-                <x-ui.btn variant="primary" class="mt-4" wire:click="addLot">
+                {{-- Ojo: aquí NO se puede usar @disabled(...) — es una directiva
+                     y rompe la etiqueta del componente. Va el atributo enlazado. --}}
+                <x-ui.btn variant="primary" class="mt-4" wire:click="addLot"
+                    :disabled="$lotsRestante <= 0">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Agregar lote
                 </x-ui.btn>
+
+                @if ($lotsRestante <= 0)
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                        @if ($lotsRestante === 0)
+                            La orden ya está repartida por completo. Para agregar otro lote, baja antes
+                            la cantidad de alguno de los actuales.
+                        @else
+                            Corrige el exceso para poder agregar más lotes.
+                        @endif
+                    </p>
+                @endif
             </x-ui.section>
 
             <x-slot:note>
-                Verifica que la suma de las cantidades corresponda a la orden antes de guardar.
+                @if ($lotsRestante < 0)
+                    La suma se pasa de la orden: no se puede guardar hasta corregirla.
+                @elseif ($lotsRestante > 0)
+                    Quedan <strong>{{ number_format($lotsRestante) }} pz</strong> de la orden sin repartir.
+                @else
+                    La suma cuadra con la cantidad de la orden.
+                @endif
             </x-slot:note>
             <x-slot:footer>
                 <x-ui.btn variant="secondary" wire:click="closeLotModal">Cancelar</x-ui.btn>
-                <x-ui.btn variant="primary" wire:click="saveLots" wire:loading.attr="disabled" wire:target="saveLots">
+                <x-ui.btn variant="primary" wire:click="saveLots" wire:loading.attr="disabled" wire:target="saveLots"
+                    :disabled="$lotsRestante < 0">
                     Guardar cambios
                 </x-ui.btn>
             </x-slot:footer>
@@ -2746,8 +2774,11 @@
 
                         <x-ui.section title="Resumen de lo que se va a crear" hint="Revísalo antes de confirmar: el registro se crea de inmediato.">
                             <dl class="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+                                {{-- Comillas angulares y no rectas a propósito: una comilla doble
+                                     dentro de un atributo `:value="…"` corta la etiqueta, Blade deja
+                                     el componente sin compilar y el renglón no se pinta. --}}
                                 <x-ui.kv :label="$decIsCrimp ? 'Nuevo viajero' : 'Nuevo lote'"
-                                    :value="'"'.$createLotName.'" — '.number_format((int) $createLotQuantity).' pz'" />
+                                    :value="'«'.$createLotName.'» — '.number_format((int) $createLotQuantity).' pz'" />
                                 @if ($decIsCrimp)
                                     <x-ui.kv label="Lotes de CRIMP" value="Se capturan después, en Materiales" tone="info" />
                                 @endif

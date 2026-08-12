@@ -506,12 +506,48 @@ class ShippingListDisplay extends Component
         $this->dispatch('refresh-display');
     }
 
+    /**
+     * Cuánto de la orden queda sin repartir entre lotes, según lo que hay ahora
+     * mismo en el formulario (no en la base de datos).
+     */
+    public function lotsRemainingQuantity(): int
+    {
+        if (! $this->selectedWorkOrder) {
+            return 0;
+        }
+
+        return (int) $this->selectedWorkOrder->original_quantity
+            - (int) collect($this->lots)->sum(fn ($fila) => (int) ($fila['quantity'] ?? 0));
+    }
+
+    /**
+     * Agrega un renglón, ya con la cantidad que falta por repartir.
+     *
+     * Antes dejaba añadir renglones sin límite y el tope sólo se comprobaba al
+     * guardar, con un mensaje que además se pintaba detrás del modal: se veía
+     * el aviso rojo del reparto, se pulsaba «Guardar cambios» y no pasaba
+     * nada visible. Ahora no se puede pasar del reparto.
+     */
     public function addLot()
     {
+        $restante = $this->lotsRemainingQuantity();
+
+        if ($restante <= 0) {
+            $this->addError('lots', 'La orden ya está repartida por completo ('
+                .number_format((int) $this->selectedWorkOrder?->original_quantity)
+                .' pz). Para agregar otro lote, baja antes la cantidad de alguno de los actuales.');
+
+            return;
+        }
+
+        $this->resetErrorBag('lots');
+
         $this->lots[] = [
             'id' => null,
             'number' => '',
-            'quantity' => '',
+            // Se propone lo que falta: es la cantidad correcta en el caso normal
+            // y deja claro cuánto queda sin tener que hacer la resta a mano.
+            'quantity' => $restante,
         ];
     }
 
@@ -553,11 +589,20 @@ class ShippingListDisplay extends Component
             return;
         }
 
-        // Validar que la suma de lotes no sobrepase la Cant. WO
-        $totalNewQuantity = collect($this->lots)->sum('quantity');
-        $cantWO = $this->selectedWorkOrder->original_quantity;
+        // Validar que la suma de lotes no sobrepase la Cant. WO.
+        //
+        // El error va al ErrorBag y no a session()->flash(): el flash se pinta
+        // en la cabecera de la pantalla, o sea DETRÁS del modal, así que quien
+        // pulsaba «Guardar cambios» no veía absolutamente nada y creía que el
+        // tope no se aplicaba. Se aplicaba; sólo no se decía.
+        $totalNewQuantity = (int) collect($this->lots)->sum(fn ($fila) => (int) ($fila['quantity'] ?? 0));
+        $cantWO = (int) $this->selectedWorkOrder->original_quantity;
+
         if ($totalNewQuantity > $cantWO) {
-            session()->flash('error', 'ALERTA: La suma de lotes (' . number_format($totalNewQuantity) . ') sobrepasa la Cant. WO (' . number_format($cantWO) . ') por ' . number_format($totalNewQuantity - $cantWO) . ' piezas.');
+            $this->addError('lots', 'La suma de los lotes (' . number_format($totalNewQuantity)
+                . ' pz) sobrepasa la cantidad de la orden (' . number_format($cantWO) . ' pz) por '
+                . number_format($totalNewQuantity - $cantWO) . ' pz. Ajusta las cantidades antes de guardar.');
+
             return;
         }
 
