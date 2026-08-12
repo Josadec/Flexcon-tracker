@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Lots;
 
 use App\Models\Lot;
+use App\Services\ReopeningService;
 use Livewire\Component;
 
 class LotShow extends Component
@@ -12,6 +13,13 @@ class LotShow extends Component
     // Modal para cambiar estado
     public bool $showStatusModal = false;
     public string $newStatus = '';
+
+    // Modal para reabrir un viajero ya terminado.
+    public bool $showReopenModal = false;
+    public string $reopenReason = '';
+
+    /** Qué más hay que deshacer para reabrir: packing slip, factura. */
+    public array $reopenCascade = [];
 
     public function mount(Lot $lot): void
     {
@@ -57,6 +65,77 @@ class LotShow extends Component
     public function setNewStatus(string $status): void
     {
         $this->newStatus = $status;
+    }
+
+    /**
+     * ¿Puede el usuario actual reabrir viajeros cerrados?
+     *
+     * Se pregunta al servicio y no al rol: el permiso es la fuente única, y así
+     * la ficha no se queda desincronizada si mañana cambia quién lo tiene.
+     */
+    public function puedeReabrir(): bool
+    {
+        return app(ReopeningService::class)->allows(auth()->user());
+    }
+
+    /**
+     * Abre la confirmación de reapertura desde la propia ficha del viajero.
+     *
+     * Hasta ahora este botón sólo existía dentro del modal de decisión del
+     * tablero. El problema: al marcar un viajero como completado, su orden se
+     * quedaba sin viajeros abiertos y sin piezas pendientes, así que salía del
+     * tablero — y con ella el único botón que permitía deshacerlo. Quien se
+     * equivocaba se quedaba sin salida y había que reabrir por consola.
+     *
+     * La cascada se calcula ANTES de tocar nada: quien decide tiene que ver que
+     * reabrir este viajero puede implicar reabrir su packing slip y su factura.
+     */
+    public function openReopenModal(): void
+    {
+        if (! $this->puedeReabrir()) {
+            session()->flash('error', 'Sólo Administración puede reabrir un documento cerrado.');
+
+            return;
+        }
+
+        if ($motivo = $this->lot->getReopenBlockReason()) {
+            session()->flash('error', $motivo);
+
+            return;
+        }
+
+        $this->reopenReason = '';
+        $this->reopenCascade = app(ReopeningService::class)
+            ->cascadeFor($this->lot->loadMissing('packingSlipItem.packingSlip.invoice'));
+        $this->showReopenModal = true;
+    }
+
+    public function closeReopenModal(): void
+    {
+        $this->showReopenModal = false;
+        $this->reopenReason = '';
+        $this->reopenCascade = [];
+    }
+
+    /**
+     * Reabre el viajero. Toda la lógica —permiso, motivo, cascada y auditoría—
+     * vive en el servicio: aquí sólo se traduce el fallo a un mensaje.
+     */
+    public function reopenLot(): void
+    {
+        try {
+            app(ReopeningService::class)->reopenLot($this->lot, $this->reopenReason);
+        } catch (\RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return;
+        }
+
+        $this->closeReopenModal();
+        $this->lot->refresh();
+
+        session()->flash('message', 'Viajero '.$this->lot->lot_number
+            .' reabierto. Ya vuelve a aparecer en la lista de envío.');
     }
 
     /**

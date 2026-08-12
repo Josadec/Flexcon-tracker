@@ -125,6 +125,32 @@
                 </p>
             @endif
         </div>
+
+        {{-- Reapertura: la única salida cuando el viajero ya se cerró. Vive aquí
+             y no sólo en el tablero porque un viajero terminado puede sacar a su
+             orden del tablero, y con ella al botón que permitía deshacerlo. --}}
+        @if ($lot->isFinished())
+            @php $bloqueoReapertura = $lot->getReopenBlockReason(); @endphp
+
+            <div class="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700">
+                @if ($bloqueoReapertura)
+                    <x-ui.note tone="warn" title="No se puede reabrir">{{ $bloqueoReapertura }}</x-ui.note>
+                @elseif ($this->puedeReabrir())
+                    <x-ui.btn variant="secondary" wire:click="openReopenModal">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Reabrir viajero
+                    </x-ui.btn>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                        Lo devuelve al flujo y vuelve a aparecer en la lista de envío.
+                    </p>
+                @else
+                    <x-ui.note tone="muted">
+                        Este viajero ya está cerrado. Sólo Administración puede reabrirlo:
+                        pídelo indicando el viajero y qué hay que corregir.
+                    </x-ui.note>
+                @endif
+            </div>
+        @endif
     </x-ui.section>
 
     {{-- Cambio de estado --}}
@@ -155,6 +181,48 @@
             <x-slot:footer>
                 <x-ui.btn variant="secondary" wire:click="closeStatusModal">Cancelar</x-ui.btn>
                 <x-ui.btn variant="primary" wire:click="updateLotStatus">Guardar estado</x-ui.btn>
+            </x-slot:footer>
+        </x-ui-modal>
+    @endif
+
+    {{-- Reapertura: qué se va a deshacer, y por qué --}}
+    @if ($showReopenModal)
+        <x-ui-modal wire:key="modal-reabrir-{{ $lot->id }}"
+            title="Reabrir el viajero {{ $lot->lot_number }}"
+            subtitle="Lo devuelve al flujo para volver a trabajarlo y reaparece en la lista de envío."
+            close="closeReopenModal" maxWidth="2xl">
+
+            @if (count($reopenCascade) > 0)
+                <x-ui.note tone="warn" title="Esto no afecta sólo al viajero">
+                    <p>Para reabrirlo hay que deshacer también:</p>
+                    <ul class="mt-2 list-inside list-disc space-y-1">
+                        @foreach ($reopenCascade as $paso)
+                            <li>{{ $paso }}</li>
+                        @endforeach
+                    </ul>
+                    <p class="mt-2">Se hace todo junto o no se hace nada.</p>
+                </x-ui.note>
+            @else
+                <x-ui.note tone="info">
+                    El viajero volverá a estar abierto en Empaque. Todavía no está en ningún
+                    packing slip, así que no hay nada más que deshacer.
+                </x-ui.note>
+            @endif
+
+            <x-ui.section step="1" title="¿Por qué se reabre?" tone="accent"
+                hint="Queda guardado en el historial junto a tu nombre. Es lo que explicará este cambio dentro de un año.">
+                <x-ui.field label="Motivo" required
+                    hint="Mínimo 10 caracteres. Sé concreto: qué estaba mal y quién lo detectó."
+                    :error="$errors->first('reopenReason')">
+                    <textarea wire:model="reopenReason" rows="3" class="w-full"
+                        placeholder="Ej: el cliente reportó 20 piezas menos de las facturadas en este viajero."></textarea>
+                </x-ui.field>
+            </x-ui.section>
+
+            <x-slot:note>Todo lo que se deshaga queda registrado con tu nombre y la fecha.</x-slot:note>
+            <x-slot:footer>
+                <x-ui.btn variant="secondary" wire:click="closeReopenModal">Cancelar</x-ui.btn>
+                <x-ui.btn variant="danger" wire:click="reopenLot">Reabrir</x-ui.btn>
             </x-slot:footer>
         </x-ui-modal>
     @endif
