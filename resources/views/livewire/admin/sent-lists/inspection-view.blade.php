@@ -8,7 +8,10 @@
 --}}
 <div class="space-y-5">
 
-    @unless ($this->canEditDepartment())
+    {{-- Sólo lectura: además del aviso, las acciones de escritura no se pintan. --}}
+    @php $puedeEditar = $this->canEditDepartment(); @endphp
+
+    @unless ($puedeEditar)
         <x-ui.note tone="warn" title="Modo sólo lectura">
             Esta lista no está en la etapa de tu departamento o ya fue cerrada. Puedes consultarla, pero no modificarla.
         </x-ui.note>
@@ -127,6 +130,7 @@
 
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">
+                                    @if ($puedeEditar)
                                     <x-ui.btn variant="success" size="sm"
                                         wire:click="approveLot({{ $lot->id }})"
                                         :disabled="$lot->inspection_status === 'approved'"
@@ -142,6 +146,7 @@
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                                         Rechazar
                                     </x-ui.btn>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -166,16 +171,18 @@
         @endunless
 
         <div class="flex flex-col gap-2 sm:flex-row sm:justify-between">
-            <x-ui.btn :variant="$hasRejected ? 'danger' : 'secondary'" wire:click="openReturnModal">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/></svg>
-                Regresar a Materiales
-            </x-ui.btn>
+            @if ($puedeEditar)
+                <x-ui.btn :variant="$hasRejected ? 'danger' : 'secondary'" wire:click="openReturnModal">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/></svg>
+                    Regresar a Materiales
+                </x-ui.btn>
 
-            <x-ui.btn variant="success" wire:click="openApproveModal" :disabled="! $allApproved"
-                :title="$allApproved ? null : 'Faltan lotes por aprobar'">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Aprobar y enviar a Producción
-            </x-ui.btn>
+                <x-ui.btn variant="success" wire:click="openApproveModal" :disabled="! $allApproved"
+                    :title="$allApproved ? null : 'Faltan lotes por aprobar'">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Aprobar y enviar a Producción
+                </x-ui.btn>
+            @endif
         </div>
     </x-ui.section>
 

@@ -11,9 +11,11 @@ use App\Models\StatusWO;
 use App\Models\User;
 use App\Models\Weighing;
 use App\Models\WorkOrder;
+use App\Services\ReopeningService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
@@ -142,6 +144,50 @@ class SentListDepartmentGuardTest extends TestCase
         });
 
         $this->assertDatabaseCount('weighings', 0);
+    }
+
+    /**
+     * Administración es transversal: corregir lo ya cerrado es su trabajo, así
+     * que la etapa de la lista no la frena. Antes recibía un 403 desde estas
+     * pestañas aunque el tablero de piso sí la dejaba actuar.
+     */
+    public function test_administracion_can_act_outside_the_current_stage(): void
+    {
+        // Lista en Empaque: fuera de la etapa de Producción.
+        [$sentList, $lot] = $this->makeList(SentList::DEPT_SHIPPING);
+
+        Permission::firstOrCreate(['name' => ReopeningService::PERMISSION, 'guard_name' => 'web']);
+        $admin = $this->userWithRole('admin');
+        $admin->givePermissionTo(ReopeningService::PERMISSION);
+        $this->actingAs($admin);
+
+        Livewire::test(SentListProductionView::class, ['sentList' => $sentList])
+            ->call('openWeighingModal', $lot->id)
+            ->set('weighingQuantity', 10)
+            ->call('saveWeighing')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseCount('weighings', 1);
+    }
+
+    /**
+     * El «modo sólo lectura» tiene que serlo de verdad. Antes sólo cambiaba el
+     * aviso de cabecera: los botones seguían pintados y el primer clic se
+     * llevaba una página de error 403 en vez de un «todavía no te toca».
+     */
+    public function test_read_only_mode_hides_the_write_actions(): void
+    {
+        // Lista en Calidad, usuario de Producción: sólo lectura.
+        [$sentList] = $this->makeList(SentList::DEPT_QUALITY);
+        $this->actingAs($this->userWithRole('Produccion'));
+
+        // Se comprueba sobre los manejadores, no sobre las etiquetas: el texto de
+        // un botón puede aparecer también en un hint o en un título.
+        Livewire::test(SentListProductionView::class, ['sentList' => $sentList])
+            ->assertSee('Modo sólo lectura')
+            ->assertDontSee('wire:click="openWeighingModal', escape: false)
+            ->assertDontSee('wire:click="openSendModal', escape: false)
+            ->assertDontSee('wire:click="deleteWeighing', escape: false);
     }
 
     public function test_cannot_delete_weighing_from_another_list_idor(): void

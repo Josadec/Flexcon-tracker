@@ -9,7 +9,10 @@
 --}}
 <div class="space-y-5">
 
-    @unless ($this->canEditDepartment())
+    {{-- Sólo lectura: además del aviso, las acciones de escritura no se pintan. --}}
+    @php $puedeEditar = $this->canEditDepartment(); @endphp
+
+    @unless ($puedeEditar)
         <x-ui.note tone="warn" title="Modo sólo lectura">
             Esta lista no está en la etapa de tu departamento o ya fue cerrada. Puedes consultarla, pero no modificarla.
         </x-ui.note>
@@ -140,7 +143,7 @@
                                         @endif
                                     </div>
 
-                                    @if ($readyForQuality)
+                                    @if ($readyForQuality && $puedeEditar)
                                         <x-ui.btn variant="primary" size="sm" wire:click="openWeighingModal({{ $lot->id }})">
                                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                             Agregar pesada
@@ -195,6 +198,7 @@
                                                 <td class="max-w-xs truncate px-4 py-2.5 text-slate-500 dark:text-slate-400">{{ $qw->comments ?: '—' }}</td>
                                                 <td class="px-4 py-2.5">
                                                     <div class="flex items-center justify-end gap-1.5">
+                                                        @if ($puedeEditar)
                                                         <x-ui.icon-btn tone="primary" label="Editar esta pesada de calidad"
                                                             wire:click="editQualityWeighing({{ $lot->id }}, {{ $qw->id }})">
                                                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -204,6 +208,7 @@
                                                             wire:confirm="¿Eliminar esta pesada de calidad?">
                                                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                                         </x-ui.icon-btn>
+                                                        @endif
                                                     </div>
                                                 </td>
                                             </tr>
@@ -245,10 +250,12 @@
         @endif
 
         <div class="flex justify-end">
-            <x-ui.btn variant="primary" wire:click="openSendModal">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-                Enviar a Empaque
-            </x-ui.btn>
+            @if ($puedeEditar)
+                <x-ui.btn variant="primary" wire:click="openSendModal">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                    Enviar a Empaque
+                </x-ui.btn>
+            @endif
         </div>
     </x-ui.section>
 

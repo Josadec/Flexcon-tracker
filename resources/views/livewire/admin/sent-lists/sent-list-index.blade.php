@@ -7,19 +7,6 @@
 <x-ui.page eyebrow="Control de producción" title="Listas preliminares"
     subtitle="Listas generadas desde el wizard de capacidad. Cada una agrupa las órdenes de una semana.">
 
-    <x-slot:actions>
-        <x-ui.btn variant="secondary" href="{{ route('admin.sent-lists.display') }}">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 014-4h4m0 0l-3-3m3 3l-3 3M5 5h6a2 2 0 012 2v2"/></svg>
-            Tablero de piso
-        </x-ui.btn>
-        @if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('Materiales'))
-            <x-ui.btn variant="primary" href="{{ route('admin.capacity.wizard') }}">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                Nueva lista
-            </x-ui.btn>
-        @endif
-    </x-slot:actions>
-
     @if (session('message'))
         <x-ui.note tone="success">{{ session('message') }}</x-ui.note>
     @endif

@@ -10,8 +10,15 @@
 --}}
 <div class="space-y-5">
 
-    {{-- Sólo lectura: el backend rechaza toda edición fuera de etapa/rol --}}
-    @unless ($this->canEditDepartment())
+    {{--
+        Sólo lectura: además del aviso, las acciones de escritura NO se pintan.
+        Antes el aviso era lo único que cambiaba y los botones seguían vivos, así
+        que el primer clic se llevaba una página de error 403 en vez de un «no
+        puedes todavía».
+    --}}
+    @php $puedeEditar = $this->canEditDepartment(); @endphp
+
+    @unless ($puedeEditar)
         <x-ui.note tone="warn" title="Modo sólo lectura">
             Esta lista no está en la etapa de tu departamento o ya fue cerrada. Puedes consultarla, pero no modificarla.
         </x-ui.note>
@@ -123,20 +130,24 @@
                                     <div class="flex flex-wrap items-center gap-2">
                                         {{-- Paso 7 · entrega del viajero --}}
                                         @if ($isCrimp)
-                                            <x-ui.btn size="sm" :variant="$lot->viajero_received ? 'secondary' : 'primary'"
-                                                wire:click="openViajeroModal({{ $lot->id }})">
-                                                @if ($lot->viajero_received)
-                                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                    Viajero entregado
-                                                @else
-                                                    Entregar viajero
-                                                @endif
-                                            </x-ui.btn>
+                                            @if ($puedeEditar)
+                                                <x-ui.btn size="sm" :variant="$lot->viajero_received ? 'secondary' : 'primary'"
+                                                    wire:click="openViajeroModal({{ $lot->id }})">
+                                                    @if ($lot->viajero_received)
+                                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                        Viajero entregado
+                                                    @else
+                                                        Entregar viajero
+                                                    @endif
+                                                </x-ui.btn>
+                                            @elseif ($lot->viajero_received)
+                                                <x-ui.badge tone="good" dot>Viajero entregado</x-ui.badge>
+                                            @endif
                                         @elseif ($lot->viajero_received)
                                             <x-ui.badge tone="good" dot>
                                                 Lote recibido {{ \Carbon\Carbon::parse($lot->viajero_received_at)->format('d/m/Y') }}
                                             </x-ui.badge>
-                                        @else
+                                        @elseif ($puedeEditar)
                                             <x-ui.btn variant="primary" size="sm" wire:click="receiveViajero({{ $lot->id }})">
                                                 Recibir lote
                                             </x-ui.btn>
@@ -152,21 +163,26 @@
                                                 default        => ['Decisión tomada', 'neutral'],
                                             };
                                         @endphp
+                                        {{-- El modal de decisión sólo lee, así que se puede abrir siempre:
+                                             es donde está el desglose del Paso 6. Sus botones de acción sí
+                                             desaparecen en sólo lectura, más abajo. --}}
                                         @if ($decMeta)
                                             <x-ui.btn variant="secondary" size="sm" wire:click="openDecisionModal({{ $lot->id }})">
                                                 {{ $decMeta[0] }}
                                             </x-ui.btn>
-                                        @else
+                                        @elseif ($puedeEditar)
                                             <x-ui.btn variant="warning" size="sm" wire:click="openDecisionModal({{ $lot->id }})">
                                                 Tomar decisión
                                             </x-ui.btn>
+                                        @else
+                                            <x-ui.badge tone="neutral">Sin decisión</x-ui.badge>
                                         @endif
 
                                         {{-- Paso 8 · sobrantes --}}
                                         @if ($surplus > 0 || $lot->surplus_received)
                                             @if ($lot->surplus_received)
                                                 <x-ui.badge tone="neutral" dot>Material recibido</x-ui.badge>
-                                            @else
+                                            @elseif ($puedeEditar)
                                                 <x-ui.btn variant="warning" size="sm" wire:click="markSurplusReceived({{ $lot->id }})">
                                                     Recibí material
                                                 </x-ui.btn>
@@ -174,11 +190,13 @@
                                         @endif
 
                                         {{-- Paso 5 · empaque --}}
-                                        <x-ui.btn variant="accent" size="sm"
-                                            wire:click="{{ $isCrimp ? 'openConfirmModal' : 'openPackagingModal' }}({{ $lot->id }})">
-                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-                                            {{ $isCrimp ? 'Empacar / confirmar' : 'Registrar empaque' }}
-                                        </x-ui.btn>
+                                        @if ($puedeEditar)
+                                            <x-ui.btn variant="accent" size="sm"
+                                                wire:click="{{ $isCrimp ? 'openConfirmModal' : 'openPackagingModal' }}({{ $lot->id }})">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                                {{ $isCrimp ? 'Empacar / confirmar' : 'Registrar empaque' }}
+                                            </x-ui.btn>
+                                        @endif
                                     </div>
                                 </div>
 
@@ -236,11 +254,13 @@
                                                     <td class="max-w-xs truncate px-4 py-2.5 text-slate-500 dark:text-slate-400">{{ $pw->comments ?: '—' }}</td>
                                                     <td class="px-4 py-2.5">
                                                         <div class="flex justify-end">
-                                                            <x-ui.icon-btn tone="danger" label="Eliminar esta pesada de piezas"
-                                                                wire:click="deletePieceWeighing({{ $pw->id }})"
-                                                                wire:confirm="¿Eliminar esta pesada de piezas?">
-                                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                            </x-ui.icon-btn>
+                                                            @if ($puedeEditar)
+                                                                <x-ui.icon-btn tone="danger" label="Eliminar esta pesada de piezas"
+                                                                    wire:click="deletePieceWeighing({{ $pw->id }})"
+                                                                    wire:confirm="¿Eliminar esta pesada de piezas?">
+                                                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                </x-ui.icon-btn>
+                                                            @endif
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -279,11 +299,13 @@
                                                     <td class="max-w-xs truncate px-4 py-2.5 text-slate-500 dark:text-slate-400">{{ $cw->comments ?: '—' }}</td>
                                                     <td class="px-4 py-2.5">
                                                         <div class="flex justify-end">
-                                                            <x-ui.icon-btn tone="danger" label="Eliminar esta pesada de CRIMP"
-                                                                wire:click="deleteCrimpWeighing({{ $cw->id }})"
-                                                                wire:confirm="¿Eliminar esta pesada de CRIMP?">
-                                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                            </x-ui.icon-btn>
+                                                            @if ($puedeEditar)
+                                                                <x-ui.icon-btn tone="danger" label="Eliminar esta pesada de CRIMP"
+                                                                    wire:click="deleteCrimpWeighing({{ $cw->id }})"
+                                                                    wire:confirm="¿Eliminar esta pesada de CRIMP?">
+                                                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                </x-ui.icon-btn>
+                                                            @endif
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -321,11 +343,13 @@
                                                 <td class="max-w-xs truncate px-4 py-2.5 text-slate-500 dark:text-slate-400">{{ $record->comments ?: '—' }}</td>
                                                 <td class="px-4 py-2.5">
                                                     <div class="flex justify-end">
-                                                        <x-ui.icon-btn tone="danger" label="Eliminar este registro de empaque"
-                                                            wire:click="deletePackaging({{ $record->id }})"
-                                                            wire:confirm="¿Eliminar este registro de empaque?">
-                                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                        </x-ui.icon-btn>
+                                                        @if ($puedeEditar)
+                                                            <x-ui.icon-btn tone="danger" label="Eliminar este registro de empaque"
+                                                                wire:click="deletePackaging({{ $record->id }})"
+                                                                wire:confirm="¿Eliminar este registro de empaque?">
+                                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                            </x-ui.icon-btn>
+                                                        @endif
                                                     </div>
                                                 </td>
                                             </tr>
@@ -391,11 +415,13 @@
             <x-ui.btn variant="secondary" href="{{ route('admin.sent-lists.display') }}">
                 Ver el tablero de piso
             </x-ui.btn>
-            <x-ui.btn variant="success" wire:click="openCloseModal" :disabled="! $allLotsHavePackaging"
-                :title="$allLotsHavePackaging ? null : 'Faltan lotes por empacar'">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                Cerrar y confirmar lista
-            </x-ui.btn>
+            @if ($puedeEditar)
+                <x-ui.btn variant="success" wire:click="openCloseModal" :disabled="! $allLotsHavePackaging"
+                    :title="$allLotsHavePackaging ? null : 'Faltan lotes por empacar'">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    Cerrar y confirmar lista
+                </x-ui.btn>
+            @endif
         </div>
     </x-ui.section>
 
@@ -630,7 +656,12 @@
                         @endif
 
                         {{-- Decision options (only if no closure decision yet) --}}
-                        @if (!$decClosureDecision)
+                        @if (! $decClosureDecision && ! $puedeEditar)
+                            <x-ui.note tone="muted">
+                                El viajero todavía no tiene decisión de cierre, pero esta lista no está en la
+                                etapa de tu departamento: aquí sólo puedes consultar el desglose.
+                            </x-ui.note>
+                        @elseif (!$decClosureDecision)
                             @if ($decIsCrimp)
                                 {{-- CRIMP · Paso 6 (diagrama 4 / wireframe): D1 Cerrar · D2 Completar (a/b/c) · D3 Nuevo lote --}}
                                 <div x-data="{ sel: null, sub: null }">
@@ -862,7 +893,7 @@
                                         <p class="text-[11px] text-gray-500 dark:text-gray-400 pt-1">Empaque captura las piezas faltantes con el botón <strong>“Empacar / Confirmar”</strong> del viajero (Paso 5).</p>
                                     @endif
                                 </div>
-                                @if (!$decSurplusReceived)
+                                @if (! $decSurplusReceived && $puedeEditar)
                                     <button wire:click="confirmSurplusReceived" wire:confirm="¿Marcar la completación como realizada y continuar al Paso 7?"
                                         class="w-full px-4 py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -891,14 +922,16 @@
                                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                                             Empaque entregó <strong class="text-orange-600">{{ number_format($decSurplus) }}</strong> piezas sobrantes. Confirmar recepción.
                                         </p>
-                                        <button wire:click="confirmSurplusReceived"
-                                            wire:confirm="¿Confirma que se recibieron {{ number_format($decSurplus) }} piezas sobrantes?"
-                                            class="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                                            </svg>
-                                            Material Recibido
-                                        </button>
+                                        @if ($puedeEditar)
+                                            <button wire:click="confirmSurplusReceived"
+                                                wire:confirm="¿Confirma que se recibieron {{ number_format($decSurplus) }} piezas sobrantes?"
+                                                class="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                                                </svg>
+                                                Material Recibido
+                                            </button>
+                                        @endif
                                     </div>
                                 @else
                                     <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3">

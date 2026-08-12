@@ -9,7 +9,10 @@
 --}}
 <div class="space-y-5">
 
-    @unless ($this->canEditDepartment())
+    {{-- Sólo lectura: además del aviso, las acciones de escritura no se pintan. --}}
+    @php $puedeEditar = $this->canEditDepartment(); @endphp
+
+    @unless ($puedeEditar)
         <x-ui.note tone="warn" title="Modo sólo lectura">
             Esta lista no está en la etapa de tu departamento o ya fue cerrada. Puedes consultarla, pero no modificarla.
         </x-ui.note>
@@ -145,7 +148,7 @@
                                         <x-ui.row-action :state="$matState"
                                             :label="$lot->lot_number"
                                             :hint="'Material: '.$matLabel.' · '.number_format($lot->quantity).' pz'"
-                                            wire:click="openMaterialModal({{ $lot->id }})" />
+                                            @if ($puedeEditar) wire:click="openMaterialModal({{ $lot->id }})" @endif />
                                     </span>
                                     <span class="text-xs tabular-nums text-slate-500 dark:text-slate-400">
                                         {{ number_format($lot->quantity) }} pz
@@ -176,9 +179,11 @@
                                 <div wire:key="cl-{{ $lot->id }}">
                                     <div class="flex items-center justify-between gap-2">
                                         <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">Viajero {{ $lot->lot_number }}</span>
-                                        <x-ui.btn variant="accent" size="sm" wire:click="openCrimpLotModal({{ $lot->id }})">
-                                            Gestionar
-                                        </x-ui.btn>
+                                        @if ($puedeEditar)
+                                            <x-ui.btn variant="accent" size="sm" wire:click="openCrimpLotModal({{ $lot->id }})">
+                                                Gestionar
+                                            </x-ui.btn>
+                                        @endif
                                     </div>
                                     @if ($lot->crimpLots->isEmpty())
                                         <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">Sin lotes capturados</p>
@@ -210,9 +215,11 @@
 
                 <td class="px-4 py-3">
                     <div class="flex justify-end">
-                        <x-ui.btn variant="primary" size="sm" wire:click="openLotModal({{ $wo->id }})">
-                            Gestionar lotes
-                        </x-ui.btn>
+                        @if ($puedeEditar)
+                            <x-ui.btn variant="primary" size="sm" wire:click="openLotModal({{ $wo->id }})">
+                                Gestionar lotes
+                            </x-ui.btn>
+                        @endif
                     </div>
                 </td>
             </tr>
@@ -237,10 +244,12 @@
         @endif
 
         <div class="flex justify-end">
-            <x-ui.btn variant="success" wire:click="openSendModal">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-                Enviar a Inspección
-            </x-ui.btn>
+            @if ($puedeEditar)
+                <x-ui.btn variant="success" wire:click="openSendModal">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    Enviar a Inspección
+                </x-ui.btn>
+            @endif
         </div>
     </x-ui.section>
 

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Concerns;
 
+use App\Services\ReopeningService;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -10,6 +11,11 @@ use Illuminate\Support\Facades\Auth;
  * Regla: solo puede escribir quien (1) pertenece por rol al departamento que
  * cubre el componente Y (2) la lista está actualmente en esa etapa y sigue
  * editable (SentList::canDepartmentEdit).
+ *
+ * Excepción: Administración. Corregir lo que ya se cerró es justo su trabajo,
+ * así que atraviesa las dos condiciones. El tablero de piso ya lo hacía
+ * (ShippingListDisplay::canAccessDepartment) y aquí no, de modo que el mismo
+ * usuario podía actuar desde una pantalla y recibía un 403 desde la otra.
  *
  * El componente que use este trait DEBE:
  *  - exponer la propiedad pública `$sentList` (App\Models\SentList).
@@ -25,10 +31,19 @@ trait GuardsSentListDepartment
     /**
      * Aborta con 403 si el usuario no puede editar en la etapa actual.
      * Llamar como PRIMERA línea de cada método de escritura.
+     *
+     * Es una red de seguridad contra llamadas Livewire directas, no el gate de
+     * la interfaz: las vistas esconden sus acciones con canEditDepartment(), de
+     * modo que un usuario normal nunca debería llegar hasta aquí.
      */
     protected function ensureCanEditDepartment(): void
     {
         $user = Auth::user();
+
+        // Administración pasa de largo: ver la nota de cabecera del trait.
+        if ($user && $user->can(ReopeningService::PERMISSION)) {
+            return;
+        }
 
         abort_unless(
             $user && $user->canActOnSentListDepartment($this->guardedDepartment()),
@@ -36,10 +51,16 @@ trait GuardsSentListDepartment
             'No pertenece al departamento responsable de esta etapa.'
         );
 
+        // El motivo va en el mensaje: la versión anterior decía sólo «no está en
+        // la etapa de su departamento o ya fue cerrada», y se leía como un
+        // problema de permisos aunque el rol fuese correcto.
         abort_unless(
             $this->sentList->canDepartmentEdit($this->guardedDepartment()),
             403,
-            'Esta lista no está en la etapa de su departamento o ya fue cerrada.'
+            'No es un problema de permisos: la lista #'.$this->sentList->id
+                .' está en la etapa «'.$this->sentList->current_department.'» con estado «'
+                .$this->sentList->status.'», y esta pantalla sólo edita en «'
+                .$this->guardedDepartment().'».'
         );
     }
 
@@ -50,8 +71,15 @@ trait GuardsSentListDepartment
     {
         $user = Auth::user();
 
-        return $user
-            && $user->canActOnSentListDepartment($this->guardedDepartment())
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->can(ReopeningService::PERMISSION)) {
+            return true;
+        }
+
+        return $user->canActOnSentListDepartment($this->guardedDepartment())
             && $this->sentList->canDepartmentEdit($this->guardedDepartment());
     }
 
