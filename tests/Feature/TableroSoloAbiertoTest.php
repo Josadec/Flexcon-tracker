@@ -160,6 +160,43 @@ class TableroSoloAbiertoTest extends TestCase
         $this->assertNotContains($wo->id, $visibles);
     }
 
+    /**
+     * El caso que dejaba el tablero muerto: la ÚNICA orden con trabajo termina
+     * de empacarse y ya no le faltan piezas. La orden sale de la vista (eso está
+     * bien) pero el contador de escondidos se calculaba sólo sobre las órdenes
+     * visibles —ninguna—, así que daba cero: ni barra, ni botón, ni pista. La
+     * pantalla decía «No hay lotes» y no había forma de volver.
+     */
+    public function test_cuando_todo_esta_terminado_el_tablero_lo_anuncia(): void
+    {
+        $user = $this->operador();
+        $wo = $this->orden(10000);
+        $this->viajero($wo, 'V-UNICO', terminado: true);
+        $wo->update(['sent_pieces' => 10000]);
+
+        $componente = Livewire::actingAs($user)->test(ShippingListDisplay::class);
+
+        $this->assertSame([], $this->woIdsVisibles($componente));
+        $this->assertSame(1, $componente->viewData('totalFinishedHidden'));
+        $componente->assertSee('Ver terminados');
+    }
+
+    /** Y el botón tiene que devolverla de verdad, no sólo prometerlo. */
+    public function test_ver_terminados_recupera_una_wo_totalmente_terminada(): void
+    {
+        $user = $this->operador();
+        $wo = $this->orden(10000);
+        $this->viajero($wo, 'V-UNICO', terminado: true);
+        $wo->update(['sent_pieces' => 10000]);
+
+        $componente = Livewire::actingAs($user)->test(ShippingListDisplay::class)
+            ->assertDontSee('V-UNICO')
+            ->call('toggleFinished');
+
+        $this->assertContains($wo->id, $this->woIdsVisibles($componente));
+        $componente->assertSee('V-UNICO');
+    }
+
     public function test_la_vista_enfocada_por_wo_sigue_mostrando_todo(): void
     {
         $user = $this->operador();

@@ -3413,52 +3413,69 @@ class ShippingListDisplay extends Component
         // sólo se excluían las "Completed" —las canceladas seguían ocupando
         // sitio—, y el nombre del estado se comparaba a mano contra un catálogo
         // que se puede renombrar desde la pantalla de Estados.
-        if (!$isFocusedView) {
-            $query->whereNotIn('status_id', StatusWO::closedIds());
+        /**
+         * Filtros que deciden QUÉ órdenes entran al tablero, sin pronunciarse
+         * todavía sobre si una orden con todo terminado se enseña.
+         *
+         * Van en un closure porque el conteo de terminados escondidos tiene que
+         * mirar exactamente el mismo universo: si sólo mirase las órdenes ya
+         * visibles, una orden con TODO terminado no aparecería por ningún lado
+         * —ni en la tabla ni en el contador— y el tablero se quedaba en «No hay
+         * lotes» sin ofrecer siquiera el botón para recuperarla.
+         */
+        $aplicarFiltrosComunes = function ($q) use ($isFocusedView) {
+            if (! $isFocusedView) {
+                $q->whereNotIn('status_id', StatusWO::closedIds());
+            }
 
+            if ($this->focusedWorkOrderId) {
+                $q->where('id', $this->focusedWorkOrderId);
+            }
+
+            // Incluye WOs por dos rutas: directa (sent_list_id) y vía pivot.
+            if ($this->focusedSentListId) {
+                $slId = $this->focusedSentListId;
+                $q->where(function ($sub) use ($slId) {
+                    $sub->where('sent_list_id', $slId)
+                        ->orWhereHas('purchaseOrder.sentLists', fn ($s) => $s->where('sent_lists.id', $slId));
+                });
+            }
+
+            // Búsqueda libre: WO #, # parte o descripción
+            if ($search = trim((string) $this->searchTerm)) {
+                $like = '%' . $search . '%';
+                $q->where(function ($sub) use ($like) {
+                    $sub->where('wo_number', 'like', $like)
+                        ->orWhereHas('purchaseOrder', function ($po) use ($like) {
+                            $po->where('wo', 'like', $like)
+                               ->orWhere('po_number', 'like', $like);
+                        })
+                        ->orWhereHas('purchaseOrder.part', function ($part) use ($like) {
+                            $part->where('number', 'like', $like)
+                                 ->orWhere('description', 'like', $like)
+                                 ->orWhere('item_number', 'like', $like);
+                        });
+                });
+            }
+        };
+
+        $aplicarFiltrosComunes($query);
+
+        if (!$isFocusedView) {
             // Una orden se queda visible mientras le falten piezas, aunque hoy
             // no tenga ningún viajero abierto: es el lunes por la mañana, y
             // alguien tiene que ver que faltan piezas para abrir los viajeros
             // de la semana. Sin esto, el tablero amanecería vacío.
-            $query->where(function ($q) {
-                $q->whereHas('lots', fn ($l) => $l->open())
+            //
+            // Con "Ver terminados" encendido basta con que la orden tenga
+            // viajeros, abiertos o no. Antes esta condición exigía SIEMPRE un
+            // viajero abierto, así que una orden con todo terminado no volvía ni
+            // pidiéndolo: el botón la dejaba fuera igual.
+            $query->where(function ($q) use ($verTerminados) {
+                $q->whereHas('lots', fn ($l) => $verTerminados ? $l : $l->open())
                     ->orWhereHas('purchaseOrder', fn ($po) => $po->whereColumn(
                         'purchase_orders.quantity', '>', 'work_orders.sent_pieces'
                     ));
-            });
-        }
-
-        // Vista enfocada en un único WO
-        if ($this->focusedWorkOrderId) {
-            $query->where('id', $this->focusedWorkOrderId);
-        }
-
-        // Vista enfocada en una SentList completa
-        // Incluye WOs por dos rutas: directa (sent_list_id) y vía pivot (purchase_order → sent_list).
-        if ($this->focusedSentListId) {
-            $slId = $this->focusedSentListId;
-            $query->where(function ($q) use ($slId) {
-                $q->where('sent_list_id', $slId)
-                  ->orWhereHas('purchaseOrder.sentLists', function ($sub) use ($slId) {
-                      $sub->where('sent_lists.id', $slId);
-                  });
-            });
-        }
-
-        // Búsqueda libre: WO #, # parte o descripción
-        if ($search = trim((string) $this->searchTerm)) {
-            $like = '%' . $search . '%';
-            $query->where(function ($q) use ($like) {
-                $q->where('wo_number', 'like', $like)
-                  ->orWhereHas('purchaseOrder', function ($q) use ($like) {
-                      $q->where('wo', 'like', $like)
-                        ->orWhere('po_number', 'like', $like);
-                  })
-                  ->orWhereHas('purchaseOrder.part', function ($q) use ($like) {
-                      $q->where('number', 'like', $like)
-                        ->orWhere('description', 'like', $like)
-                        ->orWhere('item_number', 'like', $like);
-                  });
             });
         }
 
@@ -3550,10 +3567,19 @@ class ShippingListDisplay extends Component
 
         // Cuántos viajeros terminados se están escondiendo, por orden. Es lo
         // que permite decir "3 viajeros terminados" sin traerlos a la tabla.
+        //
+        // Se cuenta sobre TODAS las órdenes candidatas, no sólo sobre las que
+        // sobrevivieron al filtro de arriba: una orden con todo terminado queda
+        // fuera de la tabla justamente por eso, y es la que más falta hace
+        // anunciar. Contándola sólo entre las visibles, el total daba cero y la
+        // barra de «Ver terminados» ni se dibujaba.
+        $candidatos = WorkOrder::query();
+        $aplicarFiltrosComunes($candidatos);
+
         $finishedCounts = $verTerminados
             ? []
             : Lot::finished()
-                ->whereIn('work_order_id', $workOrders->pluck('id'))
+                ->whereIn('work_order_id', $candidatos->select('id'))
                 ->selectRaw('work_order_id, COUNT(*) as total')
                 ->groupBy('work_order_id')
                 ->pluck('total', 'work_order_id')
