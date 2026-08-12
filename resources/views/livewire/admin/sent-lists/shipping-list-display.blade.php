@@ -2764,7 +2764,8 @@
                                 </x-ui.field>
 
                                 <x-ui.field label="Cantidad (piezas)" required
-                                    :hint="'Faltantes del lote actual: '.number_format($decMissing).' pz.'"
+                                    :hint="'Faltantes del lote actual: '.number_format($decMissing).' pz. Sin repartir de la orden: '
+                                        .number_format($selectedLotForDecision->workOrder->unassignedQuantity()).' pz.'"
                                     :error="$errors->first('createLotQuantity')">
                                     <input type="number" wire:model="createLotQuantity" min="1"
                                         class="w-full text-right text-lg font-bold tabular-nums">

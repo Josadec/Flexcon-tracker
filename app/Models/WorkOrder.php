@@ -234,6 +234,27 @@ class WorkOrder extends Model
     }
 
     /**
+     * Cuánto de la orden queda SIN repartir entre sus lotes.
+     *
+     * Es el tope que ya aplicaban a mano media docena de pantallas (el modal de
+     * «Lotes y viajeros», LotEdit, LotManagement, DynamicSentListView…), cada
+     * una con su propia copia de la resta. Aquí vive una sola vez para que
+     * ninguna ruta de creación se quede sin él: crear un lote desde el modal de
+     * decisión no lo comprobaba, y por ahí se podía repartir una orden de
+     * 10,000 piezas en lotes que sumaban mucho más.
+     *
+     * @param int|null $exceptLotId Lote que se está editando y no debe contarse.
+     */
+    public function unassignedQuantity(?int $exceptLotId = null): int
+    {
+        $repartido = $this->lots()
+            ->when($exceptLotId, fn ($q) => $q->where('id', '!=', $exceptLotId))
+            ->sum('quantity');
+
+        return max(0, (int) $this->original_quantity - (int) $repartido);
+    }
+
+    /**
      * Check if the work order is complete.
      */
     public function isComplete(): bool

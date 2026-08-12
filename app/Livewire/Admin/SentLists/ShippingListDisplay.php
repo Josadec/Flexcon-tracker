@@ -2698,6 +2698,21 @@ class ShippingListDisplay extends Component
         $lot = $this->selectedLotForDecision;
         $part = $lot->workOrder->purchaseOrder->part;
 
+        // El mismo tope que el modal de «Lotes y viajeros». Esta ruta no lo
+        // comprobaba: era la puerta por la que una orden de 10,000 piezas
+        // acababa repartida en lotes que sumaban mucho más.
+        $disponible = $lot->workOrder->unassignedQuantity();
+
+        if ((int) $this->createLotQuantity > $disponible) {
+            $this->addError('createLotQuantity', $disponible === 0
+                ? 'La orden ya está repartida por completo ('
+                    .number_format((int) $lot->workOrder->original_quantity).' pz). No queda cantidad para un lote nuevo.'
+                : 'Sólo quedan '.number_format($disponible).' pz sin repartir de esta orden ('
+                    .number_format((int) $lot->workOrder->original_quantity).' pz en total).');
+
+            return;
+        }
+
         // Create new lot (viajero). Para CRIMP, los lotes de CRIMP se capturan luego en
         // Materiales (cuelgan del viajero); ya no se crea un Kit automático.
         Lot::create([

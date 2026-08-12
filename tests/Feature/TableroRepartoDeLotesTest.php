@@ -110,6 +110,58 @@ class TableroRepartoDeLotesTest extends TestCase
         $this->assertSame(10000, (int) Lot::where('work_order_id', $wo->id)->sum('quantity'));
     }
 
+    /**
+     * La puerta de atrás: crear un lote desde el modal de decisión (Paso 6) no
+     * comprobaba nada, así que por ahí se repartía una orden de 10,000 piezas
+     * en lotes que sumaban mucho más. El modal de «Lotes y viajeros» sí lo
+     * bloqueaba, y de ahí venía la confusión de «la regla no sirve».
+     */
+    public function test_crear_un_lote_desde_la_decision_respeta_la_cantidad_de_la_orden(): void
+    {
+        $wo = $this->orden(10000);
+        $lot = $this->repartidaPorCompleto($wo);
+
+        Livewire::actingAs($this->materialista())
+            ->test(ShippingListDisplay::class)
+            ->set('selectedLotForDecision', $lot)
+            ->set('createLotName', '02')
+            ->set('createLotQuantity', 5000)
+            ->set('createLotType', 'complete')
+            ->call('confirmCreateLot')
+            ->assertHasErrors('createLotQuantity');
+
+        $this->assertSame(1, Lot::where('work_order_id', $wo->id)->count());
+        $this->assertSame(10000, (int) Lot::where('work_order_id', $wo->id)->sum('quantity'));
+    }
+
+    public function test_crear_un_lote_desde_la_decision_si_cabe_en_lo_que_queda(): void
+    {
+        $wo = $this->orden(10000);
+        $lot = $this->repartidaPorCompleto($wo);
+        $lot->update(['quantity' => 6000]);   // deja 4,000 sin repartir
+
+        Livewire::actingAs($this->materialista())
+            ->test(ShippingListDisplay::class)
+            ->set('selectedLotForDecision', $lot->fresh())
+            ->set('createLotName', '02')
+            ->set('createLotQuantity', 4000)
+            ->set('createLotType', 'complete')
+            ->call('confirmCreateLot')
+            ->assertHasNoErrors();
+
+        $this->assertSame(2, Lot::where('work_order_id', $wo->id)->count());
+        $this->assertSame(10000, (int) Lot::where('work_order_id', $wo->id)->sum('quantity'));
+    }
+
+    public function test_la_cantidad_sin_repartir_descuenta_los_lotes_existentes(): void
+    {
+        $wo = $this->orden(10000);
+        $this->repartidaPorCompleto($wo);
+
+        $this->assertSame(0, $wo->unassignedQuantity());
+        $this->assertSame(10000, $wo->unassignedQuantity($wo->lots()->first()->id));
+    }
+
     public function test_cuando_la_suma_cuadra_si_guarda(): void
     {
         $wo = $this->orden(10000);
