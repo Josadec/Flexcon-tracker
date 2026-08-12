@@ -176,7 +176,8 @@
                             :title="$etiqueta"
                             :desc="$valor === $lotSeleccionado?->status ? 'Estado actual.' : ($habilitado ? 'Disponible desde el estado actual.' : 'No se puede pasar a este estado desde el actual.')"
                             :selected="$newStatus === $valor"
-                            @disabled(!$habilitado)
+                            {{-- Igual que en lot-show: @disabled(...) rompe la etiqueta del componente. --}}
+                            :disabled="!$habilitado"
                             wire:click="setNewStatus('{{ $valor }}')" />
                     @endforeach
                 </div>

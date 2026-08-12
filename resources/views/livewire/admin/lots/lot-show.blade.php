@@ -142,7 +142,10 @@
                             :title="$etiqueta"
                             :desc="$valor === $lot->status ? 'Estado actual.' : ($habilitado ? 'Disponible desde el estado actual.' : 'No se puede pasar a este estado desde el actual.')"
                             :selected="$newStatus === $valor"
-                            @disabled(!$habilitado)
+                            {{-- Ojo: aquí NO se puede usar @disabled(...). Es una directiva y deja
+                                 PHP crudo dentro de la etiqueta <x-...>, con lo que Blade ya no
+                                 reconoce el componente y lo escupe tal cual (invisible). --}}
+                            :disabled="!$habilitado"
                             wire:click="setNewStatus('{{ $valor }}')" />
                     @endforeach
                 </div>

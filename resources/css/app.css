@@ -356,6 +356,11 @@ select:focus[data-flux-control] {
     .dark .ui-choice { border-color: #334155; border-left-color: #475569; background-color: #1e293b; }
     .dark .ui-choice:hover { background-color: #334155; }
 
+    /* Opción no disponible: se ve, se entiende por qué no, pero no se puede elegir. */
+    .ui-choice:disabled { cursor: not-allowed; opacity: 0.5; }
+    .ui-choice:disabled:hover { border-color: #e2e8f0; background-color: #fff; }
+    .dark .ui-choice:disabled:hover { border-color: #334155; background-color: #1e293b; }
+
     .ui-choice__eyebrow {
         display: block;
         font-size: 0.6875rem;
